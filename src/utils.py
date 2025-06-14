@@ -4,7 +4,44 @@ import json
 load_dotenv()
 
 ###############################
-#             JSON            #
+#             LOG             #
+###############################
+
+def log(message: str, tabs: int = 0) -> None:
+    """
+    Logs a message with a specified number of tabs for indentation.
+    """
+    if not isinstance(message, str):
+        raise TypeError("Message must be a string.")
+    if not isinstance(tabs, int) or tabs < 0:
+        raise ValueError("Tabs must be a non-negative integer.")
+    
+    indent = '\t' * tabs
+    if os.getenv('LOG_LEVEL', "DEBUG").upper() == "DEBUG":
+        print(f"{indent}{message}")
+
+###############################
+#            STRING           #
+###############################
+
+def pascal_to_snake_case(name: str) -> str:
+    """
+    Converts a PascalCase string to snake_case.
+    """
+    if not name:
+        return name
+    result = [name[0].lower()]
+    for char in name[1:]:
+        if char.isupper():
+            result.append('_')
+            result.append(char.lower())
+        else:
+            result.append(char)
+    return ''.join(result)
+
+
+###############################
+#             FILE            #
 ###############################
 
 def get_json_data(file_path: str) -> dict:
@@ -18,7 +55,12 @@ def get_json_data(file_path: str) -> dict:
         raise ValueError(f"Error: {file_path} is empty or not a valid JSON file.")
     return data
 
-
+def clear_dir(dir):
+    dir = "data"
+    for filename in os.listdir(dir):
+        file_path = os.path.join(dir, filename)
+        if os.path.isfile(file_path):
+            os.remove(file_path)
 
 ###############################
 #    Unreal Engine Parsing    #
@@ -50,5 +92,6 @@ def asset_path_to_data(asset_path) -> dict: # "/Game/DungeonCrawler/Data/Generat
     data = get_json_data(file_path)
     return data[0] #json via asset path is technically an array with just one element
 
-def asset_path_to_id(asset_path) -> str: # "/Game/DungeonCrawler/Data/Generated/V2/LootDrop/LootDropGroup/Id_LootDropGroup_GhostKing.Id_LootDropGroup_GhostKing" -> "Id_LootDropGroup_GhostKing"
+def path_to_id(asset_path) -> str: # "/Game/DungeonCrawler/Data/Generated/V2/LootDrop/LootDropGroup/Id_LootDropGroup_GhostKing.Id_LootDropGroup_GhostKing" -> "Id_LootDropGroup_GhostKing"
+    # technically also works for file_path # "DungeonCrawler/ContentData/Generated/V2/LootDrop/LootDropGroup/Id_LootDropGroup_GhostKing.Id_LootDropGroup_GhostKing" -> "Id_LootDropGroup_GhostKing"
     return asset_path.split("/")[-1].split(".")[0]
