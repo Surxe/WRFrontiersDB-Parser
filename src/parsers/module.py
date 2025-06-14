@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import log, path_to_id, get_json_data, pascal_to_snake_case, asset_path_to_data, asset_path_to_file_path
+from utils import log, path_to_id, get_json_data, pascal_to_snake_case, asset_path_to_file_path, PARAMS
 
 from parsers.object import Object
 from parsers.module_rarity import ModuleRarity
@@ -50,7 +50,7 @@ class Module(Object):
         return mr_id
 
 def parse_modules():
-    modules_source_path = os.path.join(os.getenv('EXPORTS_PATH'), r"WRFrontiers\Content\Sparrow\Mechanics\Meta\Entities\Modules")
+    modules_source_path = os.path.join(PARAMS.export_path, r"WRFrontiers\Content\Sparrow\Mechanics\Meta\Entities\Modules")
     for file in os.listdir(modules_source_path):
         if file.endswith(".json"):
             full_path = os.path.join(modules_source_path, file)

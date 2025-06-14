@@ -4,6 +4,47 @@ import json
 load_dotenv()
 
 ###############################
+#           Params            #
+###############################
+class Params:
+    """
+    A class to hold parameters for the application.
+    """
+    def __init__(self):
+        self.export_path = os.getenv('EXPORTS_PATH')
+        self.game_name = os.getenv('GAME_NAME')
+        self.log_level = os.getenv('LOG_LEVEL', 'DEBUG').upper()
+        self.output_path = os.getenv('OUTPUT_PATH', None)
+        self.validate()
+
+    def validate(self):
+        """
+        Validates the parameters.
+        """
+        if not self.export_path:
+            raise ValueError("EXPORTS_PATH environment variable is not set.")
+        if not os.path.exists(self.export_path):
+            raise ValueError(f"EXPORTS_PATH '{self.export_path}' does not exist.")
+
+        if not self.game_name:
+            raise ValueError("GAME_NAME environment variable is not set.")
+        
+        if self.log_level not in ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']:
+            raise ValueError("LOG_LEVEL must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL.")
+        
+        # Create a default output path if not set
+        if self.output_path is None:
+            self.output_path = os.path.join(self.export_path, 'output')
+            os.makedirs(self.output_path, exist_ok=True)
+        if not os.path.exists(self.output_path):
+            raise ValueError(f"OUTPUT_PATH '{self.output_path}' does not exist.")
+
+    def __str__(self):
+        return f"Params(export_path={self.export_path}, game_name={self.game_name}, log_level={self.log_level})"
+
+PARAMS = Params()  # Initialize global Params object
+
+###############################
 #             LOG             #
 ###############################
 
@@ -17,7 +58,7 @@ def log(message: str, tabs: int = 0) -> None:
         raise ValueError("Tabs must be a non-negative integer.")
     
     indent = '\t' * tabs
-    if os.getenv('LOG_LEVEL', "DEBUG").upper() == "DEBUG":
+    if PARAMS.log_level == "DEBUG":
         print(f"{indent}{message}")
 
 ###############################
@@ -73,7 +114,7 @@ def asset_path_to_file_path(asset_path):
         # "DungeonCrawler/Content/DungeonCrawler/ActorStatus/Buff/AbyssalFlame/GE_AbyssalFlame.0" -> "F:\DarkAndDarkerWiki\Exports\DungeonCrawler\Content\DungeonCrawler\ActorStatus\Buff\AbyssalFlame\GE_AbyssalFlame.json"
     # asset_path_name (V2) are prefixed with \Game instead of \DungeonCrawler\Content, and suffixed with .<index>
         # "/Game/DungeonCrawler/Maps/Dungeon/Modules/Crypt/Edge/Armory/Armory_A.Armory_A" -> "F:\DarkAndDarkerWiki\Exports\DungeonCrawler\Content\Maps\Dungeon\Modules\Crypt\Edge\Armory\Armory_A.json"
-    return os.getenv('EXPORTS_PATH') + "\\" + asset_path.split('.')[0].replace("/Game/",f"\\{game_name}\\Content\\") + ".json"
+    return PARAMS.export_path + "\\" + asset_path.split('.')[0].replace("/Game/",f"\\{game_name}\\Content\\") + ".json"
 
 # Converts "asset_path_name" or "ObjectPath" to the actual file path and the index of the asset
 # when a asset/object path is referenced, the index corresponds to the specific element of the asset to jump to

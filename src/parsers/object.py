@@ -1,6 +1,12 @@
 
-import json
+# Add parent dirs to sys path
+import sys
 import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from utils import PARAMS
+
+import json
 
 class Object: #generic object that all classes extend
     objects = dict()  # Dictionary to hold all object instances
@@ -61,6 +67,6 @@ class Object: #generic object that all classes extend
     
     @classmethod
     def to_file(cls):
-        file_path = os.path.join(os.getenv('OUTPUT_PATH'), f'{cls.__name__}.json')
+        file_path = os.path.join(PARAMS.output_path, f'{cls.__name__}.json')
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(cls.to_json())
