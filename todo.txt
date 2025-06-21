@@ -1,0 +1,4 @@
+* module file; use keys prefixed with default in module scalers if no leveldata present
+# parse character module weapon stats from cdo
+# icons
+# everything in ctrl shift f "pass"

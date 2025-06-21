@@ -4,14 +4,13 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import PARAMS
+from utils import PARAMS, path_to_id, asset_path_to_file_path, get_json_data, log, parse_localization
 
 import json
 
 class Object: #generic object that all classes extend
     objects = dict()  # Dictionary to hold all object instances
-    localization_table_id = None  # Class variable to hold the localization table ID
-
+    
     def __init__(self, id: str, source_data: dict):
         self.source_data = source_data
         self.id = id
@@ -25,16 +24,6 @@ class Object: #generic object that all classes extend
         """
         raise NotImplementedError("Subclasses must implement this method.")
 
-    @classmethod
-    def get_from_id(cls, id, create_if_missing=False):
-        if id not in cls.objects:
-            if create_if_missing:
-                return cls(id)
-            else:
-                return None
-        else:
-            return cls.objects[id]
-        
     def to_dict(self):
         """
         Returns a dictionary representation of the object, excluding source_data.
@@ -48,14 +37,43 @@ class Object: #generic object that all classes extend
         return obj_as_dict
 
     @classmethod
+    def get_from_id(cls, id, create_if_missing=False):
+        """
+        Returns an object from the class dictionary by its ID.
+        If the object does not exist and create_if_missing is True, it creates a new instance.
+        """
+        if id not in cls.objects:
+            if create_if_missing:
+                return cls(id)
+            else:
+                return None
+        else:
+            return cls.objects[id]
+        
+    @classmethod
+    def get_from_asset_path(cls, asset_path: str, log_tabs: int = 1) -> str:
+        """
+        Returns the ID of an object from its asset path.
+        If the object does not exist, it creates a new instance by parsing the asset file.
+        """
+        obj_id = path_to_id(asset_path)
+        obj = cls.get_from_id(obj_id)
+        if obj is None:
+            file_path = asset_path_to_file_path(asset_path)
+            log(f"Parsing {cls.__name__} {obj_id} from {file_path}", tabs=log_tabs)
+            obj_data = get_json_data(file_path)[0]
+            obj = cls(obj_id, obj_data)
+
+        return obj_id
+
+    @classmethod
     def objects_to_dict(cls):
         """
         Returns a dictionary representation of all objects
         """
-        new_dict = dict()
-        new_dict['localization_table_id'] = cls.localization_table_id
-        new_dict['objects'] = {obj_id: obj.to_dict() for obj_id, obj in cls.objects.items()}
-        
+
+        new_dict = {obj_id: obj.to_dict() for obj_id, obj in cls.objects.items()}
+
         return new_dict
     
     @classmethod

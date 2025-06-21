@@ -61,25 +61,6 @@ def log(message: str, tabs: int = 0) -> None:
     if PARAMS.log_level == "DEBUG":
         print(f"{indent}{message}")
 
-###############################
-#            STRING           #
-###############################
-
-def pascal_to_snake_case(name: str) -> str:
-    """
-    Converts a PascalCase string to snake_case.
-    """
-    if not name:
-        return name
-    result = [name[0].lower()]
-    for char in name[1:]:
-        if char.isupper():
-            result.append('_')
-            result.append(char.lower())
-        else:
-            result.append(char)
-    return ''.join(result)
-
 
 ###############################
 #             FILE            #
@@ -109,7 +90,7 @@ def clear_dir(dir):
 
 # Converts "asset_path_name" or "ObjectPath" to the actual file path
 def asset_path_to_file_path(asset_path):
-    game_name = os.getenv('GAME_NAME', 'DungeonCrawler') 
+    game_name = PARAMS.game_name
     # ObjectPath (DT) are suffixed with .<assetName> like path/to//assetName.assetName, return 0 index
         # "DungeonCrawler/Content/DungeonCrawler/ActorStatus/Buff/AbyssalFlame/GE_AbyssalFlame.0" -> "F:\DarkAndDarkerWiki\Exports\DungeonCrawler\Content\DungeonCrawler\ActorStatus\Buff\AbyssalFlame\GE_AbyssalFlame.json"
     # asset_path_name (V2) are prefixed with \Game instead of \DungeonCrawler\Content, and suffixed with .<index>
@@ -129,10 +110,61 @@ def asset_path_to_file_path_and_index(asset_path):
 
 
 def asset_path_to_data(asset_path) -> dict: # "/Game/DungeonCrawler/Data/Generated/V2/LootDrop/LootDropGroup/Id_LootDropGroup_GhostKing.Id_LootDropGroup_GhostKing" -> the data found within the file stored locally
-    file_path = asset_path_to_file_path(asset_path)
+    file_path, index = asset_path_to_file_path_and_index(asset_path)
     data = get_json_data(file_path)
-    return data[0] #json via asset path is technically an array with just one element
+    return data[index] #json via asset path is technically an array with just one element
 
 def path_to_id(asset_path) -> str: # "/Game/DungeonCrawler/Data/Generated/V2/LootDrop/LootDropGroup/Id_LootDropGroup_GhostKing.Id_LootDropGroup_GhostKing" -> "Id_LootDropGroup_GhostKing"
     # technically also works for file_path # "DungeonCrawler/ContentData/Generated/V2/LootDrop/LootDropGroup/Id_LootDropGroup_GhostKing.Id_LootDropGroup_GhostKing" -> "Id_LootDropGroup_GhostKing"
     return asset_path.split("/")[-1].split(".")[0]
+
+###############################
+# Frequent Structure Parsing  #
+###############################
+
+# Parsers for common structures used in this specific game data
+def parse_badge_visual_info(data: dict):
+    """
+    Parses the BadgeVisualInfo structure from the given data.
+    Returns (image_id, tint_hex)
+    """
+    if not isinstance(data, dict):
+        raise TypeError("Data must be a dictionary.")
+    
+    image_id = None
+    if "Image" in data and "AssetPathName" in data["Image"]:
+        image_id = path_to_id(data["Image"]["AssetPathName"])
+    
+    tint_hex = None
+    if 'TintColor' in data and 'Hex' in data["TintColor"]:  
+        tint_hex = data["TintColor"]["Hex"]
+    
+    return image_id, tint_hex
+
+def parse_localization(data: dict):
+    if not isinstance(data, dict):
+        raise TypeError("Data must be a dictionary.")
+    
+    localization_key = None
+    if "Key" in data:
+        localization_key = data["Key"]
+    
+    localization_table_id = None
+    if "TableId" in data:
+        localization_table_id = path_to_id(data["TableId"])
+
+    invariant_string = None
+    if "CultureInvariantString" in data:
+        invariant_string = data["CultureInvariantString"]  
+    
+    if localization_key is not None and localization_table_id is not None:
+        return {
+            "Key": localization_key,
+            "TableId": localization_table_id
+        }
+    elif invariant_string is not None:
+        return {
+            "InvariantString": invariant_string
+        }
+    else:
+        return None
