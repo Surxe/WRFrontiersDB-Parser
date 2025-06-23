@@ -19,6 +19,8 @@ class ModuleCategory(Object):
             "Icon": self._p_icon,
             "SuperCategory": None,
             "SortOrder": self._p_sort_order,
+            "IsVisual": self._p_is_visual,
+            "ModuleTypeUIStats": self._p_ui_stats,
             "RingErrorText": None,
             "UIStats": self._p_ui_stats,
         }
@@ -41,6 +43,9 @@ class ModuleCategory(Object):
 
     def _p_sort_order(self, data):
         self.sort_order = data
+
+    def _p_is_visual(self, data):
+        self.is_visual = data
 
     def _p_ui_stats(self, data):
         pass #TODO

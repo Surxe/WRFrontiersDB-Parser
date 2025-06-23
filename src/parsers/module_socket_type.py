@@ -4,6 +4,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import Object
+from parsers.module_type import ModuleType
 from utils import parse_localization, log
 
 class ModuleSocketType(Object):
@@ -24,7 +25,9 @@ class ModuleSocketType(Object):
             "RingErrorText": None,
             "FilterOptions": None,
             "SortingOptions": None,
+            "bCanBeChangedByUser": self._p_can_be_changed,
             "CompatibleModules": self._p_compatible_modules,
+            "Required": self._p_required,
             "ID": None,
         }
         for key, data in props.items():
@@ -33,7 +36,7 @@ class ModuleSocketType(Object):
                 if function:
                     function(data)
             else:
-                log(f"Warning: {self.__class__.__name__} {self.id} has unknown property '{key}'", tabs=3)
+                log(f"Warning: {self.__class__.__name__} {self.id} has unknown property '{key}'", tabs=2)
 
     def _p_human_name(self, data):
         self.name = parse_localization(data)
@@ -53,8 +56,15 @@ class ModuleSocketType(Object):
     def _p_tag_background_color(self, data):
         self.tag_background_color = data["Hex"]
 
-    def _p_compatible_modules(self, data):
-        pass
+    def _p_can_be_changed(self, data):
+        self.can_be_changed = data
 
-    def _p_icon(self, data):
-        pass #TODO
+    def _p_compatible_modules(self, data):
+        self.compatible_module_types = []
+        for elem in data:
+            asset_path = elem["ObjectPath"]
+            module_type_id = ModuleType.get_from_asset_path(asset_path)
+            self.compatible_module_types.append(module_type_id)
+
+    def _p_required(self, data):
+        self.required = data

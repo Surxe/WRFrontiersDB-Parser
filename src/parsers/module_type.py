@@ -5,7 +5,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import Object
 from parsers.module_category import ModuleCategory
-from parsers.module_socket_type import ModuleSocketType
 from utils import parse_localization, log
 
 class ModuleType(Object):
@@ -21,7 +20,8 @@ class ModuleType(Object):
             "BlueprintName": self._p_blueprint_name,
             "TagColor": self._p_tag_color,
             "TagBackgroundColor": self._p_tag_background_color,
-            "ModuleSocketTypes": self._p_module_socket_types,
+            "ModuleSocketTypes": None,
+            "IsRootModule": self._p_is_root_module,
             "CharacterType": self._p_character_type,
             "ID": None,
         }
@@ -54,11 +54,8 @@ class ModuleType(Object):
     def _p_tag_background_color(self, data):
         self.tag_background_color = data["Hex"]
 
-    def _p_module_socket_types(self, data):
-        module_socket_types_ids = []
-        for socket_type in data:
-            asset_path = socket_type["ObjectPath"]
-            module_socket_types_ids.append(ModuleSocketType.get_from_asset_path(asset_path))
+    def _p_is_root_module(self, data):
+        self.is_root_module = data
 
     def _p_character_type(self, data):
         self.character_type = data.split('ESCharacterType::')[-1]  # ESCharacterType::Titan -> Titan

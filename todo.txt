@@ -2,3 +2,5 @@
 # parse character module weapon stats from cdo
 # icons
 # everything in ctrl shift f "pass"
+# do not create instance CharacterModule, instead parse the relevant data with module.py directly
+# move "Parsing x" print to inside object.parse

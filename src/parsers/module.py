@@ -16,6 +16,8 @@ from parsers.module_tag import ModuleTag
 from parsers.module_type import ModuleType
 from parsers.module_category import ModuleCategory
 from parsers.module_socket_type import ModuleSocketType
+from parsers.module_stat import ModuleStat
+from parsers.module_stats_table import ModuleStatsTable
 
 class Module(Object):
     objects = dict()
@@ -37,6 +39,7 @@ class Module(Object):
                 "CharacterModules": self._p_character_modules,
                 "ModuleTags": self._p_module_tags,
                 "ModuleScaler": self._p_module_scalar,
+                "AbilityScalers": self._p_ability_scalars,
                 "Title": self._p_title,
                 "Description": self._p_description,
                 "TextTags": self._p_text_tags,
@@ -90,10 +93,37 @@ class Module(Object):
 
     def _p_module_scalar(self, data):
         module_scalar_data = asset_path_to_data(data["ObjectPath"])
-        if "LevelsData" not in module_scalar_data["Properties"]:
-            log(f"Warning: {self.__class__.__name__} {self.id} module scalar data has no LevelsData", tabs=1)
+        self.module_scalars = self._p_scalars(module_scalar_data)
+        
+
+    def _p_ability_scalars(self, data):
+        self.abilities_scalars = []
+        for elem in data:
+            asset_path = elem["ObjectPath"]
+            ability_scalar_data = asset_path_to_data(asset_path)
+            self.abilities_scalars.append(self._p_scalars(ability_scalar_data))
+
+    def _p_scalars(self, data):
+        if "LevelsData" not in data["Properties"]:
             return
-        levels_data = module_scalar_data["Properties"]["LevelsData"]
+        
+        def _p_parameter(data, parmeter_order):
+            """
+            data may contain 
+            {
+                "DefaultPrimaryParameter": float,
+                "PrimaryStatMetaInformation": { ObjectPath: object path to ModuleStat }
+            }
+            parameter_order = "Primary" or "Secondary"
+            """
+            default_x_parameter = f"Default{parmeter_order}Parameter"
+            x_stat_meta_information = f"{parmeter_order}StatMetaInformation"
+            if x_stat_meta_information in data:
+                asset_path = data[x_stat_meta_information]["ObjectPath"]
+                stat_id = ModuleStat.get_from_asset_path(asset_path)
+                return stat_id
+        
+        levels_data = data["Properties"]["LevelsData"]
 
         # Determine which stats are constants and which are not
         first_level_data = levels_data[0]
@@ -118,8 +148,12 @@ class Module(Object):
 
             parsed_levels_variable_stats.append(parsed_level_variable_stats)
 
-        self.levels = parsed_levels_variable_stats
-        self.constants = parsed_constant_stats
+        module_scalars = dict()
+        module_scalars["variables"] = parsed_levels_variable_stats
+        module_scalars["constants"] = parsed_constant_stats
+
+        return module_scalars
+            
 
     def _p_title(self, data):
         self.name = parse_localization(data)
@@ -156,7 +190,11 @@ class Module(Object):
         self.module_type_id = ModuleType.get_from_asset_path(asset_path, log_tabs=1)
 
     def _p_sockets(self, data):
-        pass
+        self.module_socket_type_ids = []
+        for elem in data:
+            asset_path = elem["Type"]["ObjectPath"]
+            module_socket_type_id = ModuleSocketType.get_from_asset_path(asset_path)
+            self.module_socket_type_ids.append(module_socket_type_id)
 
     def _p_levels(self, data):
         pass
@@ -183,6 +221,8 @@ def parse_modules():
     ModuleType.to_file()
     ModuleCategory.to_file()
     ModuleSocketType.to_file()
+    ModuleStat.to_file()
+    ModuleStatsTable.to_file()
 
 if __name__ == "__main__":
     parse_modules()
