@@ -13,7 +13,7 @@ class ModuleStatsTable(Object):
         props = self.source_data["Properties"]
         stats = props["AllModuleStats"]
         self.stats = dict()
-        for stat_key, stat_data in stats:
+        for stat_key, stat_data in stats.items():
             asset_path = stat_data["ObjectPath"]
             stat_id = ModuleStat.get_from_asset_path(asset_path)
             self.stats[stat_key] = stat_id

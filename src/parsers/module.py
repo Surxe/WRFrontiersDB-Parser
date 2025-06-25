@@ -182,6 +182,7 @@ class Module(Object):
 
     def _p_module_stats_table(self, data):
         asset_path = data["ObjectPath"]
+        self.module_stats_table_id = ModuleStatsTable.get_from_asset_path(asset_path)
         pass      
 
     def _p_module_type(self, data):
