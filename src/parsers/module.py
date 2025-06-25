@@ -18,6 +18,7 @@ from parsers.module_category import ModuleCategory
 from parsers.module_socket_type import ModuleSocketType
 from parsers.module_stat import ModuleStat
 from parsers.module_stats_table import ModuleStatsTable
+from parsers.currency import Currency
 
 class Module(Object):
     objects = dict()
@@ -93,15 +94,17 @@ class Module(Object):
 
     def _p_module_scalar(self, data):
         module_scalar_data = asset_path_to_data(data["ObjectPath"])
-        self.module_scalars = self._p_scalars(module_scalar_data)
+        if not hasattr(self, "levels"):
+            self.levels = dict()
+        self.levels["module_scalars"] = self._p_scalars(module_scalar_data)
         
 
     def _p_ability_scalars(self, data):
-        self.abilities_scalars = []
+        self.levels["abilities_scalars"] = []
         for elem in data:
             asset_path = elem["ObjectPath"]
             ability_scalar_data = asset_path_to_data(asset_path)
-            self.abilities_scalars.append(self._p_scalars(ability_scalar_data))
+            self.levels["abilities_scalars"].append(self._p_scalars(ability_scalar_data))
 
     def _p_scalars(self, data):
         if "LevelsData" not in data["Properties"]:
@@ -122,9 +125,83 @@ class Module(Object):
                 asset_path = data[x_stat_meta_information]["ObjectPath"]
                 stat_id = ModuleStat.get_from_asset_path(asset_path)
                 return stat_id
+            
+        parsed_scalars = dict()
         
-        levels_data = data["Properties"]["LevelsData"]
+        parsed_scalars["primary_stat_id"] = _p_parameter(data["Properties"], "Primary")
+        parsed_scalars["secondary_stat_id"] = _p_parameter(data["Properties"], "Secondary")
 
+        parsed_levels_data = self._p_levels_data(data["Properties"]["LevelsData"])
+
+        constants_and_variables = self._separate_constants_and_variables(parsed_levels_data)
+        parsed_scalars["constants"] = constants_and_variables["constants"]
+        parsed_scalars["variables"] = constants_and_variables["variables"]
+
+        return parsed_scalars
+    
+    def _p_levels_data(self, data):
+        parsed_levels = []
+        for level in data:
+            """
+            level may contain:
+            {
+                "UpgradeCurrency": "DA_Meta_Currency_Alloys",
+                "UpgradeCost": 51200,
+                
+                "FirstScrapRewardAmount": 15360,
+                "FirstScrapRewardCurrency": "DA_Meta_Currency_Alloys",
+                "SecondScrapRewardAmount": 0,
+                "SecondScrapRewardCurrency": "DA_Meta_Currency_Intel",
+            }
+            """
+
+            parsed_level = dict()
+
+            if "UpgradeCurrency" in level and "UpgradeCost" in level:
+                upgrade_currency = level["UpgradeCurrency"]
+                upgrade_cost = level["UpgradeCost"]
+                if upgrade_currency is not None and upgrade_cost > 0:
+                    parsed_level["UpgradeCurrency"] = {
+                        "currency_id": upgrade_currency,
+                        "Amount": upgrade_cost
+                    }
+
+            def _p_scrap_reward_amount(first_or_second):
+                """
+                first_or_second: "First" or "Second"
+                """
+                scrap_reward_amount_key = f"{first_or_second}ScrapRewardAmount"
+                scrap_reward_currency_key = f"{first_or_second}ScrapRewardCurrency"
+                if scrap_reward_currency_key in level and scrap_reward_amount_key in level:
+                    scrap_reward_currency = level[scrap_reward_currency_key]
+                    scrap_reward_amount = level[scrap_reward_amount_key]
+                    if scrap_reward_currency is not None and scrap_reward_amount > 0:
+                        parsed_level['ScrapRewards'].append({
+                            "currency_id": scrap_reward_currency,
+                            "Amount": scrap_reward_amount
+                        })
+                
+
+            parsed_level["ScrapRewards"] = []
+            _p_scrap_reward_amount("First")
+            _p_scrap_reward_amount("Second")
+
+            # Include all other key data pairs in the level
+            for key, value in level.items():
+                if key not in ["UpgradeCurrency", "UpgradeCost", "FirstScrapRewardAmount", "FirstScrapRewardCurrency", "SecondScrapRewardAmount", "SecondScrapRewardCurrency"]:
+                    parsed_level[key] = value
+
+            parsed_levels.append(parsed_level)
+
+        return parsed_levels
+
+    def _separate_constants_and_variables(self, levels_data):
+        """
+        Separates constants and variables from the data.
+        Constants are those that do not change across levels.
+        Variables are those that change across levels.
+        """
+        
         # Determine which stats are constants and which are not
         first_level_data = levels_data[0]
         non_constants = dict() # {non_constant_key: True}
@@ -148,11 +225,10 @@ class Module(Object):
 
             parsed_levels_variable_stats.append(parsed_level_variable_stats)
 
-        module_scalars = dict()
-        module_scalars["variables"] = parsed_levels_variable_stats
-        module_scalars["constants"] = parsed_constant_stats
-
-        return module_scalars
+        return {
+            "variables": parsed_levels_variable_stats,
+            "constants": parsed_constant_stats
+        }
             
 
     def _p_title(self, data):
@@ -198,7 +274,68 @@ class Module(Object):
             self.module_socket_type_ids.append(module_socket_type_id)
 
     def _p_levels(self, data):
-        pass
+        if not hasattr(self, "levels"):
+            self.levels = dict()
+        self.levels["other"] = []
+
+        def _p_currency(data):
+            """
+            data may contain 
+            {
+                "Currency": { ObjectPath: object path to Currency },
+                "Amount": int
+            }
+
+            returns
+            {
+                "currency_id": Currency
+                "Amount": int
+            }
+            """
+            if "Currency" not in data or "Amount" not in data:
+                return None
+            
+            currency_data = data["Currency"]
+            current_amount = data["Amount"]
+
+            if currency_data is None and current_amount == 0:
+                return None
+            elif currency_data is None:
+                raise Exception(f"Structure change: {self.__class__.__name__} {self.id} has currency data with no Currency but Amount is {current_amount} and length of array is {len(data)}.", tabs=1)
+            
+            currency_asset_path = currency_data["ObjectPath"]
+            currency_id = Currency.get_from_asset_path(currency_asset_path)
+
+            return {
+                "currency_id": currency_id,
+                "Amount": current_amount
+            }
+
+        for level in data:
+            parsed_level = dict()
+
+            for key, value in level.items():
+                if type(value) is dict and "Currency" in value and "Amount" in value:
+                    parsed_value = _p_currency(value)
+                    if parsed_value is None:
+                        return
+                elif type(value) is list:
+                    parsed_value = []
+                    for elem in value:
+                        if type(elem) is dict and "Currency" in elem and "Amount" in elem:
+                            parsed_elem = _p_currency(elem)
+                            if parsed_elem is None:
+                                return
+                            parsed_value.append(parsed_elem)
+                        else:
+                            parsed_value.append(elem)
+                else:
+                    parsed_value = value
+                    
+                parsed_level[key] = parsed_value
+            self.levels["other"].append(parsed_level)
+
+        self.levels["other"] = self._separate_constants_and_variables(self.levels["other"])
 
 
 def parse_modules():
@@ -224,6 +361,7 @@ def parse_modules():
     ModuleSocketType.to_file()
     ModuleStat.to_file()
     ModuleStatsTable.to_file()
+    Currency.to_file()
 
 if __name__ == "__main__":
     parse_modules()

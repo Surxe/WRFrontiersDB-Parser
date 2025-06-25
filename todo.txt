@@ -1,4 +1,4 @@
-* module file; use keys prefixed with default in module scalers if no leveldata present
+* module file; use keys prefixed with default in module scalers if no leveldata present, use DA_Module_ChassisFenrir as guide
 # parse character module weapon stats from cdo
 # icons
 # everything in ctrl shift f "pass"
