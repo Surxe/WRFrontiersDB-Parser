@@ -13,10 +13,14 @@ class ModuleTag(Object):
     def _parse(self):
         props = self.source_data["Properties"]
         
-        self.name = parse_localization(props["HumanName"])
-        if 'Description' in props:
-            description = parse_localization(props["Description"])
-            if description is not None:
-                self.description = description
-        self.text_hex = props["TextColor"]["Hex"]
-        self.background_hex = props["BackgroundColor"]["Hex"]
+        key_to_parser_function = {
+            "HumanName": (parse_localization, "name"),
+            "Description": (parse_localization, "description"),
+            "TextColor": (self._p_hex, "text_hex"),
+            "BackgroundColor": (self._p_hex, "background_hex"),
+        }
+        
+        self._process_key_to_parser_function(key_to_parser_function, props, 2)
+
+    def _p_hex(self, data):
+        return data["Hex"]

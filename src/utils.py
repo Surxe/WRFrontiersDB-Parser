@@ -123,10 +123,10 @@ def path_to_id(asset_path) -> str: # "/Game/DungeonCrawler/Data/Generated/V2/Loo
 ###############################
 
 # Parsers for common structures used in this specific game data
+
 def parse_badge_visual_info(data: dict):
     """
     Parses the BadgeVisualInfo structure from the given data.
-    Returns (image_id, tint_hex)
     """
     if not isinstance(data, dict):
         raise TypeError("Data must be a dictionary.")
@@ -139,7 +139,10 @@ def parse_badge_visual_info(data: dict):
     if 'TintColor' in data and 'Hex' in data["TintColor"]:  
         tint_hex = data["TintColor"]["Hex"]
     
-    return image_id, tint_hex
+    return {
+        "image_id": image_id,
+        "tint_hex": tint_hex
+    }
 
 def parse_localization(data: dict):
     if not isinstance(data, dict):

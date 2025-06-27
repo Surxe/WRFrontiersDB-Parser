@@ -13,8 +13,16 @@ class Faction(Object):
     def _parse(self):
         props = self.source_data["Properties"]
 
-        self.image_id = path_to_id(props["Image"]["AssetPathName"])
+        key_to_parser_function = {
+            "Image": (self._p_image, "image_id"),
+            "Name": (parse_localization, "name"),
+            "BadgeVisualInfo": (parse_badge_visual_info, "badge"),
+        }
 
-        self.badge_id, self.tint_hex = parse_badge_visual_info(props["BadgeVisualInfo"])
+        self._process_key_to_parser_function(key_to_parser_function, props, 2)
 
-        self.name = parse_localization(props["Name"])
+    def _p_image(self, data):
+        """
+        Parses the image data and returns the image ID.
+        """
+        return path_to_id(data["AssetPathName"])

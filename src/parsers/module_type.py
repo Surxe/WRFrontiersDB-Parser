@@ -14,48 +14,27 @@ class ModuleType(Object):
         props = self.source_data["Properties"]
 
         key_to_parser_function = {
-            "Category": self._p_module_category,
-            "HumanName": self._p_human_name,
-            "Description": self._p_description,
-            "BlueprintName": self._p_blueprint_name,
-            "TagColor": self._p_tag_color,
-            "TagBackgroundColor": self._p_tag_background_color,
+            "Category": (self._p_module_category, "module_category_id"),
+            "HumanName": (parse_localization, "name"),
+            "Description": (parse_localization, "description"),
+            "BlueprintName": (parse_localization, "blueprint_name"),
+            "TagColor": (self._p_hex, "tag_color"),
+            "TagBackgroundColor": (self._p_hex, "tag_background_color"),
             "ModuleSocketTypes": None,
-            "IsRootModule": self._p_is_root_module,
-            "CharacterType": self._p_character_type,
+            "IsRootModule": ("value", "is_root_module"),
+            "CharacterType": (self._p_character_type, "character_type"),
             "ID": None,
         }
 
-        for key, data in props.items():
-            if key in key_to_parser_function:
-                function = key_to_parser_function[key]
-                if function:
-                    function(data)
-            else:
-                log(f"Warning: {self.__class__.__name__} {self.id} has unknown property '{key}'", tabs=2)
+        self._process_key_to_parser_function(key_to_parser_function, props, 2)
 
     def _p_module_category(self, data):
         asset_path = data["ObjectPath"]
 
-        self.module_category_id = ModuleCategory.get_from_asset_path(asset_path)
+        return ModuleCategory.get_from_asset_path(asset_path)
 
-    def _p_human_name(self, data):
-        self.name = parse_localization(data)
-
-    def _p_description(self, data):
-        self.description = parse_localization(data)
-
-    def _p_blueprint_name(self, data):
-        self.blueprint_name = parse_localization(data)
-
-    def _p_tag_color(self, data):
-        self.tag_color = data["Hex"]
-
-    def _p_tag_background_color(self, data):
-        self.tag_background_color = data["Hex"]
-
-    def _p_is_root_module(self, data):
-        self.is_root_module = data
+    def _p_hex(self, data):
+        return data["Hex"]
 
     def _p_character_type(self, data):
-        self.character_type = data.split('ESCharacterType::')[-1]  # ESCharacterType::Titan -> Titan
+        return data.split('ESCharacterType::')[-1]  # ESCharacterType::Titan -> Titan

@@ -11,5 +11,13 @@ class ModuleClass(Object):
     
     def _parse(self):
         props = self.source_data["Properties"]
-        character_class_asset_path = props["CharacterClassDataAsset"]["ObjectPath"]
-        CharacterClass.get_from_asset_path(character_class_asset_path)
+
+        key_to_parser_function = {
+            "CharacterClassDataAsset": (self._p_character_class, "character_class_id"),
+        }
+
+        self._process_key_to_parser_function(key_to_parser_function, props, 2)
+
+    def _p_character_class(self, data):
+        asset_path = data["ObjectPath"]
+        return CharacterClass.get_from_asset_path(asset_path)

@@ -13,5 +13,13 @@ class Rarity(Object):
     def _parse(self):
         props = self.source_data["Properties"]
         rarity_info = props["RarityInfo"]
-        self.name = parse_localization(rarity_info["Name"])
-        self.hex = rarity_info["RarityColor"]["Hex"]
+
+        key_to_parser_function = {
+            "Name": (parse_localization, "name"),
+            "RarityColor": (self._p_hex, "hex"),
+        }
+
+        self._process_key_to_parser_function(key_to_parser_function, rarity_info, 2)
+
+    def _p_hex(self, data):
+        return data["Hex"]

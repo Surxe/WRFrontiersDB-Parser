@@ -12,7 +12,14 @@ class ModuleRarity(Object):
     
     def _parse(self):
         props = self.source_data["Properties"]
-        self.sort_order = props["SortOrder"]
 
-        rarity_asset_path = props["RarityDataAsset"]["ObjectPath"]
-        self.rarity_id = Rarity.get_from_asset_path(rarity_asset_path)
+        key_to_parser_function = {
+            "SortOrder": ("value", "sort_order"),
+            "RarityDataAsset": (self._p_rarity_data_asset, "rarity_id"),
+        }
+        
+        self._process_key_to_parser_function(key_to_parser_function, props, 2)
+
+    def _p_rarity_data_asset(self, data):
+        asset_path = data["ObjectPath"]
+        return Rarity.get_from_asset_path(asset_path)

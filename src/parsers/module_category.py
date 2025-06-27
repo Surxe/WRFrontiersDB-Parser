@@ -13,39 +13,22 @@ class ModuleCategory(Object):
         props = self.source_data["Properties"]
 
         key_to_parser_function = {
-            "HumanName": self._p_human_name,
-            "Description": self._p_description,
+            "HumanName": (parse_localization, "name"),
+            "Description": (parse_localization, "description"),
             "TutorialTargetTag": None,
-            "Icon": self._p_icon,
+            "Icon": (self._p_icon, "icon"),
             "SuperCategory": None,
-            "SortOrder": self._p_sort_order,
-            "IsVisual": self._p_is_visual,
-            "ModuleTypeUIStats": self._p_ui_stats,
+            "SortOrder": ("value", "sort_order"),
+            "IsVisual": ("value", "is_visual"),
+            "ModuleTypeUIStats": (self._p_ui_stats, "module_type_ui_stats"),
             "RingErrorText": None,
-            "UIStats": self._p_ui_stats,
+            "UIStats": (self._p_ui_stats, "ui_stats"),
         }
-        for key, data in props.items():
-            if key in key_to_parser_function:
-                function = key_to_parser_function[key]
-                if function:
-                    function(data)
-            else:
-                log(f"Warning: {self.__class__.__name__} {self.id} has unknown property '{key}'", tabs=2)
-
-    def _p_human_name(self, data):
-        self.name = parse_localization(data)
-
-    def _p_description(self, data):
-        self.description = parse_localization(data)
+        
+        self._process_key_to_parser_function(key_to_parser_function, props, 2)
 
     def _p_icon(self, data):
         pass #TODO
-
-    def _p_sort_order(self, data):
-        self.sort_order = data
-
-    def _p_is_visual(self, data):
-        self.is_visual = data
 
     def _p_ui_stats(self, data):
         pass #TODO

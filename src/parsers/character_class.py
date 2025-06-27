@@ -12,9 +12,12 @@ class CharacterClass(Object):
 
     def _parse(self):
         props = self.source_data["Properties"]
-        self.image_id, self.tint_hex = parse_badge_visual_info(props["BadgeVisualInfo"])
 
-        self.name = parse_localization(props["Name"])
+        key_to_parser_function = {
+            "BadgeVisualInfo": (parse_badge_visual_info, "badge"),
+            "Name": (parse_localization, "name"),
+            "Description": ("value", "description"),  # Directly set description to the value
+        }
 
-        self.description = parse_localization(props["Description"])
+        self._process_key_to_parser_function(key_to_parser_function, props, 2)
         

@@ -24,6 +24,48 @@ class Object: #generic object that all classes extend
         """
         raise NotImplementedError("Subclasses must implement this method.")
 
+    def _process_key_to_parser_function(self, key_to_parser_function_map, data, tabs=0):
+        """
+        Processes a key-to-parser function mapping and applies the functions to the data.
+        Sets the specified instance's attributes to the value returned by the function, or to datap[key] directly if the function is "value".
+        If a key within data is not found in the map, it will log a warning to specify how/if it should be parsed.
+ 
+        key_to_parser_function_map = {
+            "HumanName": (self._p_human_name, "name"), # call self._p_human_name(data) and set self.name to the result
+            "TutorialTargetTag": None, # no function to call, skip this key
+            "Description": ("value", "description"), # set self.description to the value of data["Description"] directly. Figured using this with tuple instead of just "description" and checking type would be advantageous in the future
+        }
+        data = {
+            "HumanName": {data to parse},
+            "TutorialTargetTag": "SomeTag",
+            "UniqueStuffID": "SomeData" # This key is not in the map, so it will print a warning to handle the key and either add a parser function or mark it with None
+        }
+        """
+
+        if not isinstance(key_to_parser_function_map, dict):
+            raise TypeError("key_to_parser_function must be a dictionary.")
+
+        for key, value in data.items():
+            if key in key_to_parser_function_map:
+                function_attr = key_to_parser_function_map[key]
+                if function_attr is None:
+                    continue
+                elif isinstance(function_attr, tuple):
+                    function, attr = function_attr
+                    if function == "value":
+                        value_to_set_attr_to = value
+                    elif callable(function):
+                        value_to_set_attr_to = function(value)
+                    else:
+                        raise TypeError(f"Value for key '{key}' in key_to_parser_function_map must be a callable or 'value', got {type(function)}")
+                else:
+                    raise TypeError(f"Value for key '{key}' in key_to_parser_function_map must be a tuple or None, got {type(function_attr)}")
+                    
+                if value_to_set_attr_to is not None: # supports function not actually returning any value
+                    setattr(self, attr, value_to_set_attr_to)
+            else:
+                log(f"Warning: {self.__class__.__name__} {self.id} has unknown property '{key}'", tabs=tabs)
+
     def to_dict(self):
         """
         Returns a dictionary representation of the object, excluding source_data.

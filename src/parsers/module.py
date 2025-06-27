@@ -33,64 +33,61 @@ class Module(Object):
 
             # {k: v} if k is a key in props, parse it with the corresponding function
             key_to_parser_function = {
-                "ProductionStatus": self._p_production_status,
+                "ProductionStatus": (self._p_production_status, "production_status"),
                 "IsUniversalMounted": None,
-                "InventoryIcon": self._p_inventory_icon,
-                "ModuleRarity": self._p_module_rarity,
-                "CharacterModules": self._p_character_modules,
-                "ModuleTags": self._p_module_tags,
-                "ModuleScaler": self._p_module_scalar,
-                "AbilityScalers": self._p_ability_scalars,
-                "Title": self._p_title,
-                "Description": self._p_description,
-                "TextTags": self._p_text_tags,
-                "Faction": self._p_faction,
-                "ModuleClasses": self._p_module_classes,
-                "ModuleStatsTable": self._p_module_stats_table,
-                "ModuleType": self._p_module_type,
-                "Sockets": self._p_sockets,
-                "Levels": self._p_levels,
+                "InventoryIcon": (self._p_inventory_icon, "inventory_icon"),
+                "ModuleRarity": (self._p_module_rarity, "module_rarity_id"),
+                "CharacterModules": (self._p_character_modules, "character_module_mounts"),
+                "ModuleTags": (self._p_module_tags, "module_tags"),
+                "ModuleScaler": (self._p_module_scalar, None),
+                "AbilityScalers": (self._p_ability_scalars, None),
+                "Title": (parse_localization, "name"),
+                "Description": (parse_localization, "description"),
+                "TextTags": (self._p_text_tags, "text_tags"),
+                "Faction": (self._p_faction, "faction_id"),
+                "ModuleClasses": (self._p_module_classes, "module_classes_ids"),
+                "ModuleStatsTable": (self._p_module_stats_table, "module_stats_table_id"),
+                "ModuleType": (self._p_module_type, "module_type_id"),
+                "Sockets": (self._p_sockets, "module_socket_type_ids"),
+                "Levels": (self._p_levels, None),
                 "ID": None,
             }
-            for key, data in props.items():
-                if key in key_to_parser_function:
-                    function = key_to_parser_function[key]
-                    if function:
-                        function(data)
-                else:
-                    log(f"Warning: {self.__class__.__name__} {self.id} has unknown property '{key}'", tabs=1)
+            
+            self._process_key_to_parser_function(key_to_parser_function, props, 1)
                 
     
     def _p_production_status(self, data):
-        self.production_status = data.split("ESCharacterModuleProductionStatus::")[-1] # "ESCharacterModuleProductionStatus::Ready" -> "Ready"
+        return data.split("ESCharacterModuleProductionStatus::")[-1] # "ESCharacterModuleProductionStatus::Ready" -> "Ready"
         
     def _p_inventory_icon(self, data):
-        self.inventory_icon = path_to_id(data["AssetPathName"])
+        return path_to_id(data["AssetPathName"])
     
     def _p_module_rarity(self, data):
         asset_path = data["ObjectPath"]
 
-        self.module_rarity_id = ModuleRarity.get_from_asset_path(asset_path)
+        return ModuleRarity.get_from_asset_path(asset_path)
 
     def _p_character_modules(self, data):
-        self.character_module_mounts = []
+        character_module_mounts = []
         asset_path_name = None
         for character_module in data:
             new_asset_path_name = character_module["Value"]["AssetPathName"]
-            self.character_module_mounts.append(character_module["Key"].split("::")[-1])  # "ESCharacterModuleMountWay::Left" -> Left
+            character_module_mounts.append(character_module["Key"].split("::")[-1])  # "ESCharacterModuleMountWay::Left" -> Left
 
             # Confirm that all character modules have the same asset path name
             if asset_path_name is not None and new_asset_path_name != asset_path_name:
                 raise Exception(f"Data structure change: {self.__class__.__name__} {self.id} character module data has more than one character module file ")
             
             CharacterModule.get_from_asset_path(new_asset_path_name)
+        return character_module_mounts
                 
     def _p_module_tags(self, data):
-        self.module_tags = []
+        module_tags = []
         for elem in data:
             asset_path = elem["ObjectPath"]
             module_tag_id = ModuleTag.get_from_asset_path(asset_path)
-            self.module_tags.append(module_tag_id)
+            module_tags.append(module_tag_id)
+        return module_tags
 
     def _p_module_scalar(self, data):
         module_scalar_data = asset_path_to_data(data["ObjectPath"])
@@ -98,7 +95,6 @@ class Module(Object):
             self.levels = dict()
         self.levels["module_scalars"] = self._p_scalars(module_scalar_data)
         
-
     def _p_ability_scalars(self, data):
         self.levels["abilities_scalars"] = []
         for elem in data:
@@ -229,49 +225,41 @@ class Module(Object):
             "variables": parsed_levels_variable_stats,
             "constants": parsed_constant_stats
         }
-            
-
-    def _p_title(self, data):
-        self.name = parse_localization(data)
-
-    def _p_description(self, data):
-        self.description = parse_localization(data)
 
     def _p_text_tags(self, data):
-        self.text_tags = []
+        text_tags = []
         for elem in data:
             tag_localization = parse_localization(elem)
-            self.text_tags.append(tag_localization)
+            text_tags.append(tag_localization)
+        return text_tags
 
     def _p_faction(self, data):
         asset_path = data["ObjectPath"]
-
-        self.faction_id = Faction.get_from_asset_path(asset_path, log_tabs=1)
+        return Faction.get_from_asset_path(asset_path, log_tabs=1)
 
     def _p_module_classes(self, data):
-        self.module_classes_ids = []
+        module_classes_ids = []
         for elem in data:
             asset_path = elem["ObjectPath"]
             module_class_id = ModuleClass.get_from_asset_path(asset_path)
-            
-            self.module_classes_ids.append(module_class_id)
+            module_classes_ids.append(module_class_id)
+        return module_classes_ids
 
     def _p_module_stats_table(self, data):
         asset_path = data["ObjectPath"]
-        self.module_stats_table_id = ModuleStatsTable.get_from_asset_path(asset_path)
-        pass      
+        return ModuleStatsTable.get_from_asset_path(asset_path)     
 
     def _p_module_type(self, data):
         asset_path = data["ObjectPath"]
-
-        self.module_type_id = ModuleType.get_from_asset_path(asset_path, log_tabs=1)
+        return ModuleType.get_from_asset_path(asset_path, log_tabs=1)
 
     def _p_sockets(self, data):
-        self.module_socket_type_ids = []
+        module_socket_type_ids = []
         for elem in data:
             asset_path = elem["Type"]["ObjectPath"]
             module_socket_type_id = ModuleSocketType.get_from_asset_path(asset_path)
-            self.module_socket_type_ids.append(module_socket_type_id)
+            module_socket_type_ids.append(module_socket_type_id)
+        return module_socket_type_ids
 
     def _p_levels(self, data):
         if not hasattr(self, "levels"):
