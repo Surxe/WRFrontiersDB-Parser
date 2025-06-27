@@ -4,7 +4,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import PARAMS, path_to_id, asset_path_to_file_path, get_json_data, log, parse_localization
+from utils import PARAMS, path_to_id, asset_path_to_file_path, get_json_data, log
 
 import json
 

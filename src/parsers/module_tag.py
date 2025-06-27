@@ -5,7 +5,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import Object
 
-from utils import parse_localization
+from utils import parse_localization, parse_hex
 
 class ModuleTag(Object):
     objects = dict()  # Dictionary to hold all ModuleTag instances
@@ -16,11 +16,8 @@ class ModuleTag(Object):
         key_to_parser_function = {
             "HumanName": (parse_localization, "name"),
             "Description": (parse_localization, "description"),
-            "TextColor": (self._p_hex, "text_hex"),
-            "BackgroundColor": (self._p_hex, "background_hex"),
+            "TextColor": (parse_hex, "text_hex"),
+            "BackgroundColor": (parse_hex, "background_hex"),
         }
         
         self._process_key_to_parser_function(key_to_parser_function, props, 2)
-
-    def _p_hex(self, data):
-        return data["Hex"]

@@ -171,3 +171,9 @@ def parse_localization(data: dict):
         }
     else:
         return None
+    
+def parse_hex(data: dict):
+    return data["Hex"]
+
+def parse_colon_colon(data: str):
+    return data.split("::")[-1] # i.e. "ESWeaponReloadType::X" -> "X"

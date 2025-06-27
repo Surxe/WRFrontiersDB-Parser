@@ -5,7 +5,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import Object
 from parsers.module_type import ModuleType
-from utils import parse_localization, log
+from utils import parse_localization, parse_hex
 
 class ModuleSocketType(Object):
     objects = dict()  # Dictionary to hold all ModuleSocketType instances
@@ -19,8 +19,8 @@ class ModuleSocketType(Object):
             "Icon": (self._p_icon, "icon"),
             "ShowInConstructor": None,
             "ListPriority": None,
-            "TagColor": (self._p_hex, "tag_color"),
-            "TagBackgroundColor": (self._p_hex, "tag_background_color"),
+            "TagColor": (parse_hex, "tag_color"),
+            "TagBackgroundColor": (parse_hex, "tag_background_color"),
             "TutorialTargetTag": None,
             "RingErrorText": None,
             "FilterOptions": None,
@@ -35,9 +35,6 @@ class ModuleSocketType(Object):
 
     def _p_icon(self, data):
         pass #TODO
-
-    def _p_hex(self, data):
-        return data["Hex"]
 
     def _p_compatible_modules(self, data):
         compatible_module_types = []

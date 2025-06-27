@@ -4,8 +4,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import Object
-from utils import log
-from utils import asset_path_to_data
+from utils import log, asset_path_to_data, parse_colon_colon
 
 class CharacterModule(Object):
     objects = dict()  # Dictionary to hold all CharacterModule instances
@@ -223,7 +222,7 @@ class CharacterModule(Object):
         
 
     def _p_reload_type(self, data):
-        self.reload_type = data.split('::')[-1]  # ESWeaponReloadType::X -> X
+        self.reload_type = parse_colon_colon(data)  # ESWeaponReloadType::X -> X
 
     def _p_adapters(self, data):
         pass

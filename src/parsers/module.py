@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import log, path_to_id, get_json_data, parse_localization, asset_path_to_data, PARAMS
+from utils import log, path_to_id, get_json_data, parse_localization, asset_path_to_data, parse_colon_colon, PARAMS
 
 from parsers.object import Object
 from parsers.module_rarity import ModuleRarity
@@ -33,7 +33,7 @@ class Module(Object):
 
             # {k: v} if k is a key in props, parse it with the corresponding function
             key_to_parser_function = {
-                "ProductionStatus": (self._p_production_status, "production_status"),
+                "ProductionStatus": (parse_colon_colon, "production_status"),
                 "IsUniversalMounted": None,
                 "InventoryIcon": (self._p_inventory_icon, "inventory_icon"),
                 "ModuleRarity": (self._p_module_rarity, "module_rarity_id"),
@@ -54,17 +54,12 @@ class Module(Object):
             }
             
             self._process_key_to_parser_function(key_to_parser_function, props, 1)
-                
-    
-    def _p_production_status(self, data):
-        return data.split("ESCharacterModuleProductionStatus::")[-1] # "ESCharacterModuleProductionStatus::Ready" -> "Ready"
         
     def _p_inventory_icon(self, data):
         return path_to_id(data["AssetPathName"])
     
     def _p_module_rarity(self, data):
         asset_path = data["ObjectPath"]
-
         return ModuleRarity.get_from_asset_path(asset_path)
 
     def _p_character_modules(self, data):
@@ -72,7 +67,7 @@ class Module(Object):
         asset_path_name = None
         for character_module in data:
             new_asset_path_name = character_module["Value"]["AssetPathName"]
-            character_module_mounts.append(character_module["Key"].split("::")[-1])  # "ESCharacterModuleMountWay::Left" -> Left
+            character_module_mounts.append(parse_colon_colon(character_module["Key"]))  # "ESCharacterModuleMountWay::Left" -> Left
 
             # Confirm that all character modules have the same asset path name
             if asset_path_name is not None and new_asset_path_name != asset_path_name:
