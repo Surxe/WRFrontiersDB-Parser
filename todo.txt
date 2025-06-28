@@ -1,5 +1,5 @@
 * module file; use keys prefixed with default in module scalers if no leveldata present
 # icons
 # everything in ctrl shift f "pass"
-# move "Parsing x" print to inside object.parse
 # parse currency
+# create a repo to store data

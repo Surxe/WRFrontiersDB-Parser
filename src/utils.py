@@ -77,8 +77,7 @@ def get_json_data(file_path: str) -> dict:
         raise ValueError(f"Error: {file_path} is empty or not a valid JSON file.")
     return data
 
-def clear_dir(dir):
-    dir = "data"
+def clear_dir(dir: str) -> None:
     for filename in os.listdir(dir):
         file_path = os.path.join(dir, filename)
         if os.path.isfile(file_path):
@@ -143,34 +142,6 @@ def parse_badge_visual_info(data: dict):
         "image_id": image_id,
         "tint_hex": tint_hex
     }
-
-def parse_localization(data: dict):
-    if not isinstance(data, dict):
-        raise TypeError("Data must be a dictionary.")
-    
-    localization_key = None
-    if "Key" in data:
-        localization_key = data["Key"]
-    
-    localization_table_id = None
-    if "TableId" in data:
-        localization_table_id = path_to_id(data["TableId"])
-
-    invariant_string = None
-    if "CultureInvariantString" in data:
-        invariant_string = data["CultureInvariantString"]  
-    
-    if localization_key is not None and localization_table_id is not None:
-        return {
-            "Key": localization_key,
-            "TableId": localization_table_id
-        }
-    elif invariant_string is not None:
-        return {
-            "InvariantString": invariant_string
-        }
-    else:
-        return None
     
 def parse_hex(data: dict):
     return data["Hex"]

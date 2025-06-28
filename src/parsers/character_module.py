@@ -20,13 +20,13 @@ class CharacterModule(Object):
             "Components": None,
             "Abilities": None,
             "MovementType": None, # too complicated to bother with; contains movement data as curve tables
-            "DefaultMaxSpeed": (self._p_default_max_speed, "default_max_speed"),
+            "DefaultMaxSpeed": ("value", "default_max_speed"),
             "LandingSoundEvent": None,
             "ChassisSoundType": None,
             "SecondaryAnimationsSoundParams": None,
             "HangarAnimInstanceClass": None,
             "TorsoSocket": None,
-            "DefaultMobility": (self._p_default_mobility, "default_mobility"),
+            "DefaultMobility": ("value", "default_mobility"),
             "EngineOverloadSoundParams": None,
             "LegSocketNames": None,
             "CameraParameters": None,
@@ -34,8 +34,8 @@ class CharacterModule(Object):
             "DeathSoundEvent": None,
             "TowerRotationStartSound": None,
             "TowerRotationStopSound": None,
-            "ClipSize": (self._p_clip_size, "clip_size"),
-            "TimeToReload": (self._p_time_to_reload, "time_to_reload"),
+            "ClipSize": ("value", "clip_size"),
+            "TimeToReload": ("value", "time_to_reload"),
             "ReloadTimeChannel": None,
             "SpreadChannel": None,
             "FireRateChannel": None,
@@ -53,7 +53,7 @@ class CharacterModule(Object):
             "ReloadingStartSoundEvent": None,
             "ReloadingFinishSoundEvent": None,
             "ChunkReloadStartAudioHandlingType": None,
-            "ReloadType": (self._p_reload_type, "reload_type"),
+            "ReloadType": (parse_colon_colon, "reload_type"),
             "Adapters": (self._p_adapters, "adapters"),
             "ZoomType": None,
             "ChunkReloadedSoundEvent": None,
@@ -62,18 +62,18 @@ class CharacterModule(Object):
             "ChargedSoundEvent": None,
             "FireStartedSoundEvent": None,
             "FireStoppedSoundEvent": None,
-            "ReloadChunkSize": (self._p_reload_chunk_size, "reload_chunk_size"),
-            "bAllowAssistanceTrajectoryPrediction": (self._p_trajectory_prediction, "allow_assistance_trajectory_prediction"),
+            "ReloadChunkSize": ("value", "reload_chunk_size"),
+            "bAllowAssistanceTrajectoryPrediction": ("value", "allow_assistance_trajectory_prediction"),
             "ReloadingStartedSingleSoundEvent": None,
             "BurstSoundEvent": None,
             "ChunkReloadStartedSingleSoundEvent": None,
             "ChunkReloadStartedSoundEvent": None,
             "ChunkReloadFinishedSoundEvent": None,
-            "VerticalAdjustmentAngle": (self._p_vertical_adjustment_angle, "vertical_adjustment_angle"),
-            "AimType": (self._p_aim_type, "aim_type"),
-            "bIsPassive": (self._p_is_passive, "is_passive"),
-            "NoShootingTime": (self._p_no_shooting_time, "no_shooting_time"),
-            "AutoTargetingPolicy": (self._p_auto_targeting_policy, "auto_targeting_policy"),
+            "VerticalAdjustmentAngle": ("value", "vertical_adjustment_angle"),
+            "AimType": (parse_colon_colon, "aim_type"),
+            "bIsPassive": ("value", "is_passive"),
+            "NoShootingTime": ("value", "no_shooting_time"),
+            "AutoTargetingPolicy": (parse_colon_colon, "auto_targeting_policy"),
         }
         
         self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="CharacterModule", set_attrs=False, tabs=1)
@@ -117,18 +117,6 @@ class CharacterModule(Object):
             key_to_store_value_in = key if 'Default' not in key else key.split('Default')[1]
             self.defaultable_data[key_to_store_value_in] = value
 
-    def _p_default_max_speed(self, data):
-        pass
-
-    def _p_default_mobility(self, data):
-        pass
-
-    def _p_clip_size(self, data):
-        pass
-
-    def _p_time_to_reload(self, data):
-        pass
-
     def _p_fire_modes(self, data):
         if len(data) != 1:
             raise ValueError(f"Structure changed for {self.__class__.__name__} {self.id}: expected 1 FireMode, got {len(data)}")
@@ -151,7 +139,7 @@ class CharacterModule(Object):
                 "DamageApplicationTime": ("value", "key"),
                 "bSingleShot": ("value", "key"),
                 "ConsumeAllClipOnShot": ("value", "key"),
-                "ProjectileMappings": (self._p_projectile_mappings, "key"),
+                "ProjectileMappings": (self._p_projectile_mappings, None),
                 "ProjectileClass": None,
                 "BallisticBehavior": (self._p_ballistic_behavior, None),
                 "bEnableProximityFuse": ("value", "key"),
@@ -208,29 +196,22 @@ class CharacterModule(Object):
     def _p_adapters(self, data):
         pass
 
-    def _p_reload_chunk_size(self, data):
-        pass
-
-    def _p_trajectory_prediction(self, data):
-        pass
-
-    def _p_vertical_adjustment_angle(self, data):
-        pass
-
-    def _p_aim_type(self, data):
-        pass
-
-    def _p_is_passive(self, data):
-        pass
-
-    def _p_no_shooting_time(self, data):
-        pass
-
-    def _p_auto_targeting_policy(self, data):
-        pass
-
     def _p_projectile_mappings(self, data):
-        pass
+        parsed_mappings = []
+        for projectile_mapping in data:
+            key_to_parser_function = {
+                "MinRelativeChargeRequired": ("value", "key"),
+                "MaxRelativeChargeRequired": ("value", "key"),
+                "ProjectilesCount": ("value", "key"),
+                "ProjectileClass": None,
+                "FireFX": None,
+                "FireSound": None,
+            }
+
+            parsed_mapping = self._process_key_to_parser_function(key_to_parser_function, projectile_mapping, log_descriptor="ProjectileMapping", set_attrs=False, tabs=2)
+            parsed_mappings.append(parsed_mapping)
+
+        return parsed_mappings
 
     def _p_ballistic_behavior(self, data):
         ballistic_behavior_data = asset_path_to_data(data["ObjectPath"])

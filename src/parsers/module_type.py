@@ -5,7 +5,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import Object
 from parsers.module_category import ModuleCategory
-from utils import parse_localization, parse_hex, parse_colon_colon
+from utils import parse_hex, parse_colon_colon
+from parsers.localization_table import parse_localization
 
 class ModuleType(Object):
     objects = dict()  # Dictionary to hold all ModuleType instances

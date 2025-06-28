@@ -66,7 +66,7 @@ class Object: #generic object that all classes extend
                 elif isinstance(function_attr, tuple):
                     function, attr = function_attr
                     if attr == "key":
-                        key_to_store_value_in = attr
+                        key_to_store_value_in = key
                     else:
                         key_to_store_value_in = attr if attr is not None else key
 
