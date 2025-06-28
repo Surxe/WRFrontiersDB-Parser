@@ -24,26 +24,39 @@ class Object: #generic object that all classes extend
         """
         raise NotImplementedError("Subclasses must implement this method.")
 
-    def _process_key_to_parser_function(self, key_to_parser_function_map, data, tabs=0):
+    def _process_key_to_parser_function(self, key_to_parser_function_map, data, log_descriptor="", set_attrs=True, tabs=0):
         """
         Processes a key-to-parser function mapping and applies the functions to the data.
         Sets the specified instance's attributes to the value returned by the function, or to datap[key] directly if the function is "value".
         If a key within data is not found in the map, it will log a warning to specify how/if it should be parsed.
  
+        Requiring keys that could be present to be specified as None means if the data structure changes in the future, a warning can be raised very directly.
+
         key_to_parser_function_map = {
-            "HumanName": (self._p_human_name, "name"), # call self._p_human_name(data) and set self.name to the result
+            "HumanName": (self._p_human_name, "name"), # call self._p_human_name(data) and store the result in parsed_data["name"]
             "TutorialTargetTag": None, # no function to call, skip this key
-            "Description": ("value", "description"), # set self.description to the value of data["Description"] directly. Figured using this with tuple instead of just "description" and checking type would be advantageous in the future
+            "Description": ("value", "description"), # set data["Description"] directly in parsed_data["description"]. Figured using this with tuple instead of just "description" and checking type would be advantageous in the future
+            "SomeOtherKey": ("value", "key"), # store data["SomeOtherKey"] directly in parsed_data["SomeOtherKey"]
+            "SomeOtherOtherKey": (self._p_some_other_other_key, None) # call self._p_some_other_other_key(data) but the function does not return anything so no data to be stored at this stage
         }
         data = {
             "HumanName": {data to parse},
             "TutorialTargetTag": "SomeTag",
             "UniqueStuffID": "SomeData" # This key is not in the map, so it will print a warning to handle the key and either add a parser function or mark it with None
         }
+
+        set_attrs: bool. If True, the instance's attributes will be set to the parsed data instead of returning parsed_data
+
+        log_descriptor: str. A string to add at the end of the log message when a key is not found, used to add context.
         """
 
         if not isinstance(key_to_parser_function_map, dict):
             raise TypeError("key_to_parser_function must be a dictionary.")
+        
+        if log_descriptor != "":
+            log_descriptor = f" in {log_descriptor}"
+        
+        parsed_data = dict()
 
         for key, value in data.items():
             if key in key_to_parser_function_map:
@@ -52,19 +65,30 @@ class Object: #generic object that all classes extend
                     continue
                 elif isinstance(function_attr, tuple):
                     function, attr = function_attr
+                    if attr == "key":
+                        key_to_store_value_in = attr
+                    else:
+                        key_to_store_value_in = attr if attr is not None else key
+
                     if function == "value":
                         value_to_set_attr_to = value
                     elif callable(function):
                         value_to_set_attr_to = function(value)
                     else:
-                        raise TypeError(f"Value for key '{key}' in key_to_parser_function_map must be a callable or 'value', got {type(function)}")
+                        raise TypeError(f"{self.__class__.__name__} Value for key '{key}' in key_to_parser_function_map must be a callable or 'value', got {type(function)}")
                 else:
-                    raise TypeError(f"Value for key '{key}' in key_to_parser_function_map must be a tuple or None, got {type(function_attr)}")
-                    
+                    raise TypeError(f"{self.__class__.__name__} Value for key '{key}' in key_to_parser_function_map must be a tuple or None, got {type(function_attr)}")
+
                 if value_to_set_attr_to is not None: # supports function not actually returning any value
-                    setattr(self, attr, value_to_set_attr_to)
+                    parsed_data[key_to_store_value_in] = value_to_set_attr_to
             else:
-                log(f"Warning: {self.__class__.__name__} {self.id} has unknown property '{key}'", tabs=tabs)
+                log(f"Warning: {self.__class__.__name__} {self.id} has unknown property '{key}'{log_descriptor}", tabs=tabs)
+
+        # Set the instance's attributes to the parsed data, where the key is the attribute name
+        if not set_attrs:
+            return parsed_data
+        for key, value in parsed_data.items():
+            setattr(self, key, value)
 
     def to_dict(self):
         """
