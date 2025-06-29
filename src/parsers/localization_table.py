@@ -4,6 +4,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import Object
+from parsers.localization import Localization
 
 from utils import path_to_id
 
@@ -37,9 +38,15 @@ def parse_localization(data: dict):
         invariant_string = data["CultureInvariantString"]  
     
     if localization_key is not None and localization_table_namespace is not None:
+        localization_obj_english = Localization.get_from_id("en")
+        localization_english = localization_obj_english._localize(localization_table_namespace, localization_key)
+        if localization_english is None:
+            localization_english = localization_key
+
         return {
             "Key": localization_key,
-            "TableNamespace": localization_table_namespace
+            "TableNamespace": localization_table_namespace,
+            "en": localization_english,
         }
     elif invariant_string is not None:
         return {
