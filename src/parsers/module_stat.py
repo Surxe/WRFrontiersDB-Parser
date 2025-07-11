@@ -17,6 +17,7 @@ class ModuleStat(Object):
             "MoreIsBetter": ("value", "more_is_better"),
             "UnitName": None,
             "UnitPattern": None,
+            "UnitBaseline": ("value", "unit_baseline"),
             "UnitScaler": ("value", "unit_scaler"),
             "UnitExponent": ("value", "unit_exponent"),
             "ParamKey": None,

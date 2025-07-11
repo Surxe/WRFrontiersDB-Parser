@@ -5,31 +5,30 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import Object
 from parsers.localization_table import parse_localization
+from parsers.image import parse_image_asset_path
+
+from utils import parse_hex
 
 class Currency(Object):
     objects = dict()  # Dictionary to hold all ModuleStat instances
     
     def _parse(self):
         props = self.source_data["Properties"]
-        pass
 
         key_to_parser_function = {
             "HumanName": (parse_localization, "name"),
             "Description": (parse_localization, "description"),
-            "WalletIcon": (self._p_icon, "wallet_icon"),
-            "LargeIcon": (self._p_icon, "large_icon"),
+            "WalletIcon": (parse_image_asset_path, "wallet_icon"),
+            "LargeIcon": (parse_image_asset_path, "large_icon"),
+            "BackgroundColor": (parse_hex, "background_color"),
+            "BackgroundImage": (parse_image_asset_path, "background_image"),
             "CurrencyType": None,
             "PaymentSoundEvent": None,
             "GroupReward": None,
             "CurrencyMesh": None,
+            "CustomRangesVisual": None,
+            "ShopDisplayPriority": ("value", "shop_display_priority"),  # Directly set priority to the value
             "ID": None,
         }
 
         self._process_key_to_parser_function(key_to_parser_function, props, 2)
-
-    def _p_icon(self, data):
-        """
-        Parses the icon data from the source data.
-        This method should be implemented to handle the specific icon parsing logic.
-        """
-        pass

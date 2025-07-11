@@ -7,6 +7,7 @@ from parsers.object import Object
 from parsers.module_type import ModuleType
 from utils import parse_hex
 from parsers.localization_table import parse_localization
+from parsers.image import parse_image_asset_path
 
 class ModuleSocketType(Object):
     objects = dict()  # Dictionary to hold all ModuleSocketType instances
@@ -17,7 +18,7 @@ class ModuleSocketType(Object):
         key_to_parser_function = {
             "HumanName": (parse_localization, "name"),
             "HumanShortName": (parse_localization, "short_name"),
-            "Icon": (self._p_icon, "icon"),
+            "Icon": (parse_image_asset_path, "icon"),
             "ShowInConstructor": None,
             "ListPriority": None,
             "TagColor": (parse_hex, "tag_color"),
@@ -33,9 +34,6 @@ class ModuleSocketType(Object):
         }
         
         self._process_key_to_parser_function(key_to_parser_function, props, 2)
-
-    def _p_icon(self, data):
-        pass #TODO
 
     def _p_compatible_modules(self, data):
         compatible_module_types = []

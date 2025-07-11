@@ -1,5 +1,4 @@
-* module file; use keys prefixed with default in module scalers if no leveldata present
 # icons
 # everything in ctrl shift f "pass"
-# parse currency
 # create a repo to store data
+# standardize keys in output

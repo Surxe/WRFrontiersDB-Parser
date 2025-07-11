@@ -119,9 +119,13 @@ class Module(Object):
                 return stat_id
             
         parsed_scalars = dict()
-        
-        parsed_scalars["primary_stat_id"] = _p_parameter(data["Properties"], "Primary")
-        parsed_scalars["secondary_stat_id"] = _p_parameter(data["Properties"], "Secondary")
+        parsed_scalars["constants"] = dict()  # {constant_key: value}
+        stat1 = _p_parameter(data["Properties"], "Primary")
+        stat2 = _p_parameter(data["Properties"], "Secondary")
+        if stat1 is not None:
+            parsed_scalars["primary_stat_id"] = stat1
+        if stat2 is not None:
+            parsed_scalars["secondary_stat_id"] = stat2
 
         parsed_levels_data = self._p_levels_data(data["Properties"]["LevelsData"])
 

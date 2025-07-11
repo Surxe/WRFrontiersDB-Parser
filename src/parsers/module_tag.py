@@ -19,6 +19,7 @@ class ModuleTag(Object):
             "Description": (parse_localization, "description"),
             "TextColor": (parse_hex, "text_hex"),
             "BackgroundColor": (parse_hex, "background_hex"),
+            "ID": None,
         }
         
         self._process_key_to_parser_function(key_to_parser_function, props, 2)

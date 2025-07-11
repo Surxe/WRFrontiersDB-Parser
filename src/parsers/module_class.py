@@ -14,6 +14,7 @@ class ModuleClass(Object):
 
         key_to_parser_function = {
             "CharacterClassDataAsset": (self._p_character_class, "character_class_id"),
+            "ID": None,
         }
 
         self._process_key_to_parser_function(key_to_parser_function, props, 2)

@@ -5,7 +5,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import Object
 
-from utils import parse_badge_visual_info
+from parsers.image import parse_badge_visual_info, parse_image_asset_path
 from parsers.localization_table import parse_localization
 
 class CharacterClass(Object):
@@ -16,8 +16,13 @@ class CharacterClass(Object):
 
         key_to_parser_function = {
             "BadgeVisualInfo": (parse_badge_visual_info, "badge"),
+            "ImageBig": (parse_image_asset_path, "image_big_path"),
+            "ImageSmall": (parse_image_asset_path, "image_small_path"),
             "Name": (parse_localization, "name"),
             "Description": ("value", "description"),  # Directly set description to the value
+            "Priority": None,
+            "TutorialTag": None,
+            "ID": None,
         }
 
         self._process_key_to_parser_function(key_to_parser_function, props, 2)

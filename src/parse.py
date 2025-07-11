@@ -11,4 +11,4 @@ clear_dir("output")  # Clear the data directory before parsing
 
 parse_localization()
 print()
-parse_modules()
+parse_modules() #module relies on english localization being added to each key just as a helpful Ctrl+F reference
