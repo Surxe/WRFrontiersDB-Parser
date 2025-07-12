@@ -1,0 +1,62 @@
+name: Run Parser and Update WRFrontiers-Data
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  update-data-repo:
+    runs-on: ubuntu-latest
+
+    env:
+      DATA_REPO: WRFrontiers-Data
+      OUTPUT_PATH: output  # or wherever PARAMS.output_path points
+
+    steps:
+    - name: Checkout WRFrontiers-Parser
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+
+    - name: Run parser
+      run: python src/parse.py
+
+    - name: Read game version
+      id: game_version
+      run: echo "version=$(cat game_version.txt)" >> $GITHUB_OUTPUT
+
+    - name: Clone WRFrontiers-Data
+      uses: actions/checkout@v4
+      with:
+        repository: your-username/WRFrontiers-Data
+        path: data-repo
+        token: ${{ secrets.DATA_REPO_PAT }}
+
+    - name: Archive previous current
+      run: |
+        mkdir -p data-repo/archive/${{ steps.game_version.outputs.version }}
+        if [ -d "data-repo/current" ]; then
+          cp -r data-repo/current/* data-repo/archive/${{ steps.game_version.outputs.version }}/ || true
+          rm -rf data-repo/current
+        fi
+
+    - name: Move new data into current
+      run: |
+        mkdir -p data-repo/current/${{ steps.game_version.outputs.version }}
+        cp -r ${{ env.OUTPUT_PATH }}/* data-repo/current/${{ steps.game_version.outputs.version }}/
+
+    - name: Commit and push to WRFrontiers-Data
+      run: |
+        cd data-repo
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git add .
+        git commit -m "Update data for version ${{ steps.game_version.outputs.version }}"
+        git push
