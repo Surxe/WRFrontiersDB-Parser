@@ -18,10 +18,10 @@ class Currency(Object):
         key_to_parser_function = {
             "HumanName": (parse_localization, "name"),
             "Description": (parse_localization, "description"),
-            "WalletIcon": (parse_image_asset_path, "wallet_icon"),
-            "LargeIcon": (parse_image_asset_path, "large_icon"),
+            "WalletIcon": (parse_image_asset_path, "wallet_icon_path"),
+            "LargeIcon": (parse_image_asset_path, "large_icon_path"),
             "BackgroundColor": (parse_hex, "background_color"),
-            "BackgroundImage": (parse_image_asset_path, "background_image"),
+            "BackgroundImage": (parse_image_asset_path, "background_image_path"),
             "CurrencyType": None,
             "PaymentSoundEvent": None,
             "GroupReward": None,

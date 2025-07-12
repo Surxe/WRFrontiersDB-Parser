@@ -17,7 +17,7 @@ class ModuleCategory(Object):
             "HumanName": (parse_localization, "name"),
             "Description": (parse_localization, "description"),
             "TutorialTargetTag": None,
-            "Icon": (parse_image_asset_path, "icon"),
+            "Icon": (parse_image_asset_path, "icon_path"),
             "SuperCategory": None,
             "SortOrder": ("value", "sort_order"),
             "IsVisual": ("value", "is_visual"),

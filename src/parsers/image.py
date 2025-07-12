@@ -5,6 +5,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils import asset_path_to_file_path, PARAMS
 
+import json
+
 class Image():
     image_paths = dict()  # Dictionary to hold all Image instances
 
@@ -14,10 +16,18 @@ class Image():
         if image_path not in self.image_paths:
             self.image_paths[image_path] = True
 
+    @classmethod
+    def to_file(cls):
+        # Write json file of image_paths to output
+        output_path = os.path.join(PARAMS.output_path, f"{cls.__name__}.json")
+        with open(output_path, 'w') as f:
+            json.dump(list(cls.image_paths.keys()), f, indent=4)
+
+
 def parse_image_asset_path(data: dict) -> str:
     asset_path = data["AssetPathName"]
     export_plus_file_path = asset_path_to_file_path(asset_path)
-    image_path_generic = export_plus_file_path.split(PARAMS.export_path + "\\\\")[1].replace("\\", "/")
+    image_path_generic = export_plus_file_path.split(PARAMS.export_path + "\\\\")[1].replace("\\", "/").split(".")[0] # #<export_path>\\<file_path>\\<image_name>.json -> <file_path>/<image_name>
     Image(image_path_generic)  # Register the image path
     return image_path_generic
 
@@ -35,8 +45,10 @@ def parse_badge_visual_info(data: dict):
     tint_hex = None
     if 'TintColor' in data and 'Hex' in data["TintColor"]:  
         tint_hex = data["TintColor"]["Hex"]
+
+    returned_data = dict()
+    returned_data["image_path"] = image_path
+    if tint_hex is not None:
+        returned_data["tint_hex"] = tint_hex
     
-    return {
-        "image_path": image_path,
-        "tint_hex": tint_hex
-    }
+    return returned_data

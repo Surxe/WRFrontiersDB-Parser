@@ -20,6 +20,7 @@ from parsers.module_socket_type import ModuleSocketType
 from parsers.module_stat import ModuleStat
 from parsers.module_stats_table import ModuleStatsTable
 from parsers.currency import Currency
+from parsers.image import parse_image_asset_path, Image
 
 class Module(Object):
     objects = dict()
@@ -36,10 +37,10 @@ class Module(Object):
             key_to_parser_function = {
                 "ProductionStatus": (parse_colon_colon, "production_status"),
                 "IsUniversalMounted": None,
-                "InventoryIcon": (self._p_inventory_icon, "inventory_icon"),
+                "InventoryIcon": (parse_image_asset_path, "inventory_icon_path"),
                 "ModuleRarity": (self._p_module_rarity, "module_rarity_id"),
                 "CharacterModules": (self._p_character_modules, "character_module_mounts"),
-                "ModuleTags": (self._p_module_tags, "module_tags"),
+                "ModuleTags": (self._p_module_tags, "module_tags_ids"),
                 "ModuleScaler": (self._p_module_scalar, None),
                 "AbilityScalers": (self._p_ability_scalars, None),
                 "Title": (parse_localization, "name"),
@@ -55,9 +56,6 @@ class Module(Object):
             }
             
             self._process_key_to_parser_function(key_to_parser_function, props, 1)
-        
-    def _p_inventory_icon(self, data):
-        return path_to_id(data["AssetPathName"])
     
     def _p_module_rarity(self, data):
         asset_path = data["ObjectPath"]
@@ -350,6 +348,7 @@ def parse_modules():
     ModuleStat.to_file()
     ModuleStatsTable.to_file()
     Currency.to_file()
+    Image.to_file()
 
 if __name__ == "__main__":
     parse_modules()

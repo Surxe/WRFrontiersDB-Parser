@@ -1,4 +1,2 @@
-# icons
 # everything in ctrl shift f "pass"
 # create a repo to store data
-# standardize keys in output

@@ -18,7 +18,7 @@ class ModuleSocketType(Object):
         key_to_parser_function = {
             "HumanName": (parse_localization, "name"),
             "HumanShortName": (parse_localization, "short_name"),
-            "Icon": (parse_image_asset_path, "icon"),
+            "Icon": (parse_image_asset_path, "icon_path"),
             "ShowInConstructor": None,
             "ListPriority": None,
             "TagColor": (parse_hex, "tag_color"),
@@ -28,7 +28,7 @@ class ModuleSocketType(Object):
             "FilterOptions": None,
             "SortingOptions": None,
             "bCanBeChangedByUser": ("value", "can_be_changed"),
-            "CompatibleModules": (self._p_compatible_modules, "compatible_module_types"),
+            "CompatibleModules": (self._p_compatible_modules, "compatible_module_types_ids"),
             "Required": ("value", "required"),
             "ID": None,
         }

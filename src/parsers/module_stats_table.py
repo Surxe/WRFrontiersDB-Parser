@@ -13,7 +13,7 @@ class ModuleStatsTable(Object):
         props = self.source_data["Properties"]
 
         key_to_parser_function = {
-            "AllModuleStats": (self._p_all_module_stats, "stats"),
+            "AllModuleStats": (self._p_all_module_stats, "stats_ids"),
         }
 
         self._process_key_to_parser_function(key_to_parser_function, props)
