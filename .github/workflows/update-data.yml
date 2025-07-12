@@ -35,7 +35,7 @@ jobs:
     - name: Clone WRFrontiers-Data
       uses: actions/checkout@v4
       with:
-        repository: your-username/WRFrontiers-Data
+        repository: Surxe/WRFrontiers-Data
         path: data-repo
         token: ${{ secrets.DATA_REPO_PAT }}
 
