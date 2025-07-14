@@ -4,14 +4,25 @@ set -e
 # Load GH_DATA_REPO_PAT from .env if it exists
 if [ -f .env ]; then
     export GH_DATA_REPO_PAT=$(grep '^GH_DATA_REPO_PAT=' .env | cut -d '=' -f2- | sed 's/^"//;s/"$//')
-    echo "PAT loaded: ${GH_DATA_REPO_PAT:0:4}..." # Show first 4 chars for debugging
 fi
 
 # === CONFIGURATION ===
 DATA_REPO_URL="https://${GH_DATA_REPO_PAT}@github.com/Surxe/WRFrontiersDB-Data.git"
 DATA_REPO_DIR="WRFrontiersDB-Data"
 OUTPUT_DIR="output"  # this should match PARAMS.output_path
-GAME_VERSION=$(cat game_version.txt)
+
+# Prompt for game version
+DEFAULT_GAME_VERSION=$(cat game_version.txt)
+echo -n "Enter game version (yyyy-mm-dd) [default: $DEFAULT_GAME_VERSION]: "
+read GAME_VERSION
+if [ -z "$GAME_VERSION" ]; then
+    GAME_VERSION=$DEFAULT_GAME_VERSION
+else
+    # Write the new version to game_version.txt
+    echo "$GAME_VERSION" > game_version.txt
+    echo "Updated game_version.txt with: $GAME_VERSION"
+fi
+echo "Using game version: $GAME_VERSION"
 
 # === RUN PARSER ===
 echo "Running parser..."

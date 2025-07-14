@@ -1,2 +1,9 @@
 # everything in ctrl shift f "pass"
 # create a repo to store data
+# current/<version>/* -> current/* and current/version.txt for data repo
+# parse pilots
+# parse quest conditions in meta
+# parse progress tree
+# parse ability name, is it ID?
+# rename stat to parameter
+# 2025-06-17 and 2025-06-11
