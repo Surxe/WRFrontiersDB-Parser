@@ -121,9 +121,14 @@ class Module(Object):
         stat1 = _p_parameter(data["Properties"], "Primary")
         stat2 = _p_parameter(data["Properties"], "Secondary")
         if stat1 is not None:
-            parsed_scalars["primary_stat_id"] = stat1
+            if hasattr(self, "primary_stat_id") and stat1 != self.primary_stat_id:
+                log(f"Warning: {self.__class__.__name__} {self.id} has different primary stat ID {stat1} than previously parsed {self.primary_stat_id}.", tabs=1)
+            self.primary_stat_id = stat1
+
         if stat2 is not None:
-            parsed_scalars["secondary_stat_id"] = stat2
+            if hasattr(self, "secondary_stat_id") and stat2 != self.secondary_stat_id:
+                log(f"Warning: {self.__class__.__name__} {self.id} has different secondary stat ID {stat2} than previously parsed {self.secondary_stat_id}.", tabs=1)
+            self.secondary_stat_id = stat2
 
         parsed_levels_data = self._p_levels_data(data["Properties"]["LevelsData"])
 
@@ -203,9 +208,6 @@ class Module(Object):
             for key, value in level.items():
                 if key in first_level_data and first_level_data[key] != value:
                     non_constants[key] = True
-
-        if "ID" in non_constants:
-            raise Exception(f"Data structure change: {self.__class__.__name__} {self.id} module scalar data has more than 1 BP ID specified in LevelData")
                 
         parsed_levels_variable_stats = [] # [levels] where level = {variable_stat_key: value}
         parsed_constant_stats = dict() # {constant_stat_key: value}
@@ -262,7 +264,8 @@ class Module(Object):
     def _p_levels(self, data):
         if not hasattr(self, "levels"):
             self.levels = dict()
-        self.levels["other"] = []
+        self.levels["scrap_rewards"] = {}
+        self.levels["scrap_rewards"]["variables"] = []
 
         def _p_currency(data):
             """
@@ -294,34 +297,29 @@ class Module(Object):
 
             return {
                 "currency_id": currency_id,
-                "Amount": current_amount
+                "amount": current_amount
             }
 
-        for level in data:
-            parsed_level = dict()
+        for index, level in enumerate(data):
+            # Item is only purchaseable at level 0, so we set the price only for the first level
+            if index == 0 and "Price" in level:
+                price = level["Price"]
+                self.price = _p_currency(price)
+                
+            # Add scrap rewards to its respective level
+            if 'ScrapRewards' in level:
+                scrap_rewards_data = level["ScrapRewards"]
+                parsed_scrap_rewards = []
+                for elem in scrap_rewards_data:
+                    if type(elem) is dict and "Currency" in elem and "Amount" in elem:
+                        parsed_elem = _p_currency(elem)
+                        if parsed_elem is None:
+                            return
+                        parsed_scrap_rewards.append(parsed_elem)
+                    else:
+                        parsed_scrap_rewards.append(elem)
 
-            for key, value in level.items():
-                if type(value) is dict and "Currency" in value and "Amount" in value:
-                    parsed_value = _p_currency(value)
-                    if parsed_value is None:
-                        return
-                elif type(value) is list:
-                    parsed_value = []
-                    for elem in value:
-                        if type(elem) is dict and "Currency" in elem and "Amount" in elem:
-                            parsed_elem = _p_currency(elem)
-                            if parsed_elem is None:
-                                return
-                            parsed_value.append(parsed_elem)
-                        else:
-                            parsed_value.append(elem)
-                else:
-                    parsed_value = value
-                    
-                parsed_level[key] = parsed_value
-            self.levels["other"].append(parsed_level)
-
-        self.levels["other"] = self._separate_constants_and_variables(self.levels["other"])
+                self.levels["scrap_rewards"]["variables"].append(parsed_scrap_rewards)
 
 
 def parse_modules():

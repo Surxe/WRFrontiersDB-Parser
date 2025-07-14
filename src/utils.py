@@ -30,8 +30,8 @@ class Params:
             raise ValueError("GAME_NAME environment variable is not set.")
         
         if self.log_level not in ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']:
-            raise ValueError("LOG_LEVEL must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL.")
-        
+            raise ValueError(f"LOG_LEVEL {self.log_level} must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL.")
+
         # Create a default output path if not set
         if self.output_path is None:
             self.output_path = os.path.join(self.export_path, 'output')
