@@ -3,7 +3,8 @@ set -e
 
 # Load GH_DATA_REPO_PAT from .env if it exists
 if [ -f .env ]; then
-    export GH_DATA_REPO_PAT=$(grep '^GH_DATA_REPO_PAT=' .env | cut -d '=' -f2-)
+    export GH_DATA_REPO_PAT=$(grep '^GH_DATA_REPO_PAT=' .env | cut -d '=' -f2- | sed 's/^"//;s/"$//')
+    echo "PAT loaded: ${GH_DATA_REPO_PAT:0:4}..." # Show first 4 chars for debugging
 fi
 
 # === CONFIGURATION ===
@@ -17,22 +18,31 @@ echo "Running parser..."
 python3 src/parse.py
 
 # === CLONE DATA REPO IF NOT PRESENT ===
+# Set Git environment variables to avoid config issues on Windows
+export GIT_CONFIG_NOSYSTEM=1
+export GIT_CONFIG_GLOBAL=/dev/null
+export HOME="${USERPROFILE:-$HOME}"
+
 if [ ! -d "$DATA_REPO_DIR" ]; then
   echo "Cloning WRFrontiersDB-Data..."
   git clone "$DATA_REPO_URL" "$DATA_REPO_DIR"
 else
-  echo "Repository already exists, updating..."
-  cd "$DATA_REPO_DIR"
-  git reset --hard HEAD
-  git clean -fd
-  git pull
-  cd ..
+  echo "Repository already exists, deleting..."
+  rm -rf "$DATA_REPO_DIR"
+  echo "Re-cloning WRFrontiersDB-Data..."
+  git clone "$DATA_REPO_URL" "$DATA_REPO_DIR"
 fi
+
+# Configure Git settings for the cloned repository
+cd "$DATA_REPO_DIR"
+git config --local user.email "parser@example.com"
+git config --local user.name "Parser"
+git config --local credential.helper ""
+cd ..
 
 # === GET LATEST COMMIT TITLE AND DATE ===
 LATEST_COMMIT=$(git log -1 --format="%s - %ad" --date=short)
 echo "Latest commit: $LATEST_COMMIT"
-
 cd "$DATA_REPO_DIR"
 
 # === ARCHIVE CURRENT ===
