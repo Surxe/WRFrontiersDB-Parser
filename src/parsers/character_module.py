@@ -20,6 +20,7 @@ class CharacterModule(Object):
             "Components": None,
             "Abilities": None,
             "MovementType": None, # too complicated to bother with; contains movement data as curve tables
+            "FootstepSettings": None,
             "DefaultMaxSpeed": ("value", "default_max_speed"),
             "LandingSoundEvent": None,
             "ChassisSoundType": None,
@@ -136,6 +137,7 @@ class CharacterModule(Object):
                 "JumpRadius": ("value", "key"),
                 "LinkedLaserEffectPrototype": None,
                 "LaserDuration": ("value", "key"),
+                "WhizBySettings": None,
                 "DamageApplicationTime": ("value", "key"),
                 "bSingleShot": ("value", "key"),
                 "ConsumeAllClipOnShot": ("value", "key"),
@@ -147,6 +149,7 @@ class CharacterModule(Object):
                 "ProjectilesPerShot": ("value", "key"),
                 "ShotFX": None,
                 "ShotTriggerParam": None,
+                "ShotNumberParam": None,
                 "TimeBetweenShots": ("value", "key"),
                 "Spread": ("value", "key"),
                 "AbilityChargePointsOnHit": ("value", "key"),

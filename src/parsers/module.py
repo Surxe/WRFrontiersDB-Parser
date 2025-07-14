@@ -48,6 +48,7 @@ class Module(Object):
                 "TextTags": (self._p_text_tags, "text_tags"),
                 "Faction": (self._p_faction, "faction_id"),
                 "ModuleClasses": (self._p_module_classes, "module_classes_ids"),
+                "PreviewVideoPath": None,
                 "ModuleStatsTable": (self._p_module_stats_table, "module_stats_table_id"),
                 "ModuleType": (self._p_module_type, "module_type_id"),
                 "Sockets": (self._p_sockets, "module_socket_type_ids"),
@@ -55,7 +56,7 @@ class Module(Object):
                 "ID": None,
             }
             
-            self._process_key_to_parser_function(key_to_parser_function, props, 1)
+            self._process_key_to_parser_function(key_to_parser_function, props, 2)
     
     def _p_module_rarity(self, data):
         asset_path = data["ObjectPath"]
