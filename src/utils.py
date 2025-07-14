@@ -16,6 +16,7 @@ class Params:
         self.log_level = os.getenv('LOG_LEVEL', 'DEBUG').upper()
         self.output_path = os.getenv('OUTPUT_PATH', None)
         self.validate()
+        self.log()
 
     def validate(self):
         """
@@ -38,6 +39,16 @@ class Params:
             os.makedirs(self.output_path, exist_ok=True)
         if not os.path.exists(self.output_path):
             raise ValueError(f"OUTPUT_PATH '{self.output_path}' does not exist.")
+        
+    def log(self):
+        """
+        Logs the parameters.
+        """
+        print(f"Params initialized with:\n"
+              f"EXPORTS_PATH: {self.export_path}\n"
+              f"GAME_NAME: {self.game_name}\n"
+              f"LOG_LEVEL: {self.log_level}\n"
+              f"OUTPUT_PATH: {self.output_path}")
 
     def __str__(self):
         return f"Params(export_path={self.export_path}, game_name={self.game_name}, log_level={self.log_level})"
