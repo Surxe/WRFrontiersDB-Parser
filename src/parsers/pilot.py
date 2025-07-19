@@ -3,13 +3,20 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import log, path_to_id, get_json_data, asset_path_to_data, parse_colon_colon, PARAMS
+from utils import log, path_to_id, get_json_data, asset_path_to_data, PARAMS
 from parsers.localization_table import parse_localization
 
 from parsers.object import Object
 from parsers.faction import Faction
 from parsers.currency import Currency, parse_currency
-from parsers.image import parse_image_asset_path, Image
+from parsers.image import Image, parse_image_asset_path
+from parsers.pilot_type import PilotType
+from parsers.rarity import Rarity
+from parsers.group_reward import GroupReward
+from parsers.pilot_class import PilotClass
+from parsers.pilot_personality import PilotPersonality
+from parsers.pilot_talent_type import PilotTalentType
+from parsers.pilot_talent import PilotTalent
 
 class Pilot(Object):
     objects = dict()
@@ -22,7 +29,7 @@ class Pilot(Object):
             "SecondName": (self._p_second_name, None),
             "Image": (parse_image_asset_path, "image_path"),
             "VoiceSwitch": None,
-            "PilotBlueprint": (self._p_pilot_blueprint, "pilot_blueprint_id"),
+            "PilotBlueprint": (None),
             "Bio": (parse_localization, "bio"),
             "ReactionSet": None,
             "HangarReactionSet": None,
@@ -44,17 +51,14 @@ class Pilot(Object):
             log(f"Data structure changed for {self.__class__.__name__} {self.id}, second_name is not empty: {second_name['InvariantString']}", tabs=1)
         return
 
-    def _p_pilot_blueprint(self, data: dict): #TODO
-        pass
-
     def _p_pilot_type(self, data: dict):
-        pass
+        return PilotType.get_from_asset_path(data["ObjectPath"], log_tabs=1)
 
     def _p_pilot_class(self, data: dict):
-        pass
+        return PilotClass.get_from_asset_path(data["ObjectPath"], log_tabs=1)
 
     def _p_personality(self, data: dict):
-        pass
+        return PilotPersonality.get_from_asset_path(data["ObjectPath"], log_tabs=1)
 
     def _p_faction(self, data: dict):
         asset_path = data["ObjectPath"]
@@ -66,9 +70,32 @@ class Pilot(Object):
             "Amount": data["Amount"]
         }
     
-    def _p_levels(self, data: dict):
-        # Placeholder for future implementation
-        pass
+    def _p_levels(self, levels: list):
+        self.levels = []
+
+        log(f"Parsing {len(levels)} levels for {self.id}", tabs=1)
+
+        for i, level in enumerate(levels):
+            level_data = asset_path_to_data(level["ObjectPath"])
+            if level_data is None:
+                log(f"Failed to get level data for {self.id} from {level['ObjectPath']}", tabs=1)
+                continue
+            self.levels.append(dict())
+        
+            props = level_data["Properties"]
+            self.levels[i]["talent_type_id"] = PilotTalentType.get_from_asset_path(props["TalentType"]["ObjectPath"], log_tabs=2)
+            if "ReputationCost" in props:
+                self.levels[i]["reputation_cost"] = props["ReputationCost"]
+            self.levels[i]["upgrade_cost"] = parse_currency(props["CurrencyCost"])
+            talents = props["Talents"]
+            self.levels[i]["talents"] = []
+            for talent in talents:
+                asset_path = talent["ObjectPath"]
+                talent_id = PilotTalent.get_from_asset_path(asset_path, log_tabs=2)
+                self.levels[i]["talents"].append(talent_id)
+
+            # Process the level data as needed
+            #self.levels[i] = level_data
 
 def parse_pilots():
     pilots_source_path = os.path.join(PARAMS.export_path, r"WRFrontiers\Content\Sparrow\Pilots\PilotsDataAssets\CommonPilots")
@@ -83,6 +110,15 @@ def parse_pilots():
     Pilot.to_file()
     Faction.to_file()
     Currency.to_file()
+    PilotType.to_file()
+    Rarity.to_file()
+    GroupReward.to_file()
+    PilotClass.to_file()
+    PilotPersonality.to_file()
+    PilotTalentType.to_file()
+    PilotTalent.to_file()
+
+    Image.to_file()
 
 if __name__ == "__main__":
     parse_pilots()
