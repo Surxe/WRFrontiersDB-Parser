@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
-load_dotenv()
+# Force reload .env file, overriding any existing environment variables
+load_dotenv(override=True)
 
 from utils import clear_dir
 
