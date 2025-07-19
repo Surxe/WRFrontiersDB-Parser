@@ -35,7 +35,7 @@ class Localization(Object):
         
         return self.source_data[table_namespace][key]
 
-def parse_localization():
+def parse_localizations():
     localization_source_path = os.path.join(PARAMS.export_path, r"WRFrontiers\Content\Localization\Game")
 
     for dir_name in os.listdir(localization_source_path):
