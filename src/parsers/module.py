@@ -19,7 +19,7 @@ from parsers.module_category import ModuleCategory
 from parsers.module_socket_type import ModuleSocketType
 from parsers.module_stat import ModuleStat
 from parsers.module_stats_table import ModuleStatsTable
-from parsers.currency import Currency
+from parsers.currency import Currency, parse_currency
 from parsers.image import parse_image_asset_path, Image
 
 class Module(Object):
@@ -163,7 +163,7 @@ class Module(Object):
                 if upgrade_currency is not None and upgrade_cost > 0:
                     parsed_level["UpgradeCurrency"] = {
                         "currency_id": upgrade_currency,
-                        "Amount": upgrade_cost
+                        "amount": upgrade_cost
                     }
 
             def _p_scrap_reward_amount(first_or_second):
@@ -178,7 +178,7 @@ class Module(Object):
                     if scrap_reward_currency is not None and scrap_reward_amount > 0:
                         parsed_level['ScrapRewards'].append({
                             "currency_id": scrap_reward_currency,
-                            "Amount": scrap_reward_amount
+                            "amount": scrap_reward_amount
                         })
                 
 
@@ -268,44 +268,11 @@ class Module(Object):
         self.levels["scrap_rewards"] = {}
         self.levels["scrap_rewards"]["variables"] = []
 
-        def _p_currency(data):
-            """
-            data may contain 
-            {
-                "Currency": { ObjectPath: object path to Currency },
-                "Amount": int
-            }
-
-            returns
-            {
-                "currency_id": Currency
-                "Amount": int
-            }
-            """
-            if "Currency" not in data or "Amount" not in data:
-                return None
-            
-            currency_data = data["Currency"]
-            current_amount = data["Amount"]
-
-            if currency_data is None and current_amount == 0:
-                return None
-            elif currency_data is None:
-                raise Exception(f"Structure change: {self.__class__.__name__} {self.id} has currency data with no Currency but Amount is {current_amount} and length of array is {len(data)}.", tabs=1)
-            
-            currency_asset_path = currency_data["ObjectPath"]
-            currency_id = Currency.get_from_asset_path(currency_asset_path)
-
-            return {
-                "currency_id": currency_id,
-                "amount": current_amount
-            }
-
         for index, level in enumerate(data):
             # Item is only purchaseable at level 0, so we set the price only for the first level
             if index == 0 and "Price" in level:
                 price = level["Price"]
-                self.price = _p_currency(price)
+                self.price = parse_currency(price)
                 
             # Add scrap rewards to its respective level
             if 'ScrapRewards' in level:
@@ -313,7 +280,7 @@ class Module(Object):
                 parsed_scrap_rewards = []
                 for elem in scrap_rewards_data:
                     if type(elem) is dict and "Currency" in elem and "Amount" in elem:
-                        parsed_elem = _p_currency(elem)
+                        parsed_elem = parse_currency(elem)
                         if parsed_elem is None:
                             return
                         parsed_scrap_rewards.append(parsed_elem)

@@ -6,3 +6,4 @@
 # rename stat to parameter
 # check alpha firestorm cooldown
 # ability/titan ult charge?
+# parse weapon falloff curves
