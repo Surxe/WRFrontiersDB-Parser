@@ -26,7 +26,7 @@ class ModuleCategory(Object):
             "UIStats": (self._p_ui_stats, "ui_stats"),
         }
         
-        self._process_key_to_parser_function(key_to_parser_function, props, 2)
+        self._process_key_to_parser_function(key_to_parser_function, props, tabs=2)
 
     def _p_ui_stats(self, data):
         pass #TODO

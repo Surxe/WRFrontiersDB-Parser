@@ -43,7 +43,7 @@ class Pilot(Object):
             "ID": None,
         }
 
-        self._process_key_to_parser_function(key_to_parser_function, props, 2)
+        self._process_key_to_parser_function(key_to_parser_function, props, tabs=2)
 
     def _p_second_name(self, data: dict):
         second_name = parse_localization(data)
