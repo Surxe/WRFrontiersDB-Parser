@@ -15,13 +15,13 @@ class ModuleStat(Object):
         key_to_parser_function = {
             "StatName": (parse_localization, "stat_name"),
             "MoreIsBetter": ("value", "more_is_better"),
-            "UnitName": None,
-            "UnitPattern": None,
+            "UnitName": (parse_localization, "unit_name"),
+            "UnitPattern": (parse_localization, "unit_pattern"),
             "UnitBaseline": ("value", "unit_baseline"),
             "UnitScaler": ("value", "unit_scaler"),
             "UnitExponent": ("value", "unit_exponent"),
-            "ParamKey": None,
+            "ParamKey": ("value", "short_key"),
             "NumFractionDigits": ("value", "decimal_places"),
         }
 
-        self._process_key_to_parser_function(key_to_parser_function, props, 2)
+        self._process_key_to_parser_function(key_to_parser_function, props, tabs=2)
