@@ -1,12 +1,12 @@
-
 # Add parent dirs to sys path
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import PARAMS, path_to_id, asset_path_to_file_path, get_json_data, log
+from utils import PARAMS, path_to_id, asset_path_to_file_path, get_json_data, log, to_snake_case
 
 import json
+import re
 
 class Object: #generic object that all classes extend
     objects = dict()  # Dictionary to hold all object instances
@@ -26,30 +26,35 @@ class Object: #generic object that all classes extend
 
     def _process_key_to_parser_function(self, key_to_parser_function_map, data, log_descriptor="", set_attrs=True, tabs=0):
         """
-        Processes a key-to-parser function mapping and applies the functions to the data.
-        Sets the specified instance's attributes to the value returned by the function, or to datap[key] directly if the function is "value".
-        If a key within data is not found in the map, it will log a warning to specify how/if it should be parsed.
- 
-        Requiring keys that could be present to be specified as None means if the data structure changes in the future, a warning can be raised very directly.
-
-        key_to_parser_function_map = {
-            "HumanName": (self._p_human_name, "name"), # call self._p_human_name(data) and store the result in parsed_data["name"]
-            "TutorialTargetTag": None, # no function to call, skip this key
-            "Description": ("value", "description"), # set data["Description"] directly in parsed_data["description"]. Figured using this with tuple instead of just "description" and checking type would be advantageous in the future
-            "SomeOtherKey": ("value", "key"), # store data["SomeOtherKey"] directly in parsed_data["SomeOtherKey"]
-            "SomeOtherOtherKey": (self._p_some_other_other_key, None) # call self._p_some_other_other_key(data) but the function does not return anything so no data to be stored at this stage
+        Enhanced version that supports flexible target destinations.
+        
+        Configuration format:
+        {
+            "PropertyKey": {
+                'parser': function_or_value,     # Optional: Parser function or "value" (default: "value")
+                'action': ParseAction.ATTRIBUTE, # Optional: How to store the result (default: ParseAction.ATTRIBUTE)
+                'target_dict_path': 'dict.nested', # Dict path with dot notation (only for DICT_ENTRY action)
+                'target': ParseTarget.MATCH_KEY or "custom_name", # How to determine the key/attribute name
+            }
         }
-        data = {
-            "HumanName": {data to parse},
-            "TutorialTargetTag": "SomeTag",
-            "UniqueStuffID": "SomeData" # This key is not in the map, so it will print a warning to handle the key and either add a parser function or mark it with None
+        
+        Examples:
+        "Regen amount": {
+            'action': ParseAction.DICT_ENTRY,
+            'target_dict_path': 'default_properties',
+            'target': ParseTarget.MATCH_KEY,  # saves to self.default_properties["Regen amount"]
+        },
+        "DamageBoost": {
+            'action': ParseAction.DICT_ENTRY,
+            'target_dict_path': 'default_properties',
+            'target': "damage_boost",  # saves to self.default_properties["damage_boost"]
+        },
+        "Stats": {
+            'parser': self._p_stats,
+            'target': "parsed_stats",  # saves to self.parsed_stats
         }
-
-        set_attrs: bool. If True, the instance's attributes will be set to the parsed data instead of returning parsed_data
-
-        log_descriptor: str. A string to add at the end of the log message when a key is not found, used to add context.
         """
-
+        
         if not isinstance(key_to_parser_function_map, dict):
             raise TypeError("key_to_parser_function must be a dictionary.")
         
@@ -60,11 +65,23 @@ class Object: #generic object that all classes extend
 
         for key, value in data.items():
             if key in key_to_parser_function_map:
-                function_attr = key_to_parser_function_map[key]
-                if function_attr is None:
+                config = key_to_parser_function_map[key]
+                
+                # Handle None (skip processing)
+                if config is None:
                     continue
-                elif isinstance(function_attr, tuple):
-                    function, attr = function_attr
+                
+                # Handle function directly - use as parser with defaults
+                if callable(config):
+                    config = {
+                        'parser': config,
+                        'action': ParseAction.ATTRIBUTE,
+                        'target': ParseTarget.MATCH_KEY_SNAKE
+                    }
+                
+                # Handle legacy tuple format for backwards compatibility
+                elif isinstance(config, tuple):
+                    function, attr = config
                     if attr == "key":
                         key_to_store_value_in = key
                     else:
@@ -76,19 +93,84 @@ class Object: #generic object that all classes extend
                         value_to_set_attr_to = function(value)
                     else:
                         raise TypeError(f"{self.__class__.__name__} Value for key '{key}' in key_to_parser_function_map must be a callable or 'value', got {type(function)}")
-                else:
-                    raise TypeError(f"{self.__class__.__name__} Value for key '{key}' in key_to_parser_function_map must be a tuple or None, got {type(function_attr)}")
 
-                if value_to_set_attr_to is not None: # supports function not actually returning any value
-                    parsed_data[key_to_store_value_in] = value_to_set_attr_to
+                    if value_to_set_attr_to is not None:
+                        parsed_data[key_to_store_value_in] = value_to_set_attr_to
+                    continue
+                
+                # Handle new dictionary format
+                if not isinstance(config, dict):
+                    raise TypeError(f"{self.__class__.__name__} Value for key '{key}' must be a dict, tuple, callable, or None, got {type(config)}")
+                
+                parser = config.get('parser', "value")  # Default to "value"
+                action = config.get('action', ParseAction.ATTRIBUTE)  # Default to ATTRIBUTE
+                target_dict_path = config.get('target_dict_path')
+                target = config.get('target', ParseTarget.MATCH_KEY)
+                
+                # Validate configuration
+                if action == ParseAction.DICT_ENTRY and not target_dict_path:
+                    raise ValueError(f"{self.__class__.__name__} target_dict_path required for DICT_ENTRY action on key '{key}'")
+                elif action == ParseAction.ATTRIBUTE and target_dict_path:
+                    raise ValueError(f"{self.__class__.__name__} target_dict_path should not be provided for ATTRIBUTE action on key '{key}'")
+                
+                # Parse the value
+                if parser == "value":
+                    parsed_value = value
+                elif callable(parser):
+                    parsed_value = parser(value)
+                else:
+                    raise TypeError(f"{self.__class__.__name__} Parser for key '{key}' must be callable or 'value', got {type(parser)}")
+                
+                if parsed_value is None:
+                    continue
+                
+                # Determine target name
+                if target == ParseTarget.MATCH_KEY:
+                    target_name = key
+                elif target == ParseTarget.MATCH_KEY_SNAKE:
+                    target_name = to_snake_case(key)
+                elif isinstance(target, str):
+                    # Custom string target
+                    target_name = target
+                else:
+                    raise ValueError(f"{self.__class__.__name__} Target must be ParseTarget.MATCH_KEY, ParseTarget.MATCH_KEY_SNAKE, or a string for key '{key}', got {type(target)}")
+                
+                # Store the parsed value
+                if action == ParseAction.ATTRIBUTE:
+                    # Direct attribute assignment
+                    if set_attrs:
+                        setattr(self, target_name, parsed_value)
+                    else:
+                        parsed_data[target_name] = parsed_value
+                        
+                elif action == ParseAction.DICT_ENTRY:
+                    # Handle dot notation for nested dictionaries
+                    path_parts = target_dict_path.split('.')
+                    
+                    if set_attrs:
+                        current = self
+                        # Navigate/create the nested structure
+                        for part in path_parts:
+                            if not hasattr(current, part):
+                                setattr(current, part, {})
+                            current = getattr(current, part)
+                        current[target_name] = parsed_value
+                    else:
+                        # For non-attribute setting, store in nested structure
+                        current = parsed_data
+                        for part in path_parts[:-1]:
+                            if part not in current:
+                                current[part] = {}
+                            current = current[part]
+                        if path_parts[-1] not in current:
+                            current[path_parts[-1]] = {}
+                        current[path_parts[-1]][target_name] = parsed_value
+            
             else:
                 log(f"Warning: {self.__class__.__name__} {self.id} has unknown property '{key}'{log_descriptor}", tabs=tabs)
 
-        # Set the instance's attributes to the parsed data, where the key is the attribute name
         if not set_attrs:
             return parsed_data
-        for key, value in parsed_data.items():
-            setattr(self, key, value)
 
     def to_dict(self):
         """
@@ -154,3 +236,11 @@ class Object: #generic object that all classes extend
         file_path = os.path.join(PARAMS.output_path, f'{cls.__name__}.json')
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(cls.to_json())
+
+class ParseAction:
+    ATTRIBUTE = "attribute"
+    DICT_ENTRY = "dict_entry"
+
+class ParseTarget:
+    MATCH_KEY = "match_key"           # Use the original key as-is
+    MATCH_KEY_SNAKE = "match_key_snake"  # Convert key to snake_case
