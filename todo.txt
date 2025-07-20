@@ -7,3 +7,4 @@
 # check alpha firestorm cooldown
 # ability/titan ult charge?
 # parse weapon falloff curves
+# make _p_regen_amount, _p_damage_boost, _p_max_stacks, etc. more dynamic to not require re-writing the key

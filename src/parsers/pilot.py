@@ -17,6 +17,8 @@ from parsers.pilot_class import PilotClass
 from parsers.pilot_personality import PilotPersonality
 from parsers.pilot_talent_type import PilotTalentType
 from parsers.pilot_talent import PilotTalent
+from parsers.module_stat import ModuleStat
+from parsers.module_tag import ModuleTag
 
 class Pilot(Object):
     objects = dict()
@@ -117,7 +119,8 @@ def parse_pilots():
     PilotPersonality.to_file()
     PilotTalentType.to_file()
     PilotTalent.to_file()
-
+    ModuleStat.to_file()
+    ModuleTag.to_file()
     Image.to_file()
 
 if __name__ == "__main__":
