@@ -28,7 +28,7 @@ class Pilot(Object):
         
         key_to_parser_function = {
             "FirstName": (parse_localization, "first_name"),
-            "SecondName": (self._p_second_name, None),
+            "SecondName": (self._p_second_name, "second_name"),
             "Image": (parse_image_asset_path, "image_path"),
             "VoiceSwitch": None,
             "PilotBlueprint": (None),
@@ -49,9 +49,9 @@ class Pilot(Object):
 
     def _p_second_name(self, data: dict):
         second_name = parse_localization(data)
-        if second_name["InvariantString"] != " ":
-            log(f"Data structure changed for {self.__class__.__name__} {self.id}, second_name is not empty: {second_name['InvariantString']}", tabs=1)
-        return
+        if 'InvariantString' in second_name and second_name["InvariantString"] == " ":
+            return # if last name is a space, ignore it
+        return second_name
 
     def _p_pilot_type(self, data: dict):
         return PilotType.get_from_asset_path(data["ObjectPath"], log_tabs=1)
@@ -99,15 +99,31 @@ class Pilot(Object):
             # Process the level data as needed
             #self.levels[i] = level_data
 
+def parse_pilot_wrapper(dir, file_name):
+    if not file_name.endswith(".json"):
+        return None
+    full_path = os.path.join(dir, file_name)
+    pilot_id = path_to_id(file_name)
+    log(f"Parsing {Pilot.__name__} {pilot_id} from {full_path}", tabs=0)
+    pilot_data = get_json_data(full_path)
+    pilot = Pilot(pilot_id, pilot_data)
+    Pilot.objects[pilot_id] = pilot
+    return pilot
+
 def parse_pilots():
-    pilots_source_path = os.path.join(PARAMS.export_path, r"WRFrontiers\Content\Sparrow\Pilots\PilotsDataAssets\CommonPilots")
+    pilots_source_path = os.path.join(PARAMS.export_path, r"WRFrontiers\Content\Sparrow\Pilots\PilotsDataAssets")
+    
+    # Hero pilots are in this dir directly
     for file in os.listdir(pilots_source_path):
-        if file.endswith(".json"):
-            full_path = os.path.join(pilots_source_path, file)
-            pilot_id = path_to_id(file)
-            log(f"Parsing {Pilot.__name__} {pilot_id} from {full_path}", tabs=0)
-            pilot_data = get_json_data(full_path)
-            pilot = Pilot(pilot_id, pilot_data)
+        if file == 'DA_Pilot_FiringRange.json':
+            continue # guessing this is used as a placeholder when in the firing range, it has dummy values
+        parse_pilot_wrapper(pilots_source_path, file)
+
+    # Common pilots are in a subdir:
+    common_pilots_path = os.path.join(pilots_source_path, "CommonPilots")
+    for file in os.listdir(common_pilots_path):
+        parse_pilot_wrapper(common_pilots_path, file)
+
 
     Pilot.to_file()
     Faction.to_file()

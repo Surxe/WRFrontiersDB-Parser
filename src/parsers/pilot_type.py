@@ -21,6 +21,8 @@ class PilotType(Object):
             "GroupReward": (self._p_group_reward, "group_reward_id"),
             "PictureWidgetClass": None,
             "SortOrder": ("value", "sort_order"),
+            "HasExtendedBio": ("value", "has_extended_bio"),
+            "CanChangeTalents": ("value", "can_change_talents"),
             "ID": None,
         }
 
