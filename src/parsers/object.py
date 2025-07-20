@@ -36,6 +36,11 @@ class Object: #generic object that all classes extend
                 'target_dict_path': 'dict.nested', # Dict path with dot notation (only for DICT_ENTRY action)
                 'target': ParseTarget.MATCH_KEY or "custom_name", # How to determine the key/attribute name
             }
+
+            OR any of the following shortcuts:
+            "PropertyKey": function or "value" # Will default to ParseAction.ATTRIBUTE and ParseTarget.MATCH_KEY_SNAKE
+
+            "PropertyKey": (function, "key")  # Use function to parse and store as "key" - legacy format. Only needed over the above shortcut if key needs to be different to snake case.
         }
         
         Examples:
@@ -81,22 +86,11 @@ class Object: #generic object that all classes extend
                 
                 # Handle legacy tuple format for backwards compatibility
                 elif isinstance(config, tuple):
-                    function, attr = config
-                    if attr == "key":
-                        key_to_store_value_in = key
-                    else:
-                        key_to_store_value_in = attr if attr is not None else key
-
-                    if function == "value":
-                        value_to_set_attr_to = value
-                    elif callable(function):
-                        value_to_set_attr_to = function(value)
-                    else:
-                        raise TypeError(f"{self.__class__.__name__} Value for key '{key}' in key_to_parser_function_map must be a callable or 'value', got {type(function)}")
-
-                    if value_to_set_attr_to is not None:
-                        parsed_data[key_to_store_value_in] = value_to_set_attr_to
-                    continue
+                    config = {
+                        'parser': config[0],
+                        'action': ParseAction.ATTRIBUTE,
+                        'target': config[1]
+                    }
                 
                 # Handle new dictionary format
                 if not isinstance(config, dict):
