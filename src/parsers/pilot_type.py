@@ -20,9 +20,9 @@ class PilotType(Object):
             "ItemTypeName": (parse_localization, "name"),
             "GroupReward": (self._p_group_reward, "group_reward_id"),
             "PictureWidgetClass": None,
-            "SortOrder": ("value", "sort_order"),
-            "HasExtendedBio": ("value", "has_extended_bio"),
-            "CanChangeTalents": ("value", "can_change_talents"),
+            "SortOrder": "value",
+            "HasExtendedBio": "value",
+            "CanChangeTalents": "value",
             "ID": None,
         }
 

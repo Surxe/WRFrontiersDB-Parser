@@ -15,8 +15,8 @@ class PilotTalentType(Object):
         props = self.source_data["Properties"]
 
         key_to_parser_function = {
-            "Name": (parse_localization, "name"),
-            "Description": (parse_localization, "description"),
+            "Name": parse_localization,
+            "Description": parse_localization,
             "Image": (parse_image_asset_path, "image_path"),
             "ID": None,
         }

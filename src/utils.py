@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 import os
 import json
+import re
 load_dotenv()
 
 ###############################
@@ -139,3 +140,16 @@ def parse_hex(data: dict):
 
 def parse_colon_colon(data: str):
     return data.split("::")[-1] # i.e. "ESWeaponReloadType::X" -> "X"
+
+###############################
+#           String            #
+###############################
+
+def to_snake_case(text):
+    """Convert text to snake_case"""
+    # Insert underscore before uppercase letters that follow lowercase letters
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', text)
+    # Insert underscore before uppercase letters that follow lowercase letters or numbers
+    s2 = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1)
+    # Replace spaces with underscores and convert to lowercase
+    return s2.replace(' ', '_').lower()

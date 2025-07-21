@@ -21,15 +21,15 @@ class ModuleSocketType(Object):
             "Icon": (parse_image_asset_path, "icon_path"),
             "ShowInConstructor": None,
             "ListPriority": None,
-            "TagColor": (parse_hex, "tag_color"),
-            "TagBackgroundColor": (parse_hex, "tag_background_color"),
+            "TagColor": parse_hex,
+            "TagBackgroundColor": parse_hex,
             "TutorialTargetTag": None,
             "RingErrorText": None,
             "FilterOptions": None,
             "SortingOptions": None,
             "bCanBeChangedByUser": ("value", "can_be_changed"),
             "CompatibleModules": (self._p_compatible_modules, "compatible_module_types_ids"),
-            "Required": ("value", "required"),
+            "Required": "value",
             "ID": None,
         }
         

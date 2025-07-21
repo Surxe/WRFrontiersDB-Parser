@@ -15,7 +15,7 @@ class PilotClass(Object):
         props = self.source_data["Properties"]
 
         key_to_parser_function = {
-            "Name": (parse_localization, "name"),
+            "Name": parse_localization,
             "BadgeVisualInfo": (parse_badge_visual_info, "badge"),
             "ID": None,
         }

@@ -16,7 +16,7 @@ class PilotPersonality(Object):
 
         key_to_parser_function = {
             "Icon": (parse_image_asset_path, "icon_path"),
-            "Name": (parse_localization, "name"),
+            "Name": parse_localization,
             "ID": None,
         }
 

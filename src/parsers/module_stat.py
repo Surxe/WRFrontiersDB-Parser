@@ -13,13 +13,13 @@ class ModuleStat(Object):
         props = self.source_data["Properties"]
 
         key_to_parser_function = {
-            "StatName": (parse_localization, "stat_name"),
-            "MoreIsBetter": ("value", "more_is_better"),
-            "UnitName": (parse_localization, "unit_name"),
-            "UnitPattern": (parse_localization, "unit_pattern"),
-            "UnitBaseline": ("value", "unit_baseline"),
-            "UnitScaler": ("value", "unit_scaler"),
-            "UnitExponent": ("value", "unit_exponent"),
+            "StatName": parse_localization,
+            "MoreIsBetter": "value",
+            "UnitName": parse_localization,
+            "UnitPattern": parse_localization,
+            "UnitBaseline": "value",
+            "UnitScaler": "value",
+            "UnitExponent": "value",
             "ParamKey": ("value", "short_key"),
             "NumFractionDigits": ("value", "decimal_places"),
         }

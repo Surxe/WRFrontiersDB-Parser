@@ -17,13 +17,13 @@ class ModuleType(Object):
         key_to_parser_function = {
             "Category": (self._p_module_category, "module_category_id"),
             "HumanName": (parse_localization, "name"),
-            "Description": (parse_localization, "description"),
-            "BlueprintName": (parse_localization, "blueprint_name"),
+            "Description": parse_localization,
+            "BlueprintName": parse_localization,
             "TagColor": (parse_hex, "tag_color"),
-            "TagBackgroundColor": (parse_hex, "tag_background_color"),
+            "TagBackgroundColor": parse_hex,
             "ModuleSocketTypes": None,
-            "IsRootModule": ("value", "is_root_module"),
-            "CharacterType": (parse_colon_colon, "character_type"),
+            "IsRootModule": "value",
+            "CharacterType": parse_colon_colon,
             "ID": None,
         }
 

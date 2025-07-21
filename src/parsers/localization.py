@@ -60,4 +60,4 @@ def parse_localizations():
             localization._to_file()
 
 if __name__ == "__main__":
-    parse_localization()
+    parse_localizations()

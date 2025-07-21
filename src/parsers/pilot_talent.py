@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from parsers.object import Object
+from parsers.object import Object, ParseAction, ParseTarget
 
 from parsers.localization_table import parse_localization
 from parsers.image import parse_image_asset_path
@@ -19,18 +19,18 @@ class PilotTalent(Object):
         props = self.source_data["Properties"]
 
         key_to_parser_function = {
-            "Name": (parse_localization, "name"),
-            "Description": (parse_localization, "description"),
-            "UIDescription": (parse_localization, "ui_description"),
-            "ShortUIDescription": (parse_localization, "short_ui_description"),
-            "Image": (parse_image_asset_path, "image_path"),
+            "Name": parse_localization,  # Changed: "Name" → "name"
+            "Description": parse_localization,  # Changed: "Description" → "description"
+            "UIDescription": (parse_localization, "ui_description"),  # Keep: "UIDescription" → "u_i_description" != "ui_description"
+            "ShortUIDescription": (parse_localization, "short_ui_description"),  # Keep: complex conversion
+            "Image": (parse_image_asset_path, "image_path"),  # Keep: "Image" → "image" != "image_path"
             "PilotTalent": (self._p_bp, None),
             "ID": None,
         }
 
         self._process_key_to_parser_function(key_to_parser_function, props, tabs=2)
 
-    def _p_bp(self, data: dict): #TODO
+    def _p_bp(self, data: dict):
         bp_file_path = asset_path_to_file_path(data["AssetPathName"])
         bp_data = get_json_data(bp_file_path)[0]
         if 'ClassDefaultObject' not in bp_data:
@@ -44,56 +44,65 @@ class PilotTalent(Object):
             "FadeOutTime": None, #pretty sure this is for the following OverlayMeshFx and not any gameplay effects
             "OverlayMeshFx": None,
             "Multiplier": None,
-            "Regen amount": (self._p_regen_amount, None),
             "Effect": None,
-            "DamageBoost": (self._p_damage_boost, None),
-            "ArmorToRestore": (self._p_armor_to_restore, None),
-            "AdditionalFuel": (self._p_additional_fuel, None),
             "TorsoFx": None,
             "VisualEffect": None,
             "SoundEffect": None,
             "Stream": None,
-            "MaxStacks": (self._p_max_stacks, None),
-            "TitanPoints": (self._p_titan_points, None),
-            "ChargeToAdd": (self._p_charge_to_add, None),
-            "Stats": (self._p_stats, "stats"),
             "Trigger": None,
-            "Buffs": (self._p_buffs, "buffs"),
             "ActivationReaction": None,
-            "Lifetime": (self._p_lifetime, None),
             "OnActivateAkEvent": None,
             "OnDeactivateAkEvent": None,
             "bIsInfinity": None,
+            
+            # Save to default_properties with custom target names
+            "Regen amount": {
+                'action': ParseAction.DICT_ENTRY,
+                'target_dict_path': 'default_properties',
+                'target': ParseTarget.MATCH_KEY
+            },
+            "DamageBoost": {
+                'action': ParseAction.DICT_ENTRY,
+                'target_dict_path': 'default_properties',
+                'target': ParseTarget.MATCH_KEY
+            },
+            "ArmorToRestore": {
+                'action': ParseAction.DICT_ENTRY,
+                'target_dict_path': 'default_properties',
+                'target': ParseTarget.MATCH_KEY
+            },
+            "AdditionalFuel": {
+                'action': ParseAction.DICT_ENTRY,
+                'target_dict_path': 'default_properties',
+                'target': ParseTarget.MATCH_KEY
+            },
+            "MaxStacks": {
+                'action': ParseAction.DICT_ENTRY,
+                'target_dict_path': 'default_properties',
+                'target': ParseTarget.MATCH_KEY
+            },
+            "TitanPoints": {
+                'action': ParseAction.DICT_ENTRY,
+                'target_dict_path': 'default_properties',
+                'target': ParseTarget.MATCH_KEY
+            },
+            "ChargeToAdd": {
+                'action': ParseAction.DICT_ENTRY,
+                'target_dict_path': 'default_properties',
+                'target': ParseTarget.MATCH_KEY
+            },
+            "Lifetime": {
+                'action': ParseAction.DICT_ENTRY,
+                'target_dict_path': 'default_properties',
+                'target': ParseTarget.MATCH_KEY,
+            },
+            
+            # Regular attributes
+            "Stats": self._p_stats,
+            "Buffs": self._p_buffs,
         }
 
         self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor=bp_file_path, tabs=2)
-
-    def _p_default_property(self, property_key, property_value):
-        if not hasattr(self, "default_properties"):
-            self.default_properties = dict()
-
-        self.default_properties[property_key] = property_value
-
-    def _p_regen_amount(self, data: dict):
-        self._p_default_property("Regen amount", data)
-
-    def _p_damage_boost(self, data: dict):
-        self._p_default_property("DamageBoost", data)
-
-    def _p_armor_to_restore(self, data: dict):
-        self._p_default_property("ArmorToRestore", data)
-
-    def _p_additional_fuel(self, data: dict):
-        self._p_default_property("AdditionalFuel", data)
-
-    def _p_max_stacks(self, data: dict):
-        self._p_default_property("MaxStacks", data)
-
-    def _p_titan_points(self, data: dict):
-        self._p_default_property("TitanPoints", data)
-
-    def _p_charge_to_add(self, data: dict):
-        self._p_default_property("ChargeToAdd", data)
 
     def _p_stats(self, stats):
         parsed_stats = []
@@ -157,7 +166,3 @@ class PilotTalent(Object):
         if parsed_buffs:
             return parsed_buffs
         return None
-
-    def _p_lifetime(self, data: dict):
-        self._p_default_property("Lifetime", data)
-        

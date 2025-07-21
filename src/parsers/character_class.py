@@ -18,12 +18,11 @@ class CharacterClass(Object):
             "BadgeVisualInfo": (parse_badge_visual_info, "badge"),
             "ImageBig": (parse_image_asset_path, "image_big_path"),
             "ImageSmall": (parse_image_asset_path, "image_small_path"),
-            "Name": (parse_localization, "name"),
-            "Description": ("value", "description"),  # Directly set description to the value
+            "Name": parse_localization,
+            "Description": "value",
             "Priority": None,
             "TutorialTag": None,
             "ID": None,
         }
 
         self._process_key_to_parser_function(key_to_parser_function, props, tabs=2)
-        

@@ -16,7 +16,7 @@ class Rarity(Object):
         rarity_info = props["RarityInfo"]
 
         key_to_parser_function = {
-            "Name": (parse_localization, "name"),
+            "Name": parse_localization,
             "RarityColor": (parse_hex, "hex"),
         }
 
