@@ -17,19 +17,19 @@ class Currency(Object):
 
         key_to_parser_function = {
             "HumanName": (parse_localization, "name"),
-            "Description": (parse_localization, "description"),
-            "HowToUseDescriptions": (self._parse_localizations, "how_to_use_descriptions"),
-            "WhereToGetDescriptions": (self._parse_localizations, "where_to_get_descriptions"),
+            "Description": parse_localization,
+            "HowToUseDescriptions": self._parse_localizations,
+            "WhereToGetDescriptions": self._parse_localizations,
             "WalletIcon": (parse_image_asset_path, "wallet_icon_path"),
             "LargeIcon": (parse_image_asset_path, "large_icon_path"),
-            "BackgroundColor": (parse_hex, "background_color"),
+            "BackgroundColor": parse_hex,
             "BackgroundImage": (parse_image_asset_path, "background_image_path"),
             "CurrencyType": None,
             "PaymentSoundEvent": None,
             "GroupReward": None,
             "CurrencyMesh": None,
             "CustomRangesVisual": None,
-            "ShopDisplayPriority": ("value", "shop_display_priority"),  # Directly set priority to the value
+            "ShopDisplayPriority": "value",  # Directly set priority to the value
             "NotEnoughBehavior": None,
             "ID": None,
         }

@@ -14,7 +14,7 @@ class GroupReward(Object):
         props = self.source_data["Properties"]
 
         key_to_parser_function = {
-            "Name": (parse_localization, "name"),
+            "Name": parse_localization,
         }
 
         self._process_key_to_parser_function(key_to_parser_function, props, tabs=2)

@@ -13,7 +13,7 @@ class ModuleRarity(Object):
         props = self.source_data["Properties"]
 
         key_to_parser_function = {
-            "SortOrder": ("value", "sort_order"),
+            "SortOrder": "value",
             "RarityDataAsset": (self._p_rarity_data_asset, "rarity_id"),
         }
         

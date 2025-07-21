@@ -77,7 +77,7 @@ class Object: #generic object that all classes extend
                     continue
                 
                 # Handle function directly - use as parser with defaults
-                if callable(config):
+                if callable(config) or config == "value":
                     config = {
                         'parser': config,
                         'action': ParseAction.ATTRIBUTE,

@@ -19,11 +19,11 @@ class PilotTalent(Object):
         props = self.source_data["Properties"]
 
         key_to_parser_function = {
-            "Name": (parse_localization, "name"),
-            "Description": (parse_localization, "description"),
-            "UIDescription": (parse_localization, "ui_description"),
-            "ShortUIDescription": (parse_localization, "short_ui_description"),
-            "Image": (parse_image_asset_path, "image_path"),
+            "Name": parse_localization,  # Changed: "Name" → "name"
+            "Description": parse_localization,  # Changed: "Description" → "description"
+            "UIDescription": (parse_localization, "ui_description"),  # Keep: "UIDescription" → "u_i_description" != "ui_description"
+            "ShortUIDescription": (parse_localization, "short_ui_description"),  # Keep: complex conversion
+            "Image": (parse_image_asset_path, "image_path"),  # Keep: "Image" → "image" != "image_path"
             "PilotTalent": (self._p_bp, None),
             "ID": None,
         }

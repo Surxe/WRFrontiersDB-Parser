@@ -17,7 +17,7 @@ class Faction(Object):
 
         key_to_parser_function = {
             "Image": (parse_image_asset_path, "image_path"),
-            "Name": (parse_localization, "name"),
+            "Name": parse_localization,
             "BadgeVisualInfo": (parse_badge_visual_info, "badge"),
             "Color": (parse_hex, "hex"),  # Directly set color to the value
             "ID": None,
