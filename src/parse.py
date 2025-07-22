@@ -13,5 +13,5 @@ clear_dir("output")  # Clear the data directory before parsing
 
 parse_localizations()
 print()
-#parse_modules() #module relies on english localization being added to each key just as a helpful Ctrl+F reference
+parse_modules() #module relies on english localization being added to each key just as a helpful Ctrl+F reference
 parse_pilots()  # Pilot parser relies on module data being parsed first
