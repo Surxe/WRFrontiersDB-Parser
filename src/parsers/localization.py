@@ -55,7 +55,7 @@ def parse_localizations():
                 log(f"Localization source data is not a dictionary: {type(source_data)}", tabs=0)
                 continue
 
-            log(f"Parsing localization for language: {lang_code} from file: {file_path}", tabs=0)
+            log(f"Parsing localization for language: {lang_code} from file: {file_path}", tabs=1)
             localization = Localization(lang_code, source_data)
             localization._to_file()
 

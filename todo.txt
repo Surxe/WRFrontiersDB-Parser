@@ -1,12 +1,7 @@
 # everything in ctrl shift f "pass"
-# parse pilots
 # parse quest conditions in meta
-# parse progress tree
 # parse ability name, is it ID?
-# rename stat to parameter
-# check alpha firestorm cooldown
 # ability/titan ult charge?
 # parse weapon falloff curves
-# make _p_regen_amount, _p_damage_boost, _p_max_stacks, etc. more dynamic to not require re-writing the key
 # check if burst interval can be parsed, like time between shots in bayonet's 3 bullet burst.
 # check if theres any stat that determines how frequently weapons like zeus can fire when they have infinite ammo

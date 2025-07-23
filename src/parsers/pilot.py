@@ -31,7 +31,7 @@ class Pilot(Object):
             "SecondName": (self._p_second_name, "second_name"),
             "Image": (parse_image_asset_path, "image_path"),
             "VoiceSwitch": None,
-            "PilotBlueprint": (None),
+            "PilotBlueprint": None,
             "Bio": (parse_localization, "bio"),
             "ReactionSet": None,
             "HangarReactionSet": None,
