@@ -13,6 +13,7 @@ from parsers.customization_rarity import CustomizationRarity
 from parsers.rarity import Rarity
 from parsers.image import Image
 from parsers.group_reward import GroupReward
+from parsers.material import Material
 
 class ProgressionTable(Object):
     objects = dict()  # Dictionary to hold all ProgressionTable instances
@@ -46,8 +47,11 @@ class ProgressionTable(Object):
         key_to_parser_function = {
             "Currencies": (lambda currencies: [parse_currency(currency) for currency in currencies], "currencies"),
             "ContentUnlocks": (lambda content_unlocks: [ContentUnlock.get_from_asset_path(content_unlock["ObjectPath"]) for content_unlock in content_unlocks], "content_unlocks_ids"),
-            "CharacterModules": (self._p_character_modules, "modules"),
-            "Decals": (lambda decals: [Decal.get_from_asset_path(decal["Decal"]["ObjectPath"]) for decal in decals], "decals_ids")
+            "CharacterModules": (self._p_modules, "modules"),
+            "Decals": (lambda decals: [Decal.get_from_asset_path(decal["Decal"]["ObjectPath"]) for decal in decals], "decals_ids"),
+            "Materials": (lambda materials: [Material.get_from_asset_path(material["Material"]["ObjectPath"]) for material in materials], "materials_ids"),
+            "GlobalDecals": self._p_global_decals,
+            "Weathering": self._p_confirm_empty,
             #TODO
         }
 
@@ -58,7 +62,7 @@ class ProgressionTable(Object):
 
         return parsed_reward
     
-    def _p_character_modules(self, data: list):
+    def _p_modules(self, data: list):
         parsed_ms = []
         for element in data:
             parsed_m = dict()
@@ -67,6 +71,10 @@ class ProgressionTable(Object):
             parsed_m["level"] = element["Level"]
             parsed_ms.append(parsed_m)
         return parsed_ms
+    
+    def _p_confirm_empty(self, data: list):
+        if data != []:
+            raise ValueError("Data structure change, ProgressionTable level attribute is no longer always empty.")
 
 def parse_progression_table():
     progression_table_path = r"WRFrontiers/Content/Sparrow/Mechanics/DA_ProgressionTable.json"
@@ -82,6 +90,7 @@ def parse_progression_table():
     CustomizationRarity.to_file()
     Rarity.to_file()
     GroupReward.to_file()
+    Material.to_file()
 
     Image.to_file()
 
