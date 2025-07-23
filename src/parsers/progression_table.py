@@ -3,9 +3,10 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from utils import path_to_id
 from parsers.object import Object
-
-
+from parsers.currency import Currency, parse_currency
+from parsers.content_unlock import ContentUnlock
 
 class ProgressionTable(Object):
     objects = dict()  # Dictionary to hold all ProgressionTable instances
@@ -37,7 +38,9 @@ class ProgressionTable(Object):
 
     def _p_level_reward(self, reward: dict):
         key_to_parser_function = {
-            "Currencies": "value",
+            "Currencies": (lambda currencies: [parse_currency(currency) for currency in currencies], "currencies"),
+            "ContentUnlocks": (lambda content_unlocks: [ContentUnlock.get_from_asset_path(content_unlock["ObjectPath"]) for content_unlock in content_unlocks], "content_unlocks_ids"),
+            "CharacterModules": (self._p_character_modules, "modules"),
             #TODO
         }
 
@@ -47,6 +50,16 @@ class ProgressionTable(Object):
         parsed_reward = {k: v for k, v in parsed_reward.items() if v not in ([], {}, None)}
 
         return parsed_reward
+    
+    def _p_character_modules(self, data: list):
+        parsed_ms = []
+        for element in data:
+            parsed_m = dict()
+            module_id = path_to_id(element["Module"]["ObjectPath"])
+            parsed_m["module_id"] = module_id
+            parsed_m["level"] = element["Level"]
+            parsed_ms.append(parsed_m)
+        return parsed_ms
 
 def parse_progression_table():
     progression_table_path = r"WRFrontiers/Content/Sparrow/Mechanics/DA_ProgressionTable.json"
@@ -55,6 +68,8 @@ def parse_progression_table():
     progression_table = ProgressionTable.get_from_asset_path(progression_table_path)
 
     ProgressionTable.to_file()
+    Currency.to_file()
+    ContentUnlock.to_file()
 
 if __name__ == "__main__":
     parse_progression_table()
