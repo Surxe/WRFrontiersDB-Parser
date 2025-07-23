@@ -16,6 +16,7 @@ class CustomizationType(Object):
 
         key_to_parser_function = {
             "HumanName": (parse_localization, "name"), 
+            "TypeTip": (parse_localization, "type_tip"),
             "GroupReward": (self._p_group_reward, "group_reward_id"),
         }
 
