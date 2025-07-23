@@ -7,6 +7,12 @@ from utils import path_to_id
 from parsers.object import Object
 from parsers.currency import Currency, parse_currency
 from parsers.content_unlock import ContentUnlock
+from parsers.decal import Decal
+from parsers.customization_type import CustomizationType
+from parsers.customization_rarity import CustomizationRarity
+from parsers.rarity import Rarity
+from parsers.image import Image
+from parsers.group_reward import GroupReward
 
 class ProgressionTable(Object):
     objects = dict()  # Dictionary to hold all ProgressionTable instances
@@ -41,6 +47,7 @@ class ProgressionTable(Object):
             "Currencies": (lambda currencies: [parse_currency(currency) for currency in currencies], "currencies"),
             "ContentUnlocks": (lambda content_unlocks: [ContentUnlock.get_from_asset_path(content_unlock["ObjectPath"]) for content_unlock in content_unlocks], "content_unlocks_ids"),
             "CharacterModules": (self._p_character_modules, "modules"),
+            "Decals": (lambda decals: [Decal.get_from_asset_path(decal["Decal"]["ObjectPath"]) for decal in decals], "decals_ids")
             #TODO
         }
 
@@ -70,6 +77,13 @@ def parse_progression_table():
     ProgressionTable.to_file()
     Currency.to_file()
     ContentUnlock.to_file()
+    Decal.to_file()
+    CustomizationType.to_file()
+    CustomizationRarity.to_file()
+    Rarity.to_file()
+    GroupReward.to_file()
+
+    Image.to_file()
 
 if __name__ == "__main__":
     parse_progression_table()

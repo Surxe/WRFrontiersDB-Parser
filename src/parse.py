@@ -16,4 +16,4 @@ parse_localizations()
 print()
 #parse_modules() #module relies on english localization being added to each key just as a helpful Ctrl+F reference
 #parse_pilots()  # Pilot parser relies on module data being parsed first
-parse_progression_table()  # Progression table relies on pilot data being parsed first
+parse_progression_table()
