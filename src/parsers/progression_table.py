@@ -14,6 +14,8 @@ from parsers.rarity import Rarity
 from parsers.image import Image
 from parsers.group_reward import GroupReward
 from parsers.material import Material
+from parsers.weathering import Weathering
+from parsers.skin import Skin
 
 class ProgressionTable(Object):
     objects = dict()  # Dictionary to hold all ProgressionTable instances
@@ -45,13 +47,20 @@ class ProgressionTable(Object):
 
     def _p_level_reward(self, reward: dict):
         key_to_parser_function = {
+            "ReputationPoints": self._confirm_0,
             "Currencies": (lambda currencies: [parse_currency(currency) for currency in currencies], "currencies"),
-            "ContentUnlocks": (lambda content_unlocks: [ContentUnlock.get_from_asset_path(content_unlock["ObjectPath"]) for content_unlock in content_unlocks], "content_unlocks_ids"),
             "CharacterModules": (self._p_modules, "modules"),
+            "Blueprints": "value",
+            "Characters": "value",
+            "ContentUnlocks": (lambda content_unlocks: [ContentUnlock.get_from_asset_path(content_unlock["ObjectPath"]) for content_unlock in content_unlocks], "content_unlocks_ids"),
+            "Premium": self._confirm_empty,
             "Decals": (lambda decals: [Decal.get_from_asset_path(decal["Decal"]["ObjectPath"]) for decal in decals], "decals_ids"),
             "Materials": (lambda materials: [Material.get_from_asset_path(material["Material"]["ObjectPath"]) for material in materials], "materials_ids"),
-            "GlobalDecals": self._p_global_decals,
-            "Weathering": self._p_confirm_empty,
+            "GlobalDecals": self._confirm_empty,
+            "Weathering": (lambda weathering: [Weathering.get_from_asset_path(weather["Weathering"]["ObjectPath"]) for weather in weathering], "weatherings_ids"),
+            "CharacterSkins": (lambda skins: [Skin.get_from_asset_path(skin["Skin"]["ObjectPath"]) for skin in skins], "skins_ids"),
+            "CharacterSetups": self._confirm_empty,
+            "PilotRewards": (self._p_pilots, "pilots"),
             #TODO
         }
 
@@ -72,9 +81,23 @@ class ProgressionTable(Object):
             parsed_ms.append(parsed_m)
         return parsed_ms
     
-    def _p_confirm_empty(self, data: list):
+    def _p_pilots(self, data: list):
+        parsed_pilots = []
+        for element in data:
+            parsed_p = dict()
+            pilot_id = path_to_id(element["Pilot"]["ObjectPath"])
+            parsed_p["pilot_id"] = pilot_id
+            parsed_p["level"] = element["Level"]
+            parsed_pilots.append(parsed_p)
+        return parsed_pilots
+    
+    def _confirm_empty(self, data: list):
         if data != []:
-            raise ValueError("Data structure change, ProgressionTable level attribute is no longer always empty.")
+            raise ValueError(f"Data structure change, ProgressionTable level attribute is no longer always empty. {data}")
+
+    def _confirm_0(self, data: int):
+        if data != 0:
+            raise ValueError("Data structure change, ProgressionTable level attribute is no longer always 0.")
 
 def parse_progression_table():
     progression_table_path = r"WRFrontiers/Content/Sparrow/Mechanics/DA_ProgressionTable.json"
@@ -91,6 +114,8 @@ def parse_progression_table():
     Rarity.to_file()
     GroupReward.to_file()
     Material.to_file()
+    Weathering.to_file()
+    Skin.to_file()
 
     Image.to_file()
 
