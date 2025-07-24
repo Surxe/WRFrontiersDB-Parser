@@ -28,6 +28,18 @@ else
 fi
 echo "Using game version: $NEW_GAME_VERSION"
 
+# Prompt for branch to push to
+echo "Available branches: testing-grounds, main"
+echo -n "Enter branch to push to [press {Enter} for testing-grounds]: "
+read TARGET_BRANCH
+if [ -z "$TARGET_BRANCH" ]; then
+    TARGET_BRANCH="testing-grounds"
+elif [ "$TARGET_BRANCH" != "testing-grounds" ] && [ "$TARGET_BRANCH" != "main" ]; then
+    echo "❌ Invalid branch '$TARGET_BRANCH'. Only 'testing-grounds' and 'main' are allowed."
+    exit 1
+fi
+echo "Using branch: $TARGET_BRANCH"
+
 # Saves data to data repository and archives previous data
 
 # === CLONE DATA REPO IF NOT PRESENT ===
@@ -51,13 +63,17 @@ cd "$DATA_REPO_DIR"
 git config --local user.email "parser@example.com"
 git config --local user.name "Parser"
 git config --local credential.helper ""
+
+# Switch to target branch
+echo "Switching to branch: $TARGET_BRANCH"
+git checkout "$TARGET_BRANCH" || git checkout -b "$TARGET_BRANCH"
+
 cd ..
 
 # === GET LATEST COMMIT TITLE AND DATE ===
 LATEST_COMMIT=$(git log -1 --format="%s - %ad" --date=short)
 echo "Latest commit: $LATEST_COMMIT"
 cd "$DATA_REPO_DIR"
-
 
 # Determine the game version to archive (in current/version.txt)
 CURRENT_PATH="current"
@@ -101,7 +117,7 @@ echo "$NEW_GAME_VERSION" > "$CURRENT_PATH/version.txt"
 # === COMMIT AND PUSH ===
 git add .
 git commit -m "Data for version:$NEW_GAME_VERSION from latest Parser commit:$LATEST_COMMIT" || echo "Nothing to commit."
-git push
+git push origin "$TARGET_BRANCH"
 
 cd ..
-echo "✅ Data updated successfully."
+echo "✅ Data updated successfully and pushed to branch '$TARGET_BRANCH'."
