@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import PARAMS, path_to_id, asset_path_to_file_path, get_json_data, log, to_snake_case
+from utils import PARAMS, path_to_id, asset_path_to_file_path_and_index, get_json_data, log, to_snake_case
 
 import json
 
@@ -200,9 +200,9 @@ class Object: #generic object that all classes extend
         obj_id = path_to_id(asset_path)
         obj = cls.get_from_id(obj_id)
         if obj is None:
-            file_path = asset_path_to_file_path(asset_path)
+            file_path, index = asset_path_to_file_path_and_index(asset_path)
             log(f"Parsing {cls.__name__} {obj_id} from {file_path}", tabs=log_tabs)
-            obj_data = get_json_data(file_path)[0]
+            obj_data = get_json_data(file_path)[index]
             obj = cls(obj_id, obj_data)
 
         return obj_id

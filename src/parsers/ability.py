@@ -4,7 +4,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import Object
-from utils import parse_colon_colon
+from utils import asset_path_to_data, parse_colon_colon
 from parsers.image import parse_image_asset_path
 from parsers.localization_table import parse_localization
 
@@ -42,14 +42,29 @@ class Ability(Object):
 
         self._process_key_to_parser_function(key_to_parser_function, props, tabs=3)
 
-    def _p_confirmation_action(self, value, prop_name):
-        # TODO: Implement the parsing logic for ConfirmationAction
-        pass
+    def _p_confirmation_action(self, data: dict):
+        conf_ac_data = asset_path_to_data(data["ObjectPath"])
+        targeting_action_data = asset_path_to_data(conf_ac_data["Properties"]["TargetingAction"]["ObjectPath"])
 
-    def _p_projectile_types(self, value, prop_name):
+        key_to_parser_function = {
+            "ConeRadius": "value",
+            "ConeHalfAngleInDegrees": "value",
+            "MaxTargetNum": "value",
+            "TargetingMarkerAction": None,
+            "TargetingStartedSoundEvent": None,
+            "TargetingEndedSoundEvent": None,
+        }
+
+        parsed_targeting_data = self._process_key_to_parser_function(
+            key_to_parser_function, targeting_action_data["Properties"], log_descriptor="ConfirmationAction", tabs=4, set_attrs=False
+        )
+
+        return parsed_targeting_data
+
+    def _p_projectile_types(self, data: dict):
         # TODO: Implement the parsing logic for ProjectileTypes
         pass
 
-    def _p_ability_scalar(self, value, prop_name):
+    def _p_ability_scalar(self, data: dict):
         # TODO: Implement the parsing logic for AbilityScaler
         pass

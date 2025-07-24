@@ -25,7 +25,12 @@ class Image():
 
 
 def parse_image_asset_path(data: dict) -> str:
-    asset_path = data["AssetPathName"]
+    if "AssetPathName" in data:
+        asset_path = data["AssetPathName"]
+    elif "ObjectPath" in data:
+        asset_path = data["ObjectPath"]
+    else:
+        raise ValueError("Data must contain 'AssetPathName' or 'ObjectPath'.")
     export_plus_file_path = asset_path_to_file_path(asset_path)
     image_path_generic = export_plus_file_path.split(PARAMS.export_path + "\\\\")[1].replace("\\", "/").split(".")[0] # #<export_path>\\<file_path>\\<image_name>.json -> <file_path>/<image_name>
     Image(image_path_generic)  # Register the image path
