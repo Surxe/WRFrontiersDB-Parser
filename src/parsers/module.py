@@ -10,6 +10,7 @@ from parsers.object import Object
 from parsers.module_rarity import ModuleRarity
 from parsers.rarity import Rarity
 from parsers.character_module import CharacterModule
+from parsers.ability import Ability
 from parsers.faction import Faction
 from parsers.module_class import ModuleClass
 from parsers.character_class import CharacterClass
@@ -315,6 +316,7 @@ def parse_modules(to_file=False):
         ModuleStat.to_file()
         ModuleStatsTable.to_file()
         Currency.to_file()
+        Ability.to_file()
         Image.to_file()
 
 if __name__ == "__main__":

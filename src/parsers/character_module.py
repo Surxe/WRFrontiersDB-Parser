@@ -4,6 +4,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import Object, ParseTarget
+from parsers.ability import Ability
 from utils import asset_path_to_data, parse_colon_colon
 
 class CharacterModule(Object):
@@ -18,7 +19,7 @@ class CharacterModule(Object):
             "RootComponent": None,
             "ModuleScaler": self._p_module_scalar, # attrs will be set in the nested functions
             "Components": None,
-            "Abilities": None,
+            "Abilities": self._p_abilities,
             "MovementType": None, # too complicated to bother with; contains movement data as curve tables
             "FootstepSettings": None,
             "DefaultMaxSpeed": "value",
@@ -192,6 +193,13 @@ class CharacterModule(Object):
         burst_behavior_parsed_data = _p_burst_behavior(props)
         for key, value in burst_behavior_parsed_data.items():
             self.defaultable_data[key] = value
+
+    def _p_abilities(self, list: list):
+        for ability in list:
+            ability_asset_path = ability["ObjectPath"]
+            ability_data = asset_path_to_data(ability_asset_path)
+            ability_template_asset_path = ability_data["Template"]["ObjectPath"]
+            ability_id = Ability.get_from_asset_path(ability_template_asset_path)
 
     def _p_reload_type(self, data):
         self.reload_type = parse_colon_colon(data)  # ESWeaponReloadType::X -> X

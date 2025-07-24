@@ -1,5 +1,4 @@
 # everything in ctrl shift f "pass"
-# parse quest conditions in meta
 # parse ability name, is it ID?
 # ability/titan ult charge?
 # parse weapon falloff curves
