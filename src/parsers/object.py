@@ -6,7 +6,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils import PARAMS, path_to_id, asset_path_to_file_path, get_json_data, log, to_snake_case
 
 import json
-import re
 
 class Object: #generic object that all classes extend
     objects = dict()  # Dictionary to hold all object instances

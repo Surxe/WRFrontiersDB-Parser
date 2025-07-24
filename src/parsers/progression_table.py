@@ -99,25 +99,25 @@ class ProgressionTable(Object):
         if data != 0:
             raise ValueError("Data structure change, ProgressionTable level attribute is no longer always 0.")
 
-def parse_progression_table():
+def parse_progression_table(to_file=False):
     progression_table_path = r"WRFrontiers/Content/Sparrow/Mechanics/DA_ProgressionTable.json"
 
     # Hero pilots are in this dir directly
     progression_table = ProgressionTable.get_from_asset_path(progression_table_path)
 
-    ProgressionTable.to_file()
-    Currency.to_file()
-    ContentUnlock.to_file()
-    Decal.to_file()
-    CustomizationType.to_file()
-    CustomizationRarity.to_file()
-    Rarity.to_file()
-    GroupReward.to_file()
-    Material.to_file()
-    Weathering.to_file()
-    Skin.to_file()
-
-    Image.to_file()
+    if to_file: # Condition prevents needlessly saving the same data multiple times, as it will also be saved if ran thru parse.py
+        ProgressionTable.to_file()
+        Currency.to_file()
+        ContentUnlock.to_file()
+        Decal.to_file()
+        CustomizationType.to_file()
+        CustomizationRarity.to_file()
+        Rarity.to_file()
+        GroupReward.to_file()
+        Material.to_file()
+        Weathering.to_file()
+        Skin.to_file()
+        Image.to_file()
 
 if __name__ == "__main__":
-    parse_progression_table()
+    parse_progression_table(to_file=True)

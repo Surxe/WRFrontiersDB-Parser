@@ -110,34 +110,34 @@ def parse_pilot_wrapper(dir, file_name):
     Pilot.objects[pilot_id] = pilot
     return pilot
 
-def parse_pilots():
+def parse_pilots(to_file=False):
     pilots_source_path = os.path.join(PARAMS.export_path, r"WRFrontiers\Content\Sparrow\Pilots\PilotsDataAssets")
     
     # Hero pilots are in this dir directly
     for file in os.listdir(pilots_source_path):
         if file == 'DA_Pilot_FiringRange.json':
             continue # guessing this is used as a placeholder when in the firing range, it has dummy values
-        parse_pilot_wrapper(pilots_source_path, file)
+        pilot = parse_pilot_wrapper(pilots_source_path, file)
 
     # Common pilots are in a subdir:
     common_pilots_path = os.path.join(pilots_source_path, "CommonPilots")
     for file in os.listdir(common_pilots_path):
-        parse_pilot_wrapper(common_pilots_path, file)
+        pilot = parse_pilot_wrapper(common_pilots_path, file)
 
-
-    Pilot.to_file()
-    Faction.to_file()
-    Currency.to_file()
-    PilotType.to_file()
-    Rarity.to_file()
-    GroupReward.to_file()
-    PilotClass.to_file()
-    PilotPersonality.to_file()
-    PilotTalentType.to_file()
-    PilotTalent.to_file()
-    ModuleStat.to_file()
-    ModuleTag.to_file()
-    Image.to_file()
+    if to_file: # Condition prevents needlessly saving the same data multiple times, as it will also be saved if ran thru parse.py
+        Pilot.to_file()
+        Faction.to_file()
+        Currency.to_file()
+        PilotType.to_file()
+        Rarity.to_file()
+        GroupReward.to_file()
+        PilotClass.to_file()
+        PilotPersonality.to_file()
+        PilotTalentType.to_file()
+        PilotTalent.to_file()
+        ModuleStat.to_file()
+        ModuleTag.to_file()
+        Image.to_file()
 
 if __name__ == "__main__":
-    parse_pilots()
+    parse_pilots(to_file=True)
