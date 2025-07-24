@@ -201,7 +201,7 @@ class Object: #generic object that all classes extend
         obj = cls.get_from_id(obj_id)
         if obj is None:
             file_path, index = asset_path_to_file_path_and_index(asset_path)
-            log(f"Parsing {cls.__name__} {obj_id} from {file_path}", tabs=log_tabs)
+            log(f"Parsing {cls.__name__} {obj_id} from {file_path} . {index}", tabs=log_tabs)
             obj_data = get_json_data(file_path)[index]
             obj = cls(obj_id, obj_data)
 

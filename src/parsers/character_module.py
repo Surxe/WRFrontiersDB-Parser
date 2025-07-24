@@ -199,7 +199,7 @@ class CharacterModule(Object):
             ability_asset_path = ability["ObjectPath"]
             ability_data = asset_path_to_data(ability_asset_path)
             ability_template_asset_path = ability_data["Template"]["ObjectPath"]
-            ability_obj = Ability.get_from_asset_path(ability_template_asset_path)
+            ability_id = Ability.get_from_asset_path(ability_template_asset_path)
 
     def _p_reload_type(self, data):
         self.reload_type = parse_colon_colon(data)  # ESWeaponReloadType::X -> X
