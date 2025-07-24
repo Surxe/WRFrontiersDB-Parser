@@ -5,4 +5,3 @@
 # parse weapon falloff curves
 # check if burst interval can be parsed, like time between shots in bayonet's 3 bullet burst.
 # check if theres any stat that determines how frequently weapons like zeus can fire when they have infinite ammo
-# verify that to_file()ing every parser in parse.py does not impact outpu

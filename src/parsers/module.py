@@ -290,7 +290,7 @@ class Module(Object):
                 self.levels["scrap_rewards"]["variables"].append(parsed_scrap_rewards)
 
 
-def parse_modules():
+def parse_modules(to_file=False):
     modules_source_path = os.path.join(PARAMS.export_path, r"WRFrontiers\Content\Sparrow\Mechanics\Meta\Entities\Modules")
     for file in os.listdir(modules_source_path):
         if file.endswith(".json"):
@@ -300,21 +300,22 @@ def parse_modules():
             module_data = get_json_data(full_path)
             module = Module(module_id, module_data)
 
-    Module.to_file()
-    ModuleRarity.to_file()
-    Rarity.to_file()
-    CharacterModule.to_file()
-    Faction.to_file()
-    ModuleClass.to_file()
-    CharacterClass.to_file()
-    ModuleTag.to_file()
-    ModuleType.to_file()
-    ModuleCategory.to_file()
-    ModuleSocketType.to_file()
-    ModuleStat.to_file()
-    ModuleStatsTable.to_file()
-    Currency.to_file()
-    Image.to_file()
+    if to_file: # Condition prevents needlessly saving the same data multiple times, as it will also be saved if ran thru parse.py
+        Module.to_file()
+        ModuleRarity.to_file()
+        Rarity.to_file()
+        CharacterModule.to_file()
+        Faction.to_file()
+        ModuleClass.to_file()
+        CharacterClass.to_file()
+        ModuleTag.to_file()
+        ModuleType.to_file()
+        ModuleCategory.to_file()
+        ModuleSocketType.to_file()
+        ModuleStat.to_file()
+        ModuleStatsTable.to_file()
+        Currency.to_file()
+        Image.to_file()
 
 if __name__ == "__main__":
-    parse_modules()
+    parse_modules(to_file=True)

@@ -39,9 +39,12 @@ def parse_localization(data: dict):
     
     if localization_key is not None and localization_table_namespace is not None:
         localization_obj_english = Localization.get_from_id("en")
-        localization_english = localization_obj_english._localize(localization_table_namespace, localization_key)
-        if localization_english is None:
-            localization_english = localization_key
+        if localization_obj_english is None:
+            localization_english = None
+        else:
+            localization_english = localization_obj_english._localize(localization_table_namespace, localization_key)
+            if localization_english is None:
+                localization_english = localization_key
 
         return {
             "Key": localization_key,
