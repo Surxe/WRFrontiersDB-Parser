@@ -23,7 +23,7 @@ class Object: #generic object that all classes extend
         """
         raise NotImplementedError("Subclasses must implement this method.")
 
-    def _process_key_to_parser_function(self, key_to_parser_function_map, data, log_descriptor="", set_attrs=True, tabs=0):
+    def _process_key_to_parser_function(self, key_to_parser_function_map, data, log_descriptor="", set_attrs=True, tabs=0, default_configuration={}):
         """
         Enhanced version that supports flexible target destinations.
         
@@ -64,7 +64,21 @@ class Object: #generic object that all classes extend
         
         if log_descriptor != "":
             log_descriptor = f" in {log_descriptor}"
-        
+
+        # Determine the default configuration
+        default_config_to_use = {
+            'parser': "value",  # Default parser is "value"
+            'action': ParseAction.ATTRIBUTE,  # Default action is to set an attribute
+            'target_dict_path': None,  # Default is no nested dict path
+            'target': ParseTarget.MATCH_KEY_SNAKE  # Default target is to match key in snake_case
+        }
+        # Update with any provided default configuration
+        for key, value in default_configuration.items():
+            if key in default_config_to_use:
+                default_config_to_use[key] = value
+            else:
+                raise ValueError(f"Unknown default configuration key: {key}")
+            
         parsed_data = dict()
 
         for key, value in data.items():
@@ -79,26 +93,23 @@ class Object: #generic object that all classes extend
                 if callable(config) or config == "value":
                     config = {
                         'parser': config,
-                        'action': ParseAction.ATTRIBUTE,
-                        'target': ParseTarget.MATCH_KEY_SNAKE
                     }
                 
                 # Handle legacy tuple format for backwards compatibility
                 elif isinstance(config, tuple):
                     config = {
                         'parser': config[0],
-                        'action': ParseAction.ATTRIBUTE,
                         'target': config[1]
                     }
                 
                 # Handle new dictionary format
                 if not isinstance(config, dict):
                     raise TypeError(f"{self.__class__.__name__} Value for key '{key}' must be a dict, tuple, callable, or None, got {type(config)}")
-                
-                parser = config.get('parser', "value")  # Default to "value"
-                action = config.get('action', ParseAction.ATTRIBUTE)  # Default to ATTRIBUTE
+
+                parser = config.get('parser', default_config_to_use['parser'])
+                action = config.get('action', default_config_to_use['action'])
                 target_dict_path = config.get('target_dict_path')
-                target = config.get('target', ParseTarget.MATCH_KEY)
+                target = config.get('target', default_config_to_use['target'])
                 
                 # Validate configuration
                 if action == ParseAction.DICT_ENTRY and not target_dict_path:
