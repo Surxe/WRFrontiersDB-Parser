@@ -92,29 +92,32 @@ class CharacterModule(Object):
             self.defaultable_data = dict()
 
         key_to_parser_function = {
-            "DefaultDirectDamage": ("value", ParseTarget.MATCH_KEY),
-            "DefaultAoeDamage": ("value", ParseTarget.MATCH_KEY),
-            "DefaultClipSize": ("value", ParseTarget.MATCH_KEY),
-            "DefaultProjectilesPerShot": ("value", ParseTarget.MATCH_KEY),
-            "DefaultProjectileSpeed": ("value", ParseTarget.MATCH_KEY),
-            "DefaultTimeToReload": ("value", ParseTarget.MATCH_KEY),
-            "DefaultTimeBetweenShots": ("value", ParseTarget.MATCH_KEY),
-            "DefaultDistanceSettings": ("value", ParseTarget.MATCH_KEY),
-            "DefaultFirePower": ("value", ParseTarget.MATCH_KEY),
-            "DefaultSpread": ("value", ParseTarget.MATCH_KEY),
-            "DefaultLegsArmor": ("value", ParseTarget.MATCH_KEY),
-            "DefaultMaxSpeed": ("value", ParseTarget.MATCH_KEY),
-            "DefaultMobility": ("value", ParseTarget.MATCH_KEY),
-            "DefaultFuelCapacity": ("value", ParseTarget.MATCH_KEY),
-            "DefaultShieldAmount": ("value", ParseTarget.MATCH_KEY),
-            "DefaultShieldRegeneration": ("value", ParseTarget.MATCH_KEY),
-            "DefaultShieldDelayReduction": ("value", ParseTarget.MATCH_KEY),
+            "DefaultDirectDamage": "value",
+            "DefaultAoeDamage": "value",
+            "DefaultClipSize": "value",
+            "DefaultProjectilesPerShot": "value",
+            "DefaultProjectileSpeed": "value",
+            "DefaultTimeToReload": "value",
+            "DefaultTimeBetweenShots": "value",
+            "DefaultDistanceSettings": "value",
+            "DefaultFirePower": "value",
+            "DefaultSpread": "value",
+            "DefaultLegsArmor": "value",
+            "DefaultMaxSpeed": "value",
+            "DefaultMobility": "value",
+            "DefaultFuelCapacity": "value",
+            "DefaultShieldAmount": "value",
+            "DefaultShieldRegeneration": "value",
+            "DefaultShieldDelayReduction": "value",
             "ModuleName": None,
-            "DefaultHullShare": ("value", ParseTarget.MATCH_KEY),
-            "DefaultPrimaryArmor": ("value", ParseTarget.MATCH_KEY),
+            "DefaultHullShare": "value",
+            "DefaultPrimaryArmor": "value",
         }
 
-        parsed_data = self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="ModuleScalar", set_attrs=False, tabs=2)
+        parsed_data = self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="ModuleScalar", set_attrs=False, tabs=2
+                                                           , default_configuration={
+                                                               'target': ParseTarget.MATCH_KEY
+                                                           })
         for key, value in parsed_data.items():
             key_to_store_value_in = key if 'Default' not in key else key.split('Default')[1]
             self.defaultable_data[key_to_store_value_in] = value
@@ -133,30 +136,30 @@ class CharacterModule(Object):
 
         def _p_firing_behavior(data):
             key_to_parser_function = {
-                "JumpsCount": ("value", ParseTarget.MATCH_KEY),
-                "JumpPowerQuotient": ("value", ParseTarget.MATCH_KEY),
-                "JumpRadius": ("value", ParseTarget.MATCH_KEY),
+                "JumpsCount": "value",
+                "JumpPowerQuotient": "value",
+                "JumpRadius": "value",
                 "LinkedLaserEffectPrototype": None,
-                "LaserDuration": ("value", ParseTarget.MATCH_KEY),
+                "LaserDuration": "value",
                 "WhizBySettings": None,
-                "DamageApplicationTime": ("value", ParseTarget.MATCH_KEY),
-                "bSingleShot": ("value", ParseTarget.MATCH_KEY),
-                "ConsumeAllClipOnShot": ("value", ParseTarget.MATCH_KEY),
+                "DamageApplicationTime": "value",
+                "bSingleShot": "value",
+                "ConsumeAllClipOnShot": "value",
                 "ProjectileMappings": self._p_projectile_mappings,
                 "ProjectileClass": None,
                 "BallisticBehavior": self._p_ballistic_behavior,
-                "bEnableProximityFuse": ("value", ParseTarget.MATCH_KEY),
-                "ProximityFuseRadius": ("value", ParseTarget.MATCH_KEY),
-                "ProjectilesPerShot": ("value", ParseTarget.MATCH_KEY),
+                "bEnableProximityFuse": "value",
+                "ProximityFuseRadius": "value",
+                "ProjectilesPerShot": "value",
                 "ShotFX": None,
                 "ShotTriggerParam": None,
                 "ShotNumberParam": None,
-                "TimeBetweenShots": ("value", ParseTarget.MATCH_KEY),
-                "Spread": ("value", ParseTarget.MATCH_KEY),
-                "AbilityChargePointsOnHit": ("value", ParseTarget.MATCH_KEY),
-                "TitanChargePerHit": ("value", ParseTarget.MATCH_KEY),
-                "DirectDamage": ("value", ParseTarget.MATCH_KEY),
-                "AoeDamage": ("value", ParseTarget.MATCH_KEY),
+                "TimeBetweenShots": "value",
+                "Spread": "value",
+                "AbilityChargePointsOnHit": "value",
+                "TitanChargePerHit": "value",
+                "DirectDamage": "value",
+                "AoeDamage": "value",
                 "FireFX": None,
                 "bContinuousFireFX": None,
                 "bHasArmorVisualImpact": None,
@@ -169,7 +172,9 @@ class CharacterModule(Object):
                 "BurstBehavior": None, #already parsed in burst behavior
             }
 
-            return self._process_key_to_parser_function(key_to_parser_function, data, log_descriptor="FiringBehavior", set_attrs=False, tabs=2)
+            return self._process_key_to_parser_function(key_to_parser_function, data, log_descriptor="FiringBehavior", set_attrs=False, tabs=2, default_configuration={
+                'target': ParseTarget.MATCH_KEY
+            })
 
         firing_behavior_parsed_data = _p_firing_behavior(props)
         for key, value in firing_behavior_parsed_data.items():
@@ -183,12 +188,14 @@ class CharacterModule(Object):
 
         def _p_burst_behavior(data):
             key_to_parser_function = {
-                "BurstLength": ("value", ParseTarget.MATCH_KEY),
-                "TimeBetweenBursts": ("value", ParseTarget.MATCH_KEY),
-                "bOneShotEffectPerBurst": ("value", ParseTarget.MATCH_KEY),
+                "BurstLength": "value",
+                "TimeBetweenBursts": "value",
+                "bOneShotEffectPerBurst": "value",
             }
             
-            return self._process_key_to_parser_function(key_to_parser_function, data, log_descriptor="BurstBehavior", set_attrs=False, tabs=2)
+            return self._process_key_to_parser_function(key_to_parser_function, data, log_descriptor="BurstBehavior", set_attrs=False, tabs=2, default_configuration={
+                'target': ParseTarget.MATCH_KEY
+            })
         
         burst_behavior_parsed_data = _p_burst_behavior(props)
         for key, value in burst_behavior_parsed_data.items():
@@ -211,15 +218,17 @@ class CharacterModule(Object):
         parsed_mappings = []
         for projectile_mapping in data:
             key_to_parser_function = {
-                "MinRelativeChargeRequired": ("value", ParseTarget.MATCH_KEY),
-                "MaxRelativeChargeRequired": ("value", ParseTarget.MATCH_KEY),
-                "ProjectilesCount": ("value", ParseTarget.MATCH_KEY),
+                "MinRelativeChargeRequired": "value",
+                "MaxRelativeChargeRequired": "value",
+                "ProjectilesCount": "value",
                 "ProjectileClass": None,
                 "FireFX": None,
                 "FireSound": None,
             }
 
-            parsed_mapping = self._process_key_to_parser_function(key_to_parser_function, projectile_mapping, log_descriptor="ProjectileMapping", set_attrs=False, tabs=2)
+            parsed_mapping = self._process_key_to_parser_function(key_to_parser_function, projectile_mapping, log_descriptor="ProjectileMapping", set_attrs=False, tabs=2, default_configuration={
+                'target': ParseTarget.MATCH_KEY
+            })
             parsed_mappings.append(parsed_mapping)
 
         return parsed_mappings
@@ -233,16 +242,18 @@ class CharacterModule(Object):
 
         key_to_parser_function = {
             "bUseFocusComponentAlignment": None,
-            "MinAngle": ("value", ParseTarget.MATCH_KEY),
-            "MaxAngle": ("value", ParseTarget.MATCH_KEY),
-            "bInvertDistanceToAngle": ("value", ParseTarget.MATCH_KEY),
-            "bUseFocusComponentAlignment": ("value", ParseTarget.MATCH_KEY),
+            "MinAngle": "value",
+            "MaxAngle": "value",
+            "bInvertDistanceToAngle": "value",
+            "bUseFocusComponentAlignment": "value",
             "ProjectileClass": None,
-            "HitError": ("value", ParseTarget.MATCH_KEY),
-            "DistToInitialSpeed": ("value", ParseTarget.MATCH_KEY),
-            "bBallisticModeForced": ("value", ParseTarget.MATCH_KEY),
+            "HitError": "value",
+            "DistToInitialSpeed": "value",
+            "bBallisticModeForced": "value",
         }
 
-        parsed_data = self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="BallisticBehavior", set_attrs=False, tabs=2)
+        parsed_data = self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="BallisticBehavior", set_attrs=False, tabs=2, default_configuration={
+            'target': ParseTarget.MATCH_KEY
+        })
         for key, value in parsed_data.items():
             self.defaultable_data[key] = value

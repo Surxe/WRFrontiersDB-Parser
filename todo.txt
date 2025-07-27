@@ -1,6 +1,6 @@
 # everything in ctrl shift f "pass"
 # parse ability name, is it ID?
 # ability/titan ult charge?
-# parse weapon falloff curves
+# parse weapon falloff curves "EditorCurveData"
 # check if burst interval can be parsed, like time between shots in bayonet's 3 bullet burst.
 # check if theres any stat that determines how frequently weapons like zeus can fire when they have infinite ammo
