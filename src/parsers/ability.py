@@ -19,7 +19,20 @@ class Ability(Object):
         
         key_to_parser_function = {
             "UberGraphFrame": None,
-            "StructRef": None, # values in this dict are nonsense, but the keys are what I'd expect to be important, though should be referenced elsewhere with actual values. steel feathers dmg
+            "ExplodeCount": "value",
+            "ImpactPointsCount": "value",
+            "ThinBeamTime": "value",
+            "ThickBeamTime": "value",
+            "Damage": "value",
+            "ActorMeshFXClass": None,
+            "ActorClass": self._p_actor_class,
+            "bStandaloneActor": ("value", "StandaloneActor"),
+            "DestroyWithOwner": "value",
+            "TargetingType": parse_colon_colon,
+            "TargetingStartedSoundEvent": None,
+            "TargetingEndedSoundEvent": None,
+            #"TargetingMarkerClass": {'parser': self._p_confirmation_action, 'target': 'targeting'},
+            "Struct Ref": None, # values in this dict are nonsense, but the keys are what I'd expect to be important, though should be referenced elsewhere with actual values. steel feathers dmg
             "SocketName": None,
             "SystemTemplate": None,
             "ReactionOnRecharge": None, #voice line
@@ -28,8 +41,9 @@ class Ability(Object):
             "TargetingActionWithConfirmation": {'parser': self._p_confirmation_action, 'target': 'targeting'},
             "ImmediateTargetingAction": None,
             "SPawnAction": None, #typo on their end
-            "ProjectileTypes": (self._p_projectile_types, "projectile_types"), #TODO
-            "AIConditions": None, #doesnt seem parseable, but AI bots use this
+            "ProjectileTypes": (self._p_projectile_types, "projectile_types"),
+            "AIConditionOperator": parse_colon_colon,
+            "AIConditions": self._p_ai_conditions, # TODO
             "Name": parse_localization,
             "Description": parse_localization,
             "PrimaryParameter": "value",
@@ -39,11 +53,10 @@ class Ability(Object):
             "CastDuration": "value",
             "BattleHUDWidgetClass": None, #is a generic widget class, looks like nothing useful
             "EffectType": parse_colon_colon,
-            "bDeactivateIfOwnerDie": ("value", "deactivate_if_owner_die"),
+            "bDeactivateIfOwnerDie": ("value", "DeactivateIfOwnerDie"),
             "Icon": (parse_image_asset_path, "icon_path"),
             "CameraFX": None,
             "DurationParamName": None, #no clue but its "None", only used by steel feathers
-
             "ActivationReaction": None, #voiceline, like ActivationSoundEvent, maybe for "victim" though? used by tyr heal drone
             "CastStartedSoundEvent": None,
             "ActivationSoundEvent": None,
@@ -56,9 +69,11 @@ class Ability(Object):
             "InitialDurationChannel": None,
             "StatusFXManager": None,
             "InitialDuration": "value",
+            "AttachSocketName": None,
+            "ActiveStateBuffs": self._p_actor_class,
             "PrimaryStatMetaInformation": (self._p_stat, "primary_stat_id"),
             "SecondaryStatMetaInformation": (self._p_stat, "secondary_stat_id"),
-            "bHasIndefiniteDuration": ("value", "has_indefinite_duration"),
+            "bHasIndefiniteDuration": ("value", "HasIndefiniteDuration"),
             "AbilityScaler": (self._p_ability_scalar, "TODO"), #TODO
         }
 
@@ -135,14 +150,21 @@ class Ability(Object):
 
             key_to_parser_function = {
                 "UberGraphFrame": None,
+                "ColorIdParam": None,
+                "DelayTime": "value",
                 "SocketNames": None,
-                "RocketExplosionDebuffClass": None, # TODO, parse buffs
+                "RocketExplosionDebuffClass": self._p_actor_class,
+                "ActorClass": self._p_actor_class,
+                "AttachSocketName": None,
+                "ActiveStateBuffs": self._p_actor_class,
                 "AxisSocketName": None,
-                "BuffActorClass": None, # TODO, parse buffs
+                "BuffActorClass": self._p_actor_class,
                 "CollisionComponent": None,
                 "MovementComponent": self._p_movement_component,
-                "BuffsOnHit": None, # TODO, doesn't look necessary for Blackout, may be necessary for others though
+                "BuffsOnHit": self._p_actor_class,
+                "DirectDamage": "value",
                 "AoeDamage": "value",
+                "VisualDamage": None,
                 "ExplosionSettings": None, #doesn't mention radius, looks too niche/complex to bother with
                 "OnComponentExploded": None, #references the same props, oddly
                 "CorpseTime": "value",
@@ -153,6 +175,7 @@ class Ability(Object):
                 "MaxDistanceSettingsDefault": "value",
                 "DeathDistanceSettingsDefault": "value",
                 "OwnerReactionOnHit": None, # voiceline
+                "VictimReactionOnHoming": None,
                 "VictimReactionOnHit": None, # voiceline
                 "MeshComponent": None,
                 "GravityChangeFromDistance": "value",
@@ -179,11 +202,71 @@ class Ability(Object):
 
         return parsed_projectile_types
     
+    def _p_actor_class(self, data: dict):
+        if type(data) is list:
+            for elem in data:
+                return self._p_actor_class(elem)
+        elif type(data) is dict:
+            data = asset_path_to_data(data["ObjectPath"])
+            data = asset_path_to_data(data["ClassDefaultObject"]["ObjectPath"])
+            if 'Properties' not in data:
+                return None
+            
+            key_to_parser_function = {
+                "UberGraphFrame": None,
+                "ReloadTimeFactor": "value",
+                "Modifiers": "value",
+                "MeshFX": None,
+                "SocketToFX": None,
+                "MeshFXClass": None,
+                "StatusFXManager": None,
+                "Lifetime": "value",
+                "InitialLifetime": "value",
+                "Icon": (parse_image_asset_path, "icon_path"),
+                "ActiveSoundEventStart": None,
+                "ActiveSoundEventFinish": None,
+                "StatusFXManager": None,
+                "ServerAttachedTime": None,
+                "StackMode": parse_colon_colon,
+                "AttachPoint": None,
+                "BuffId": None,
+                "DurationFX": None,
+                "MeshFXFadeOutTime": None,
+                "ProxyMeshFXClass": None,
+                "ProxyMeshFXFadeOutTime": None,
+                "CameraFX": None,
+                "DirectDamage": "value",
+                "AoeDamage": "value",
+                "DirectDamagePerSecond": "value",
+                "AoeDamagePerSecond": "value",
+                "TickInterval": "value",
+                "DamageExplosionSettings": None, #FX
+            }
+
+            parsed_data = self._process_key_to_parser_function(
+                key_to_parser_function, data["Properties"], log_descriptor="ActorClass", tabs=5, set_attrs=False, default_configuration={
+                    'target': ParseTarget.MATCH_KEY
+                }
+            )
+
+            return parsed_data
+    
     def _p_movement_component(self, data: dict):
         data = asset_path_to_data(data["ObjectPath"])
         if 'Properties' not in data:
             return None
         return data["Properties"]
+    
+    def _p_ai_conditions(self, data: dict):
+        parsed_conditions = []
+        for elem in data:
+            if elem is None:
+                continue
+            condition_data = asset_path_to_data(elem["ObjectPath"])
+            if 'Properties' not in condition_data:
+                continue
+            parsed_conditions.append(condition_data["Properties"])
+        return parsed_conditions
 
     def _p_ability_scalar(self, data: dict):
         # TODO: Implement the parsing logic for AbilityScaler
