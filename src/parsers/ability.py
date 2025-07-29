@@ -82,6 +82,9 @@ class Ability(Object):
     def _p_spawn_action(self, data: dict):
         spawn_action_data = asset_path_to_data(data["ObjectPath"])
 
+        if 'Properties' not in spawn_action_data:
+            return None
+
         key_to_parser_function = {
             "TimeBetweenLaunch": "value",
             "FlyTime": "value",

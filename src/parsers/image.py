@@ -25,6 +25,8 @@ class Image():
 
 
 def parse_image_asset_path(data: dict) -> str:
+    if data is None:
+        return None
     if "AssetPathName" in data:
         asset_path = data["AssetPathName"]
     elif "ObjectPath" in data:
