@@ -75,11 +75,101 @@ class Ability(Object):
             "SecondaryStatMetaInformation": (self._p_stat, "secondary_stat_id"),
             "bHasIndefiniteDuration": ("value", "HasIndefiniteDuration"),
             "AbilityScaler": (self._p_ability_scalar, "TODO"), #TODO
+            "IsHidden": "value",
+            "InitialCooldown": None, #often 0
+            "bMovementAbility": None,
+            "MaxCharges": None, # says blackout has 1 charge but it doesnt
+            "RampUpDuration": "value",
+            "ReactionToShooting": parse_colon_colon,
+            "DeactivationReaction": None, #FX of swarm
+            "DeactivationTargetSoundEvent": None,
+            "DeactivationOtherSoundEvent": None,
+            "ActivationOtherSoundEvent": None,
+            "ActivationTargetSoundEvent": None,
+            "TensionLinkBeamFX": None,
+            "AuraFX": None,
+            "TrailFX": None,
+            "ColorIdParam": None,
+            "WeaponFX": None,
+            "StartCastAnimation": None,
+            "CastMeshFX": None,
+            
+            "OvertipFX": None,
+            "OvertipFXDestroyPolicy": None,
+            "BeamDistanceRTPC": None,
+            "StealthAfterFireRestoreTimeout": "value",
+            "TeleportingSoundEvent": None,
+            "EndOfLifetimeSoundEvent": None,
+            "BeaconClass": None,
+            "MeshFX": None,
+            "TeleportFX": None,
+            "StartCastFX": None,
+            "DamageDecalClass": None,
+            "FieldRadius": "value", # matriarch
+            "CloneSpawnLocationOffset": "value",
+            "AIControllerClass": None,
+            "BotBuffClass": None,
+            "CloneBuffClass": None,
+            "CopyToCloneBuffs": None,
+            "BotDeathFX": None,
+            "BotDeathSoundEvent": None,
+            "CancellationCooldown": "value",
+            "StackingBuffClass": self._p_actor_class,
+            "MaxStacks": "value",
+            "MaxTargetingDistance": "value", #lancelot, despite it not having any targeting and iirc radius specified elsewhere
+            "Mobility Modifier": "value",  # grim snare
+            "Max Speed Modifier": "value",  
+            "PreferredInputAction": None, #cyclops targeting, too complex to bother
+            "TransfusionRaySoundEvent": None,
+            "Radius": "value",
+            "TransfusionInterval": "value", #bullwark
+            "TransfusionThreshold": "value", #bullwark, unknown meaning
+            "TransfusionSourceFx": None,
+            "TransfusionSphereFx": None,
+            "TransfusionRayFx": None,
+            "LaunchSoundEvent": None, #bulgasari
+            "TimeBetweenLaunch": "value", #bulgasari
+            "LaunchCount": "value", #bulgasari
+            "DamageAreaDecalClass": None,
+            "LaunchFX": None,
+            "LaunchLocation": "value",
+            "LaunchRotation": "value",
+            "FlyTime": "value", #unknown usage for bulgasari
+            "MaxSpawnDistance": "value",
+            "bLockOnActor": "value",
+            "TargetingMarkerClass": None,
+            "AssistanceRadius": None,
+            "RetributionAnimTime": None,
+            "WeaponInfos": "value", #TODO ares retribution
+            "TurnSpeed": None, #homign pack
+            "CruiseHeightRange": None,
+            "CruiseRollSeconds": None,
+            "CruiseRollSeconds": None,
+            "HomingClimbSpeed": None,
+            "HomingClimbAcceleration": None,
+            "HomingCruiseAcceleration": None,
+            "HomingClimbTurnRate": None,
+            "HomingCruiseTurnRate": None,
+            "CruiseHeightMin": None,
+            "RandomizeCruiseRoll": None, #homing pack end
+            "AreaRadius": "value",
+            "ActiveRadius": "value",
+            "PrimaryTargetVFX": None,
+            "SecondaryTargetVFX": None,
+            "TargetHitSFX": None,
+            "PrimaryTargetImpactVFX": None,
+            "VoiceoverOnHit": None,
+            "VoiceoverOnHit_Victim": None,
+            "SpawnLocationOffset": "value",  # umbrella
+            "bCheckMinSpawnHeight": None,
+            "MinSpawnHeight": "value",  # umbrella
         }
 
         self._process_key_to_parser_function(key_to_parser_function, props, tabs=3)
 
     def _p_spawn_action(self, data: dict):
+        log(f"Parsing spawn action for {self.id}", tabs=2)
+
         spawn_action_data = asset_path_to_data(data["ObjectPath"])
 
         if 'Properties' not in spawn_action_data:
@@ -107,6 +197,8 @@ class Ability(Object):
         return parsed_spawn_data
 
     def _p_confirmation_action(self, data: dict):
+        log(f"Parsing confirmation action for {self.id}", tabs=2)
+
         conf_ac_data = asset_path_to_data(data["ObjectPath"])
         targeting_action_data = asset_path_to_data(conf_ac_data["Properties"]["TargetingAction"]["ObjectPath"])
 
@@ -137,6 +229,8 @@ class Ability(Object):
         return parsed_targeting_data
 
     def _p_projectile_types(self, data: dict):
+        log(f"Parsing projectile types for {self.id}", tabs=2)
+
         # Validate structure
         if len(data) != 1:
             last_socket_name = None
@@ -194,6 +288,7 @@ class Ability(Object):
                 "InitialLifeSpan": "value",
                 "CanBeTransfused": ("value", "CanBeTransferred"), # fairly positive this is referring to loki decoy transferring statuses
                 "RootComponent": None,
+                "Stream": None,
             }
 
             parsed_proj = self._process_key_to_parser_function(
@@ -217,6 +312,18 @@ class Ability(Object):
             
             key_to_parser_function = {
                 "UberGraphFrame": None,
+                "ExplosionFX": None,
+                "DropSoundEvent": None,
+                "AvoidMarker": None,
+                "Damage": None, # iron rain bulgasari has empty values in here, so think its unused
+                "ImpactExplosionSettings": None, #FX
+                "DamageContext": None,
+                "MeshComponent": None,
+                "ActivationSoundEvent": None,
+                "StopActivationSoundEvent": None,
+                "ActivationFx": None,
+                "ActivationFxRotation": None,
+                "RayTracingGroupId": None,
                 "ReloadTimeFactor": "value",
                 "Modifiers": "value",
                 "MeshFX": None,
@@ -244,6 +351,48 @@ class Ability(Object):
                 "AoeDamagePerSecond": "value",
                 "TickInterval": "value",
                 "DamageExplosionSettings": None, #FX
+                "Owner": None,
+                "CameraFXDestroyPolicy": None,
+                "Undying Buff Class": None, #used by ravana
+                "Damage Reduction Quotient": "value",
+                "UndyingLingerTime": "value",
+                "Radius": "value",
+                "Height": "value",
+                "BuffAreaComponent": None,
+                "HealingColorDelay": None, #FX
+                "HealingColorFadeOutDur": None, #FX
+                "Radius": "value",
+                "BuffSphereComponent": None, #lancelot, shows Me and AlliesAndMeExceptTitan as buff targets, choosing to ignore this grudgingly
+                "DecalComponent": None, #cosmetic
+                "ParentComponent": None, #lancelot
+                "HealthComponent": None, #ares. seems to reference function to detect when health is 0, so probably for starting the animation of the gun going down
+                "SceneComponent": None,
+                "HitSoundEvent": None,
+                "Health": "value",
+                "bReplicateMovement": "value",
+                "RemoteRole": None,
+                "InitialLifeSpan": "value",
+                "Sphere Radius": "value",
+                "AimBeamFX": None, #alpha ult
+                "AimGroundFX": None,
+                "MainDamageBeamFX": None,
+                "MainDamageGroundFX": None,
+                "ColorIdParam": None,
+                "ThinBeamSoundEvent": None,
+                "ThickBeamSoundEvent": None,
+                "VictimReactionOnSpawn": None,
+                "ActiveEffect": None, #legit only Matriarch ult, contains color info so just FX
+                "StackDamagePercent": "value", #purifier
+                "Owner": None,
+                "Exclusion": None,
+                "RootComponent": None,
+                "EffectColorName": None,
+                "DestroyReaction": None,
+                "HostileColor": None,
+                "CorpseDuration": None,
+                "AppearSoundEvent": None,
+                "DisappearSoundEvent": None,
+                "DebuffVfx": None,
             }
 
             parsed_data = self._process_key_to_parser_function(

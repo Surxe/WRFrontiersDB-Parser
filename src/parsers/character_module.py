@@ -18,6 +18,8 @@ class CharacterModule(Object):
         key_to_parser_function = {
             "RootComponent": None,
             "ModuleScaler": self._p_module_scalar, # attrs will be set in the nested functions
+            "ModuleLevel": "value", #no clue what this means, its an integer like 17
+            "ModuleDataAsset": None, # references index 0 which ofc references this spot, so ignoring it
             "Components": None,
             "Abilities": self._p_abilities,
             "MovementType": None, # too complicated to bother with; contains movement data as curve tables
@@ -57,7 +59,7 @@ class CharacterModule(Object):
             "ChunkReloadStartAudioHandlingType": None,
             "ReloadType": parse_colon_colon,
             "Adapters": self._p_adapters,
-            "ZoomType": None,
+            "ZoomType": parse_colon_colon,  # ESWeaponZoomType::X -> X
             "ChunkReloadedSoundEvent": None,
             "ChargeStartedSoundEvent": None,
             "ChargeFinishedSoundEvent": None,
@@ -65,7 +67,7 @@ class CharacterModule(Object):
             "FireStartedSoundEvent": None,
             "FireStoppedSoundEvent": None,
             "ReloadChunkSize": "value",
-            "bAllowAssistanceTrajectoryPrediction": ("value", "allow_assistance_trajectory_prediction"),
+            "bAllowAssistanceTrajectoryPrediction": ("value", "AllowAssistanceTrajectoryPrediction"),
             "ReloadingStartedSingleSoundEvent": None,
             "BurstSoundEvent": None,
             "ChunkReloadStartedSingleSoundEvent": None,
@@ -73,9 +75,10 @@ class CharacterModule(Object):
             "ChunkReloadFinishedSoundEvent": None,
             "VerticalAdjustmentAngle": "value",
             "AimType": parse_colon_colon,
-            "bIsPassive": ("value", "is_passive"),
+            "bIsPassive": ("value", "IsPassive"),
             "NoShootingTime": "value",
             "AutoTargetingPolicy": parse_colon_colon,
+            "WidgetComponent": None,
         }
         
         self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="CharacterModule", set_attrs=False, tabs=1)
@@ -92,6 +95,14 @@ class CharacterModule(Object):
             self.defaultable_data = dict()
 
         key_to_parser_function = {
+            "AnimClass": None,
+            "SkeletalMesh": None,
+            "SkinnedAsset": None,
+            "bReceivesDecals": ("value", "ReceivesDecals"),
+            "BodyInstance": None,
+            "AssetUserData": None,
+            "DefaultArmor": "value",
+            "DefaultShield": "value",
             "DefaultDirectDamage": "value",
             "DefaultAoeDamage": "value",
             "DefaultClipSize": "value",
@@ -169,7 +180,10 @@ class CharacterModule(Object):
                 "CameraShakeOnHit": None,
                 "HapticFeedbackData": None,
                 "HealthContextBuilderClass": None,
+                "HealthContextBuilder": None,
                 "BurstBehavior": None, #already parsed in burst behavior
+                "ChargingBehavior": None, #references data thats duplicate to whats in BurstBehavior. pulsar and bayonet use it
+                "Weapon": None, # essentially empty. RetributionAutoAim uses it
             }
 
             return self._process_key_to_parser_function(key_to_parser_function, data, log_descriptor="FiringBehavior", set_attrs=False, tabs=2, default_configuration={
