@@ -43,7 +43,7 @@ class Ability(Object):
             "SPawnAction": None, #typo on their end
             "ProjectileTypes": (self._p_projectile_types, "projectile_types"),
             "AIConditionOperator": parse_colon_colon,
-            "AIConditions": self._p_ai_conditions, # TODO
+            "AIConditions": self._p_ai_conditions,
             "Name": parse_localization,
             "Description": parse_localization,
             "PrimaryParameter": "value",
@@ -74,7 +74,7 @@ class Ability(Object):
             "PrimaryStatMetaInformation": (self._p_stat, "primary_stat_id"),
             "SecondaryStatMetaInformation": (self._p_stat, "secondary_stat_id"),
             "bHasIndefiniteDuration": ("value", "HasIndefiniteDuration"),
-            "AbilityScaler": (self._p_ability_scalar, "TODO"), #TODO
+            "AbilityScaler": None, # interestingly, contains blank information. ability scalers are specified in the original module file
             "IsHidden": "value",
             "InitialCooldown": None, #often 0
             "bMovementAbility": None,
@@ -593,10 +593,6 @@ class Ability(Object):
                 continue
             parsed_conditions.append(condition_data["Properties"])
         return parsed_conditions
-
-    def _p_ability_scalar(self, data: dict):
-        # TODO: Implement the parsing logic for AbilityScaler
-        pass
 
     def _p_stat(self, data: dict):
         stat_id = ModuleStat.get_from_asset_path(data["ObjectPath"])

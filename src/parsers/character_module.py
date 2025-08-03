@@ -58,7 +58,7 @@ class CharacterModule(Object):
             "ReloadingFinishSoundEvent": None,
             "ChunkReloadStartAudioHandlingType": None,
             "ReloadType": parse_colon_colon,
-            "Adapters": self._p_adapters,
+            "Adapters": None,
             "ZoomType": parse_colon_colon,  # ESWeaponZoomType::X -> X
             "ChunkReloadedSoundEvent": None,
             "ChargeStartedSoundEvent": None,
@@ -229,9 +229,6 @@ class CharacterModule(Object):
 
     def _p_reload_type(self, data):
         self.reload_type = parse_colon_colon(data)  # ESWeaponReloadType::X -> X
-
-    def _p_adapters(self, data):
-        pass #TODO
 
     def _p_projectile_mappings(self, data):
         parsed_mappings = []
