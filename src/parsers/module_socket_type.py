@@ -27,7 +27,7 @@ class ModuleSocketType(Object):
             "RingErrorText": None,
             "FilterOptions": None,
             "SortingOptions": None,
-            "bCanBeChangedByUser": ("value", "can_be_changed"),
+            "bCanBeChangedByUser": "value",
             "CompatibleModules": (self._p_compatible_modules, "compatible_module_types_ids"),
             "Required": "value",
             "ID": None,

@@ -310,12 +310,12 @@ class Ability(Object):
             "DistanceBetweenTargets": "value",
             "NumTargets": "value",
             "MaxTargetingDistance": "value",
-            "bIgnoreTypeOfTeamAttitude": ("value", "ignore_type_of_team_attitude"),
+            "bIgnoreTypeOfTeamAttitude": "value",
             "TypeOfTeamAttitude": lambda list: [parse_colon_colon(item) for item in list], # think this means it can pass through actors that are allies
-            "bCanBePlacedOnWalls": ("value", "can_be_placed_on_walls"),
+            "bCanBePlacedOnWalls": "value",
             "bRotateByNormal": None, # cannot discern how this works / what it means. rotate by normal curve? rotate what? this is used by Grim Snare
             "TunnelTraceHeight": None, # cannot discern how this works
-            "bLockOnActor": ("value", "lock_on_actor"),
+            "bLockOnActor": "value",
             "AssistanceRadius": None, # cannot discern how this works
             "ConeRadius": "value",
             "ConeHalfAngleInDegrees": "value",
