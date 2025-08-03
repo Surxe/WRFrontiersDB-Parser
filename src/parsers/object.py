@@ -108,14 +108,16 @@ class Object: #generic object that all classes extend
 
                 parser = config.get('parser', default_config_to_use['parser'])
                 action = config.get('action', default_config_to_use['action'])
-                target_dict_path = config.get('target_dict_path')
+                target_dict_path = config.get('target_dict_path', default_config_to_use['target_dict_path'])
                 target = config.get('target', default_config_to_use['target'])
                 
                 # Validate configuration
                 if action == ParseAction.DICT_ENTRY and not target_dict_path:
                     raise ValueError(f"{self.__class__.__name__} target_dict_path required for DICT_ENTRY action on key '{key}'")
                 elif action == ParseAction.ATTRIBUTE and target_dict_path:
-                    raise ValueError(f"{self.__class__.__name__} target_dict_path should not be provided for ATTRIBUTE action on key '{key}'")
+                    #raise ValueError(f"{self.__class__.__name__} target_dict_path should not be provided for ATTRIBUTE action on key '{key}'")
+                    # this is now allowed for defaulting it in configuration. Its simply ignored if not DICT_ENTRY
+                    pass
                 
                 # Parse the value
                 if parser == "value":

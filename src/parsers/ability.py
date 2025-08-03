@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from parsers.object import Object, ParseTarget
+from parsers.object import Object, ParseTarget, ParseAction
 from utils import asset_path_to_data, log, parse_colon_colon
 from parsers.image import parse_image_asset_path
 from parsers.localization_table import parse_localization
@@ -26,9 +26,9 @@ class Ability(Object):
             "Damage": "value",
             "ActorMeshFXClass": None,
             "ActorClass": self._p_actor_class,
-            "bStandaloneActor": ("value", "StandaloneActor"),
+            "bStandaloneActor": "value",
             "DestroyWithOwner": "value",
-            "TargetingType": parse_colon_colon,
+            "TargetingType": {"parser": parse_colon_colon, "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY_SNAKE},
             "TargetingStartedSoundEvent": None,
             "TargetingEndedSoundEvent": None,
             #"TargetingMarkerClass": {'parser': self._p_confirmation_action, 'target': 'targeting'},
@@ -36,25 +36,25 @@ class Ability(Object):
             "SocketName": None,
             "SystemTemplate": None,
             "ReactionOnRecharge": None, #voice line
-            "SpawnActorAction": (self._p_spawn_action, "spawn_action"),
-            "ConfirmationAction": {'parser': self._p_confirmation_action, 'target': 'targeting'},
-            "TargetingActionWithConfirmation": {'parser': self._p_confirmation_action, 'target': 'targeting'},
+            "SpawnActorAction": {"parser": self._p_spawn_action, "action": ParseAction.DICT_ENTRY, "target": ParseTarget.MATCH_KEY_SNAKE},
+            "ConfirmationAction": {"parser": self._p_confirmation_action, "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY_SNAKE},
+            "TargetingActionWithConfirmation": {"parser": self._p_confirmation_action, "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY_SNAKE},
             "ImmediateTargetingAction": None,
             "SPawnAction": None, #typo on their end
-            "ProjectileTypes": (self._p_projectile_types, "projectile_types"),
-            "AIConditionOperator": parse_colon_colon,
-            "AIConditions": self._p_ai_conditions,
-            "Name": parse_localization,
-            "Description": parse_localization,
+            "ProjectileTypes": {"parser": self._p_projectile_types, "action": ParseAction.ATTRIBUTE, "target": ParseTarget.MATCH_KEY_SNAKE},
+            "AIConditionOperator": {"parser": parse_colon_colon, "action": ParseAction.DICT_ENTRY, "target_dict_path": "ai", "target": "condition_operator"},
+            "AIConditions": {"parser": self._p_ai_conditions, "action": ParseAction.DICT_ENTRY, "target_dict_path": "ai", "target": "conditions"},
+            "Name": {"parser": parse_localization, "action": ParseAction.ATTRIBUTE, "target": ParseTarget.MATCH_KEY_SNAKE},
+            "Description": {"parser": parse_localization, "action": ParseAction.ATTRIBUTE, "target": ParseTarget.MATCH_KEY_SNAKE},
             "PrimaryParameter": "value",
             "SecondaryParameter": "value",
-            "Cooldown": "value",
-            "CooldownPolicy": parse_colon_colon,
+            "Cooldown": {"parser": "value", "action": ParseAction.DICT_ENTRY, "target_dict_path": "cooldown", "target": ParseTarget.MATCH_KEY},
+            "CooldownPolicy": {"parser": parse_colon_colon, "action": ParseAction.DICT_ENTRY, "target_dict_path": "cooldown", "target": ParseTarget.MATCH_KEY},
             "CastDuration": "value",
             "BattleHUDWidgetClass": None, #is a generic widget class, looks like nothing useful
-            "EffectType": parse_colon_colon,
-            "bDeactivateIfOwnerDie": ("value", "DeactivateIfOwnerDie"),
-            "Icon": (parse_image_asset_path, "icon_path"),
+            "EffectType": self._p_effect_type,
+            "bDeactivateIfOwnerDie": "value",
+            "Icon": {"parser": parse_image_asset_path, "action": ParseAction.ATTRIBUTE, "target": "icon_path"},
             "CameraFX": None,
             "DurationParamName": None, #no clue but its "None", only used by steel feathers
             "ActivationReaction": None, #voiceline, like ActivationSoundEvent, maybe for "victim" though? used by tyr heal drone
@@ -71,9 +71,9 @@ class Ability(Object):
             "InitialDuration": "value",
             "AttachSocketName": None,
             "ActiveStateBuffs": self._p_actor_class,
-            "PrimaryStatMetaInformation": (self._p_stat, "primary_stat_id"),
-            "SecondaryStatMetaInformation": (self._p_stat, "secondary_stat_id"),
-            "bHasIndefiniteDuration": ("value", "HasIndefiniteDuration"),
+            "PrimaryStatMetaInformation": {"parser": self._p_stat, "action": ParseAction.ATTRIBUTE, "target": "primary_stat_id"},
+            "SecondaryStatMetaInformation": {"parser": self._p_stat, "action": ParseAction.ATTRIBUTE, "target": "secondary_stat_id"},
+            "bHasIndefiniteDuration": "value",
             "AbilityScaler": None, # interestingly, contains blank information. ability scalers are specified in the original module file
             "IsHidden": "value",
             "InitialCooldown": None, #often 0
@@ -115,7 +115,7 @@ class Ability(Object):
             "CancellationCooldown": "value",
             "StackingBuffClass": self._p_actor_class,
             "MaxStacks": "value",
-            "MaxTargetingDistance": "value", #lancelot, despite it not having any targeting and iirc radius specified elsewhere
+            "MaxTargetingDistance": {"parser": "value", "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY_SNAKE}, #lancelot, despite it not having any targeting and iirc radius specified elsewhere
             "Mobility Modifier": "value",  # grim snare
             "Max Speed Modifier": "value",  
             "PreferredInputAction": None, #cyclops targeting, too complex to bother
@@ -135,12 +135,12 @@ class Ability(Object):
             "LaunchRotation": "value",
             "FlyTime": "value", #unknown usage for bulgasari
             "MaxSpawnDistance": "value",
-            "bLockOnActor": "value",
+            "bLockOnActor": {"parser": "value", "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY_SNAKE},
             "TargetingMarkerClass": None,
             "AssistanceRadius": None,
             "RetributionAnimTime": None,
-            "WeaponInfos": self._p_weapon_infos, # ares retribution and volta tesla coil
-            "ActivateWeaponsAction": self._p_activate_weapons_action,
+            "WeaponInfos": {"parser": self._p_weapon_infos, "action": ParseAction.ATTRIBUTE, "target": "weapon"}, # ares retribution and volta tesla coil
+            "ActivateWeaponsAction": {"parser": self._p_activate_weapons_action, "action": ParseAction.ATTRIBUTE, "target": "weapon"},
             "TurnSpeed": None, #homign pack
             "CruiseHeightRange": None,
             "CruiseRollSeconds": None,
@@ -228,13 +228,24 @@ class Ability(Object):
             "AirControl": "value",
             "JetpackStartVerticalImpulse": "value",
             "JetpackJumpAccelerationForce": "value",
-            "ResourceUnitsPerSecond": "value", #fuel reserve
-            "ResourceType": "value",
+            "ResourceUnitsPerSecond": {"parser": "value", "action": ParseAction.DICT_ENTRY, "target_dict_path": "resource", "target": ParseTarget.MATCH_KEY_SNAKE}, #fuel reserve
+            "ResourceType": {"parser": "value", "action": ParseAction.DICT_ENTRY, "target_dict_path": "resource", "target": ParseTarget.MATCH_KEY_SNAKE},
             "CameraShakeOnDamage": None, # flashbang
             "SpawnActorCollisionHandlingMethod": None, #varangian
         }
 
-        self._process_key_to_parser_function(key_to_parser_function, props, tabs=3)
+        self._process_key_to_parser_function(key_to_parser_function, props, tabs=3, default_configuration={
+            'action': ParseAction.DICT_ENTRY,
+            'target_dict_path': 'misc',
+            'target': ParseTarget.MATCH_KEY
+        })
+
+    def _p_effect_type(self, data: str):
+        etype = parse_colon_colon(data)
+        # Return the effect type if it cant be casted to an int
+        if not etype.isdigit():
+            return etype
+        #EffectType can be Defensive, Attack, or numerical code like 16
 
     def _p_weapon_infos(self, list: list):
         log(f"Parsing weapon infos for {self.id}", tabs=4)
