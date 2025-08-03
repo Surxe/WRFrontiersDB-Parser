@@ -79,6 +79,9 @@ class CharacterModule(Object):
             "NoShootingTime": "value",
             "AutoTargetingPolicy": parse_colon_colon,
             "WidgetComponent": None,
+            "bShouldUseCharactersFocusTarget": "value", #tesla coil weapon
+            "Muzzles": None, # list of sockets for tesla coil
+            "bUseCharacterWideMuzzleSearch": "value",
         }
         
         self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="CharacterModule", set_attrs=False, tabs=1)
@@ -184,6 +187,8 @@ class CharacterModule(Object):
                 "BurstBehavior": None, #already parsed in burst behavior
                 "ChargingBehavior": None, #references data thats duplicate to whats in BurstBehavior. pulsar and bayonet use it
                 "Weapon": None, # essentially empty. RetributionAutoAim uses it
+                "TimeBetweenShakes": "value", #Bayonet- generally no clue what it means but its 1s
+                "HalfConeAngle": "value", # tesla coil
             }
 
             return self._process_key_to_parser_function(key_to_parser_function, data, log_descriptor="FiringBehavior", set_attrs=False, tabs=2, default_configuration={
