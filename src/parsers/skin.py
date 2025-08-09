@@ -26,4 +26,6 @@ class Skin(Object):
         self._process_key_to_parser_function(key_to_parser_function, props, tabs=2)
 
     def _p_customization_rarity(self, data):
+        if data is None:
+            return None
         return CustomizationRarity.get_from_asset_path(data["ObjectPath"])

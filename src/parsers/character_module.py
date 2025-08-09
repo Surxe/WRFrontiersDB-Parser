@@ -4,6 +4,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import Object, ParseTarget
+from parsers.ability import Ability
 from utils import asset_path_to_data, parse_colon_colon
 
 class CharacterModule(Object):
@@ -16,18 +17,20 @@ class CharacterModule(Object):
         
         key_to_parser_function = {
             "RootComponent": None,
-            "ModuleScaler": self._p_module_scalar, # attrs will be set in the nested functions
+            "ModuleScaler": (self._p_module_scalar, "module_scaler"),
+            "ModuleLevel": "value", #no clue what this means, its an integer like 17
+            "ModuleDataAsset": None, # references index 0 which ofc references this spot, so ignoring it
             "Components": None,
-            "Abilities": None,
+            "Abilities": (self._p_abilities, "abilities_ids"),
             "MovementType": None, # too complicated to bother with; contains movement data as curve tables
             "FootstepSettings": None,
-            "DefaultMaxSpeed": "value",
+            "DefaultMaxSpeed": None,
             "LandingSoundEvent": None,
             "ChassisSoundType": None,
             "SecondaryAnimationsSoundParams": None,
             "HangarAnimInstanceClass": None,
             "TorsoSocket": None,
-            "DefaultMobility": "value",
+            "DefaultMobility": None,
             "EngineOverloadSoundParams": None,
             "LegSocketNames": None,
             "CameraParameters": None,
@@ -35,8 +38,8 @@ class CharacterModule(Object):
             "DeathSoundEvent": None,
             "TowerRotationStartSound": None,
             "TowerRotationStopSound": None,
-            "ClipSize": "value",
-            "TimeToReload": "value",
+            "ClipSize": None, #verified there are 0 results where clipsize is only specified here; also confirmed its always preferred in module scaler
+            "TimeToReload": None, #same
             "ReloadTimeChannel": None,
             "SpreadChannel": None,
             "FireRateChannel": None,
@@ -48,15 +51,15 @@ class CharacterModule(Object):
             "CriticalDamageChannel": None,
             "CriticalDamageChanceChannel": None,
             "CameraShakeOnFire": None,
-            "FireModes": self._p_fire_modes, # attrs will be set in the nested functions
+            "FireModes": (self._p_fire_modes, "fire_modes"), # attrs will be set in the nested functions
             "HapticFeedbackData": None,
             "ShotSoundEvent": None,
             "ReloadingStartSoundEvent": None,
             "ReloadingFinishSoundEvent": None,
             "ChunkReloadStartAudioHandlingType": None,
             "ReloadType": parse_colon_colon,
-            "Adapters": self._p_adapters,
-            "ZoomType": None,
+            "Adapters": None,
+            "ZoomType": parse_colon_colon,  # ESWeaponZoomType::X -> X
             "ChunkReloadedSoundEvent": None,
             "ChargeStartedSoundEvent": None,
             "ChargeFinishedSoundEvent": None,
@@ -64,7 +67,7 @@ class CharacterModule(Object):
             "FireStartedSoundEvent": None,
             "FireStoppedSoundEvent": None,
             "ReloadChunkSize": "value",
-            "bAllowAssistanceTrajectoryPrediction": ("value", "allow_assistance_trajectory_prediction"),
+            "bAllowAssistanceTrajectoryPrediction": "value",
             "ReloadingStartedSingleSoundEvent": None,
             "BurstSoundEvent": None,
             "ChunkReloadStartedSingleSoundEvent": None,
@@ -72,12 +75,31 @@ class CharacterModule(Object):
             "ChunkReloadFinishedSoundEvent": None,
             "VerticalAdjustmentAngle": "value",
             "AimType": parse_colon_colon,
-            "bIsPassive": ("value", "is_passive"),
+            "bIsPassive": "value",
             "NoShootingTime": "value",
             "AutoTargetingPolicy": parse_colon_colon,
+            "WidgetComponent": None,
+            "bShouldUseCharactersFocusTarget": "value", #tesla coil weapon
+            "Muzzles": None, # list of sockets for tesla coil
+            "bUseCharacterWideMuzzleSearch": "value",
         }
+
+        parsed_data = self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="CharacterModule", set_attrs=False, tabs=1, default_configuration={
+            'target': ParseTarget.MATCH_KEY
+        })
         
-        self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="CharacterModule", set_attrs=False, tabs=1)
+        # Store data that wasn't parsed separately into defaultable_data
+        other_data = dict()
+        keys_to_store_as_attrs = ['module_scaler', 'fire_modes', 'abilities_ids']
+        for key, value in parsed_data.items():
+            if key not in keys_to_store_as_attrs:
+                other_data[key] = value
+            else:
+                setattr(self, key, value)
+
+        # Only store in obj if not empty
+        if other_data:
+            self.misc = other_data
 
     def _p_module_scalar(self, data):
         module_scalar_data = asset_path_to_data(data["ObjectPath"])
@@ -87,36 +109,48 @@ class CharacterModule(Object):
         props = module_scalar_data["Properties"]
         # contains default damage related data that is overlayed by the FireMode and a few other smaller properties
 
-        if not hasattr(self, 'defaultable_data'):
-            self.defaultable_data = dict()
+        parsed_module_scalers = dict()
 
         key_to_parser_function = {
-            "DefaultDirectDamage": ("value", ParseTarget.MATCH_KEY),
-            "DefaultAoeDamage": ("value", ParseTarget.MATCH_KEY),
-            "DefaultClipSize": ("value", ParseTarget.MATCH_KEY),
-            "DefaultProjectilesPerShot": ("value", ParseTarget.MATCH_KEY),
-            "DefaultProjectileSpeed": ("value", ParseTarget.MATCH_KEY),
-            "DefaultTimeToReload": ("value", ParseTarget.MATCH_KEY),
-            "DefaultTimeBetweenShots": ("value", ParseTarget.MATCH_KEY),
-            "DefaultDistanceSettings": ("value", ParseTarget.MATCH_KEY),
-            "DefaultFirePower": ("value", ParseTarget.MATCH_KEY),
-            "DefaultSpread": ("value", ParseTarget.MATCH_KEY),
-            "DefaultLegsArmor": ("value", ParseTarget.MATCH_KEY),
-            "DefaultMaxSpeed": ("value", ParseTarget.MATCH_KEY),
-            "DefaultMobility": ("value", ParseTarget.MATCH_KEY),
-            "DefaultFuelCapacity": ("value", ParseTarget.MATCH_KEY),
-            "DefaultShieldAmount": ("value", ParseTarget.MATCH_KEY),
-            "DefaultShieldRegeneration": ("value", ParseTarget.MATCH_KEY),
-            "DefaultShieldDelayReduction": ("value", ParseTarget.MATCH_KEY),
+            "AnimClass": None,
+            "SkeletalMesh": None,
+            "SkinnedAsset": None,
+            "bReceivesDecals": "value",
+            "BodyInstance": None,
+            "AssetUserData": None,
+            "DefaultArmor": "value",
+            "DefaultShield": "value",
+            "DefaultDirectDamage": "value",
+            "DefaultAoeDamage": "value",
+            "DefaultClipSize": "value",
+            "DefaultProjectilesPerShot": "value",
+            "DefaultProjectileSpeed": "value",
+            "DefaultTimeToReload": "value",
+            "DefaultTimeBetweenShots": "value",
+            "DefaultDistanceSettings": "value",
+            "DefaultFirePower": "value",
+            "DefaultSpread": "value",
+            "DefaultLegsArmor": "value",
+            "DefaultMaxSpeed": "value",
+            "DefaultMobility": "value",
+            "DefaultFuelCapacity": "value",
+            "DefaultShieldAmount": "value",
+            "DefaultShieldRegeneration": "value",
+            "DefaultShieldDelayReduction": "value",
             "ModuleName": None,
-            "DefaultHullShare": ("value", ParseTarget.MATCH_KEY),
-            "DefaultPrimaryArmor": ("value", ParseTarget.MATCH_KEY),
+            "DefaultHullShare": "value",
+            "DefaultPrimaryArmor": "value",
         }
 
-        parsed_data = self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="ModuleScalar", set_attrs=False, tabs=2)
+        parsed_data = self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="ModuleScalar", set_attrs=False, tabs=2
+                                                           , default_configuration={
+                                                               'target': ParseTarget.MATCH_KEY
+                                                           })
         for key, value in parsed_data.items():
             key_to_store_value_in = key if 'Default' not in key else key.split('Default')[1]
-            self.defaultable_data[key_to_store_value_in] = value
+            parsed_module_scalers[key_to_store_value_in] = value
+
+        return parsed_module_scalers
 
     def _p_fire_modes(self, data):
         if len(data) != 1:
@@ -127,35 +161,32 @@ class CharacterModule(Object):
         props = firing_behavior_data["Properties"]
         # contains damage related data that is overlayed over the Default damage found in ModuleScalars
 
-        if not hasattr(self, 'defaultable_data'):
-            self.defaultable_data = dict()
-
         def _p_firing_behavior(data):
             key_to_parser_function = {
-                "JumpsCount": ("value", ParseTarget.MATCH_KEY),
-                "JumpPowerQuotient": ("value", ParseTarget.MATCH_KEY),
-                "JumpRadius": ("value", ParseTarget.MATCH_KEY),
+                "JumpsCount": "value",
+                "JumpPowerQuotient": "value",
+                "JumpRadius": "value",
                 "LinkedLaserEffectPrototype": None,
-                "LaserDuration": ("value", ParseTarget.MATCH_KEY),
+                "LaserDuration": "value",
                 "WhizBySettings": None,
-                "DamageApplicationTime": ("value", ParseTarget.MATCH_KEY),
-                "bSingleShot": ("value", ParseTarget.MATCH_KEY),
-                "ConsumeAllClipOnShot": ("value", ParseTarget.MATCH_KEY),
+                "DamageApplicationTime": "value",
+                "bSingleShot": "value",
+                "ConsumeAllClipOnShot": "value",
                 "ProjectileMappings": self._p_projectile_mappings,
                 "ProjectileClass": None,
                 "BallisticBehavior": self._p_ballistic_behavior,
-                "bEnableProximityFuse": ("value", ParseTarget.MATCH_KEY),
-                "ProximityFuseRadius": ("value", ParseTarget.MATCH_KEY),
-                "ProjectilesPerShot": ("value", ParseTarget.MATCH_KEY),
+                "bEnableProximityFuse": "value",
+                "ProximityFuseRadius": "value",
+                "ProjectilesPerShot": "value",
                 "ShotFX": None,
                 "ShotTriggerParam": None,
                 "ShotNumberParam": None,
-                "TimeBetweenShots": ("value", ParseTarget.MATCH_KEY),
-                "Spread": ("value", ParseTarget.MATCH_KEY),
-                "AbilityChargePointsOnHit": ("value", ParseTarget.MATCH_KEY),
-                "TitanChargePerHit": ("value", ParseTarget.MATCH_KEY),
-                "DirectDamage": ("value", ParseTarget.MATCH_KEY),
-                "AoeDamage": ("value", ParseTarget.MATCH_KEY),
+                "TimeBetweenShots": "value",
+                "Spread": "value",
+                "AbilityChargePointsOnHit": "value",
+                "TitanChargePerHit": "value",
+                "DirectDamage": "value",
+                "AoeDamage": "value",
                 "FireFX": None,
                 "bContinuousFireFX": None,
                 "bHasArmorVisualImpact": None,
@@ -165,53 +196,76 @@ class CharacterModule(Object):
                 "CameraShakeOnHit": None,
                 "HapticFeedbackData": None,
                 "HealthContextBuilderClass": None,
+                "HealthContextBuilder": None,
                 "BurstBehavior": None, #already parsed in burst behavior
+                "ChargingBehavior": None, #references data thats duplicate to whats in BurstBehavior. pulsar and bayonet use it
+                "Weapon": None, # essentially empty. RetributionAutoAim uses it
+                "TimeBetweenShakes": "value", #Bayonet- generally no clue what it means but its 1s
+                "HalfConeAngle": "value", # tesla coil
             }
 
-            return self._process_key_to_parser_function(key_to_parser_function, data, log_descriptor="FiringBehavior", set_attrs=False, tabs=2)
+            return self._process_key_to_parser_function(key_to_parser_function, data, log_descriptor="FiringBehavior", set_attrs=False, tabs=2, default_configuration={
+                'target': ParseTarget.MATCH_KEY
+            })
+
+        parsed_data = dict()
 
         firing_behavior_parsed_data = _p_firing_behavior(props)
         for key, value in firing_behavior_parsed_data.items():
-            self.defaultable_data[key] = value
+            parsed_data[key] = value
 
         if "BurstBehavior" not in fire_mode_data["Properties"]:
-            return
+            return parsed_data
         burst_behavior_data = asset_path_to_data(fire_mode_data["Properties"]["BurstBehavior"]["ObjectPath"])
         props = burst_behavior_data["Properties"]
 
-
         def _p_burst_behavior(data):
             key_to_parser_function = {
-                "BurstLength": ("value", ParseTarget.MATCH_KEY),
-                "TimeBetweenBursts": ("value", ParseTarget.MATCH_KEY),
-                "bOneShotEffectPerBurst": ("value", ParseTarget.MATCH_KEY),
+                "BurstLength": "value",
+                "TimeBetweenBursts": "value",
+                "bOneShotEffectPerBurst": "value",
             }
             
-            return self._process_key_to_parser_function(key_to_parser_function, data, log_descriptor="BurstBehavior", set_attrs=False, tabs=2)
+            return self._process_key_to_parser_function(key_to_parser_function, data, log_descriptor="BurstBehavior", set_attrs=False, tabs=2, default_configuration={
+                'target': ParseTarget.MATCH_KEY
+            })
         
         burst_behavior_parsed_data = _p_burst_behavior(props)
         for key, value in burst_behavior_parsed_data.items():
-            self.defaultable_data[key] = value
+            if key in parsed_data:
+                raise ValueError(f"Duplicate key found in FiringBehavior and BurstBehavior: {key}")
+            parsed_data[key] = value
+
+        return parsed_data
+
+    def _p_abilities(self, list: list):
+        parsed_abilities = []
+        for ability in list:
+            ability_asset_path = ability["ObjectPath"]
+            ability_data = asset_path_to_data(ability_asset_path)
+            ability_template_asset_path = ability_data["Template"]["ObjectPath"]
+            ability_id = Ability.get_from_asset_path(ability_template_asset_path)
+            parsed_abilities.append(ability_id)
+        return parsed_abilities
 
     def _p_reload_type(self, data):
         self.reload_type = parse_colon_colon(data)  # ESWeaponReloadType::X -> X
-
-    def _p_adapters(self, data):
-        pass #TODO
 
     def _p_projectile_mappings(self, data):
         parsed_mappings = []
         for projectile_mapping in data:
             key_to_parser_function = {
-                "MinRelativeChargeRequired": ("value", ParseTarget.MATCH_KEY),
-                "MaxRelativeChargeRequired": ("value", ParseTarget.MATCH_KEY),
-                "ProjectilesCount": ("value", ParseTarget.MATCH_KEY),
+                "MinRelativeChargeRequired": "value",
+                "MaxRelativeChargeRequired": "value",
+                "ProjectilesCount": "value",
                 "ProjectileClass": None,
                 "FireFX": None,
                 "FireSound": None,
             }
 
-            parsed_mapping = self._process_key_to_parser_function(key_to_parser_function, projectile_mapping, log_descriptor="ProjectileMapping", set_attrs=False, tabs=2)
+            parsed_mapping = self._process_key_to_parser_function(key_to_parser_function, projectile_mapping, log_descriptor="ProjectileMapping", set_attrs=False, tabs=2, default_configuration={
+                'target': ParseTarget.MATCH_KEY
+            })
             parsed_mappings.append(parsed_mapping)
 
         return parsed_mappings
@@ -220,21 +274,18 @@ class CharacterModule(Object):
         ballistic_behavior_data = asset_path_to_data(data["ObjectPath"])
         props = ballistic_behavior_data["Properties"]
 
-        if not hasattr(self, 'defaultable_data'):
-            self.defaultable_data = dict()
-
         key_to_parser_function = {
             "bUseFocusComponentAlignment": None,
-            "MinAngle": ("value", ParseTarget.MATCH_KEY),
-            "MaxAngle": ("value", ParseTarget.MATCH_KEY),
-            "bInvertDistanceToAngle": ("value", ParseTarget.MATCH_KEY),
-            "bUseFocusComponentAlignment": ("value", ParseTarget.MATCH_KEY),
+            "MinAngle": "value",
+            "MaxAngle": "value",
+            "bInvertDistanceToAngle": "value",
+            "bUseFocusComponentAlignment": "value",
             "ProjectileClass": None,
-            "HitError": ("value", ParseTarget.MATCH_KEY),
-            "DistToInitialSpeed": ("value", ParseTarget.MATCH_KEY),
-            "bBallisticModeForced": ("value", ParseTarget.MATCH_KEY),
+            "HitError": "value",
+            "DistToInitialSpeed": "value",
+            "bBallisticModeForced": "value",
         }
 
-        parsed_data = self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="BallisticBehavior", set_attrs=False, tabs=2)
-        for key, value in parsed_data.items():
-            self.defaultable_data[key] = value
+        return self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="BallisticBehavior", set_attrs=False, tabs=2, default_configuration={
+            'target': ParseTarget.MATCH_KEY
+        })

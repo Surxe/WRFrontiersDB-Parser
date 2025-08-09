@@ -10,6 +10,7 @@ from parsers.object import Object
 from parsers.module_rarity import ModuleRarity
 from parsers.rarity import Rarity
 from parsers.character_module import CharacterModule
+from parsers.ability import Ability
 from parsers.faction import Faction
 from parsers.module_class import ModuleClass
 from parsers.character_class import CharacterClass
@@ -63,6 +64,7 @@ class Module(Object):
         return ModuleRarity.get_from_asset_path(asset_path)
 
     def _p_character_modules(self, data):
+        character_module = dict()
         character_module_mounts = []
         asset_path_name = None
         for character_module in data:
@@ -73,8 +75,12 @@ class Module(Object):
             if asset_path_name is not None and new_asset_path_name != asset_path_name:
                 raise Exception(f"Data structure change: {self.__class__.__name__} {self.id} character module data has more than one character module file ")
             
-            CharacterModule.get_from_asset_path(new_asset_path_name)
-        return character_module_mounts
+            character_module_id = CharacterModule.get_from_asset_path(new_asset_path_name)
+
+        return {
+            "id": character_module_id,
+            "mounts": character_module_mounts,
+        }
                 
     def _p_module_tags(self, data):
         module_tags = []
@@ -315,6 +321,7 @@ def parse_modules(to_file=False):
         ModuleStat.to_file()
         ModuleStatsTable.to_file()
         Currency.to_file()
+        Ability.to_file()
         Image.to_file()
 
 if __name__ == "__main__":
