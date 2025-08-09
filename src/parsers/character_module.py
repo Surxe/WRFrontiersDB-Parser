@@ -17,20 +17,20 @@ class CharacterModule(Object):
         
         key_to_parser_function = {
             "RootComponent": None,
-            "ModuleScaler": self._p_module_scalar, # attrs will be set in the nested functions
+            "ModuleScaler": (self._p_module_scalar, "module_scaler"),
             "ModuleLevel": "value", #no clue what this means, its an integer like 17
             "ModuleDataAsset": None, # references index 0 which ofc references this spot, so ignoring it
             "Components": None,
-            "Abilities": self._p_abilities,
+            "Abilities": (self._p_abilities, "abilities_ids"),
             "MovementType": None, # too complicated to bother with; contains movement data as curve tables
             "FootstepSettings": None,
-            "DefaultMaxSpeed": "value",
+            "DefaultMaxSpeed": None,
             "LandingSoundEvent": None,
             "ChassisSoundType": None,
             "SecondaryAnimationsSoundParams": None,
             "HangarAnimInstanceClass": None,
             "TorsoSocket": None,
-            "DefaultMobility": "value",
+            "DefaultMobility": None,
             "EngineOverloadSoundParams": None,
             "LegSocketNames": None,
             "CameraParameters": None,
@@ -38,8 +38,8 @@ class CharacterModule(Object):
             "DeathSoundEvent": None,
             "TowerRotationStartSound": None,
             "TowerRotationStopSound": None,
-            "ClipSize": "value",
-            "TimeToReload": "value",
+            "ClipSize": None, #verified there are 0 results where clipsize is only specified here; also confirmed its always preferred in module scaler
+            "TimeToReload": None, #same
             "ReloadTimeChannel": None,
             "SpreadChannel": None,
             "FireRateChannel": None,
@@ -51,7 +51,7 @@ class CharacterModule(Object):
             "CriticalDamageChannel": None,
             "CriticalDamageChanceChannel": None,
             "CameraShakeOnFire": None,
-            "FireModes": self._p_fire_modes, # attrs will be set in the nested functions
+            "FireModes": (self._p_fire_modes, "fire_modes"), # attrs will be set in the nested functions
             "HapticFeedbackData": None,
             "ShotSoundEvent": None,
             "ReloadingStartSoundEvent": None,
@@ -83,8 +83,23 @@ class CharacterModule(Object):
             "Muzzles": None, # list of sockets for tesla coil
             "bUseCharacterWideMuzzleSearch": "value",
         }
+
+        parsed_data = self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="CharacterModule", set_attrs=False, tabs=1, default_configuration={
+            'target': ParseTarget.MATCH_KEY
+        })
         
-        self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="CharacterModule", set_attrs=False, tabs=1)
+        # Store data that wasn't parsed separately into defaultable_data
+        other_data = dict()
+        keys_to_store_as_attrs = ['module_scaler', 'fire_modes', 'abilities_ids']
+        for key, value in parsed_data.items():
+            if key not in keys_to_store_as_attrs:
+                other_data[key] = value
+            else:
+                setattr(self, key, value)
+
+        # Only store in obj if not empty
+        if other_data:
+            self.misc = other_data
 
     def _p_module_scalar(self, data):
         module_scalar_data = asset_path_to_data(data["ObjectPath"])
@@ -94,8 +109,7 @@ class CharacterModule(Object):
         props = module_scalar_data["Properties"]
         # contains default damage related data that is overlayed by the FireMode and a few other smaller properties
 
-        if not hasattr(self, 'defaultable_data'):
-            self.defaultable_data = dict()
+        parsed_module_scalers = dict()
 
         key_to_parser_function = {
             "AnimClass": None,
@@ -134,7 +148,9 @@ class CharacterModule(Object):
                                                            })
         for key, value in parsed_data.items():
             key_to_store_value_in = key if 'Default' not in key else key.split('Default')[1]
-            self.defaultable_data[key_to_store_value_in] = value
+            parsed_module_scalers[key_to_store_value_in] = value
+
+        return parsed_module_scalers
 
     def _p_fire_modes(self, data):
         if len(data) != 1:
@@ -144,9 +160,6 @@ class CharacterModule(Object):
         firing_behavior_data = asset_path_to_data(fire_mode_data["Properties"]["FiringBehavior"]["ObjectPath"])
         props = firing_behavior_data["Properties"]
         # contains damage related data that is overlayed over the Default damage found in ModuleScalars
-
-        if not hasattr(self, 'defaultable_data'):
-            self.defaultable_data = dict()
 
         def _p_firing_behavior(data):
             key_to_parser_function = {
@@ -195,15 +208,16 @@ class CharacterModule(Object):
                 'target': ParseTarget.MATCH_KEY
             })
 
+        parsed_data = dict()
+
         firing_behavior_parsed_data = _p_firing_behavior(props)
         for key, value in firing_behavior_parsed_data.items():
-            self.defaultable_data[key] = value
+            parsed_data[key] = value
 
         if "BurstBehavior" not in fire_mode_data["Properties"]:
-            return
+            return parsed_data
         burst_behavior_data = asset_path_to_data(fire_mode_data["Properties"]["BurstBehavior"]["ObjectPath"])
         props = burst_behavior_data["Properties"]
-
 
         def _p_burst_behavior(data):
             key_to_parser_function = {
@@ -218,14 +232,21 @@ class CharacterModule(Object):
         
         burst_behavior_parsed_data = _p_burst_behavior(props)
         for key, value in burst_behavior_parsed_data.items():
-            self.defaultable_data[key] = value
+            if key in parsed_data:
+                raise ValueError(f"Duplicate key found in FiringBehavior and BurstBehavior: {key}")
+            parsed_data[key] = value
+
+        return parsed_data
 
     def _p_abilities(self, list: list):
+        parsed_abilities = []
         for ability in list:
             ability_asset_path = ability["ObjectPath"]
             ability_data = asset_path_to_data(ability_asset_path)
             ability_template_asset_path = ability_data["Template"]["ObjectPath"]
             ability_id = Ability.get_from_asset_path(ability_template_asset_path)
+            parsed_abilities.append(ability_id)
+        return parsed_abilities
 
     def _p_reload_type(self, data):
         self.reload_type = parse_colon_colon(data)  # ESWeaponReloadType::X -> X
@@ -253,9 +274,6 @@ class CharacterModule(Object):
         ballistic_behavior_data = asset_path_to_data(data["ObjectPath"])
         props = ballistic_behavior_data["Properties"]
 
-        if not hasattr(self, 'defaultable_data'):
-            self.defaultable_data = dict()
-
         key_to_parser_function = {
             "bUseFocusComponentAlignment": None,
             "MinAngle": "value",
@@ -268,8 +286,6 @@ class CharacterModule(Object):
             "bBallisticModeForced": "value",
         }
 
-        parsed_data = self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="BallisticBehavior", set_attrs=False, tabs=2, default_configuration={
+        return self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="BallisticBehavior", set_attrs=False, tabs=2, default_configuration={
             'target': ParseTarget.MATCH_KEY
         })
-        for key, value in parsed_data.items():
-            self.defaultable_data[key] = value
