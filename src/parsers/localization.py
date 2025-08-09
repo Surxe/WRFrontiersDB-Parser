@@ -32,7 +32,12 @@ class Localization(Object):
         """
         Localizes a given key using the localization table namespace.
         """
-        
+        if table_namespace not in self.source_data:
+            log(f"Localization table namespace not found: {table_namespace}", tabs=1)
+            return key
+        if key not in self.source_data[table_namespace]:
+            log(f"Localization key not found: {key} in namespace: {table_namespace}", tabs=1)
+            return key
         return self.source_data[table_namespace][key]
 
 def parse_localizations():
