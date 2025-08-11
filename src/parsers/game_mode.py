@@ -3,11 +3,12 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import log, get_json_data, parse_colon_colon, asset_path_to_file_path_and_index, asset_path_to_data, path_to_id, asset_path_to_file_path, PARAMS
+from utils import log, get_json_data, asset_path_to_file_path_and_index, asset_path_to_data, path_to_id, asset_path_to_file_path, PARAMS
 from parsers.localization_table import parse_localization
 
 from parsers.object import Object, ParseTarget
 from parsers.ability import p_actor_class
+from parsers.bot_names import BotNames
 
 class GameMode(Object):
     objects = dict()
@@ -129,11 +130,24 @@ class GameMode(Object):
         })
 
     def _p_ability_charge_settings(self, data):
-        pass
+        data = asset_path_to_data(data["ObjectPath"])
+        if 'Properties' not in data:
+            return
+        data = data["Properties"]
+
+        key_to_parser_function = {
+            "PointsForBeaconNeutralization": "value",
+            "PointsForBeaconCapture": "value",
+            "PointsForBeaconHold": "value",
+        }
+
+        return self._process_key_to_parser_function(key_to_parser_function, data, tabs=2, set_attrs=False, default_configuration={
+            'target': ParseTarget.MATCH_KEY
+        })
 
     def _p_bot_names(self, data):
-        pass
-
+        return BotNames.get_from_asset_path(data["ObjectPath"])
+        
     def _p_honor_system(self, data):
         pass
 
@@ -173,7 +187,7 @@ def parse_game_modes(to_file=False):
 
     if to_file: # Condition prevents needlessly saving the same data multiple times, as it will also be saved if ran thru parse.py
         GameMode.to_file()
-        Image.to_file()
+        BotNames.to_file()
 
 if __name__ == "__main__":
     parse_game_modes(to_file=True)

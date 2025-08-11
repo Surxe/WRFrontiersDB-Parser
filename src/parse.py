@@ -55,3 +55,6 @@ PilotTalentType.to_file()
 PilotTalent.to_file()
 
 GameMode.to_file()
+BotNames.to_file()
+
+Localization.to_file()

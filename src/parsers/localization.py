@@ -39,6 +39,11 @@ class Localization(Object):
             log(f"Localization key not found: {key} in namespace: {table_namespace}", tabs=1)
             return key
         return self.source_data[table_namespace][key]
+    
+    @classmethod
+    def to_file(cls):
+        for localization in cls.objects.values():
+            localization._to_file()
 
 def parse_localizations():
     localization_source_path = os.path.join(PARAMS.export_path, r"WRFrontiers\Content\Localization\Game")
