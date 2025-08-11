@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import log, path_to_id, get_json_data, asset_path_to_file_path, asset_path_to_data, PARAMS
+from utils import log, path_to_id, get_json_data, asset_path_to_file_path, asset_path_to_file_path_and_index, PARAMS
 from parsers.localization_table import parse_localization
 
 from parsers.object import Object
@@ -28,17 +28,78 @@ class GameMode(Object):
     def _parse_bp(self, bp_path: str):
         bp_data = get_json_data(bp_path)
         cdo_path = bp_data[0]["ClassDefaultObject"]["ObjectPath"]
-        cdo_data = asset_path_to_data(cdo_path)
+        cdo_file_path, index = asset_path_to_file_path_and_index(cdo_path)
+        log(f"Parsing {self.__class__.__name__} BP data from {cdo_file_path}", tabs=1)
+        cdo_data = get_json_data(cdo_file_path)[index]
         props = cdo_data["Properties"]
 
         key_to_parser_function = {
-            "GameMode": None,
-            "Map": None,
-            "MaxPlayers": None,
-            "MinPlayers": None
+            "WarpProveIsAlmostExpired": None, #announcer voice lines
+            "WarpProbeIsAlmostExhausted": None,
+            "WarpProbeActivated": None,
+            "OurTeamCloseToVictoryMessageClass": None,
+            "EnemyTeamCloseToVictoryMessageClass": None,
+            "KillingSpreeLocalMessage": None,
+            "HUDClass": None, #UI
+            "BackandGameModeDA": None, #references what seems to be a dummy gamemode, "QuickMatch"
+            "SubLevels": None, #contains some flags like Suffix, bMandatory, bVisible, bBlocking
+            "SpawnerComponentsController": None,
+            "WinScore": "value",
+            "MatchRewardConfig": self._p_match_reward,
+            "MatchTimeLimitMinutes": "value",
+            "KillCamLifetime": "value",
+            "DropTimeLimitSeconds": "value",
+            "AISquadClass": None, # spearhead AI is different to other AI it seems
+            "BaseProtectionBuff": self._p_base_protection_buff,
+            "RegenPercent": "value",
+            "RegenDelay": "value",
+            "RegenTickDuration": "value",
+            "TitanSettings": self._p_titan_settings,
+            "AbilityChargeSettings": self._p_ability_charge_settings,
+            "KillCameraActorClass": None,
+            "BotNames": self._p_bot_names,
+            "RibbonSystemClass": None,
+            "PostCombatPipelineClass": None, #UI
+            "HonorSystemClass": self._p_honor_system,
+            "DefaultPawnClass": None,
+            "DefaultBotsConfig": None, #Intermediate for all modes; overridden server side by the list in meta root
+            "DefaultPlayerName": None, #"Terminator" lmao
+            "TitanSpawnScoreThreshold": "value", #0 for tdm?
+            "RobotBlockTimeReductionOnMechKillSeconds": "value",
+            "RobotBlockTimeReductionOnTitanKillSeconds": "value",
+            "RobotBlockTimeReductionOnArmorDestructionSeconds": "value",
+            "ScorePerTitanKill": "value",
+            "InitialRobotBlockTimeSeconds": "value",
+            "EnemyTeamControlsMoreBeaconsMessageClass": None, #announce
+            "OurTeamCloseToVictoryMessageClass": None, 
+            "OurTeamControlsMoreBeaconsMessageClass": None,
+            "EnemyTeamCloseToVictoryMessageClass": None,
+            "PointsPerBeaconsDiff": self._p_beacon_pts,
+            "TeamControlsMoreBeaconsThreshold": "value",
         }
 
         self._process_key_to_parser_function(key_to_parser_function, props, tabs=2)
+
+    def _p_match_reward(self, props):
+        pass
+
+    def _p_base_protection_buff(self, props):
+        pass
+
+    def _p_titan_settings(self, props):
+        pass
+
+    def _p_ability_charge_settings(self, props):
+        pass
+
+    def _p_bot_names(self, props):
+        pass
+
+    def _p_honor_system(self, props):
+        pass
+
+    def _p_beacon_pts(self, props):
+        pass
 
 def parse_game_modes(to_file=False):
     root_path = os.path.join(PARAMS.export_path, r"WRFrontiers\Content\Sparrow\Mechanics\DA_Meta_Root.json")
@@ -50,25 +111,21 @@ def parse_game_modes(to_file=False):
         game_mode_file_path = asset_path_to_file_path(game_mode_asset_path)
         game_mode_data = get_json_data(game_mode_file_path)
 
+        # Manually map to the game mode setting file, which is separate to the name & description container file, and only connected server side
+        game_mode_id_to_bp_path = {
+            "DA_GameMode_BeaconRush": r"GameModes\Beacon\BP_GameMode_Beacon.json",
+            "DA_GameMode_Elimination": r"GameModes\Elimination\BP_GameMode_Elimination.json",
+            "DA_GameMode_TeamDeathMatch": r"GameModes\TeamDeathMatch\BP_GameMode_TeamDeathMatch.json",
+            "DA_GameMode_Spearhead": r"GameModes\Spearhead\BP_GameMode_Spearhead.json"
+        }
+
         # Only parse gamemodes that have a localized display name, these are actual game modes. Others include Hangar, tutorial, title menu, or even just list of bot names
         if 'Properties' in game_mode_data[0]:
             if 'DisplayName' in game_mode_data[0]['Properties']:
                 if 'CultureInvariantString' not in game_mode_data[0]['Properties']["DisplayName"]:
                     log(f"Parsing {GameMode.__name__} {game_mode_id} from {game_mode_file_path}", tabs=0)
                     game_mode = GameMode(game_mode_id, game_mode_data)
-
-    # Manually map to the game mode setting file, which is separate to the name & description container file, and only connected server side
-    game_mode_id_to_bp_path = {
-        "DA_GameMode_BeaconRush": r"GameModes\Beacon\BP_GameMode_Beacon.json",
-        "DA_GameMode_Elimination": r"GameModes\Elimination\BP_GameMode_Elimination.json",
-        "DA_GameMode_TeamDeathMatch": r"GameModes\TeamDeathMatch\BP_GameMode_TeamDeathMatch.json",
-        "DA_GameMode_Spearhead": r"GameModes\Spearhead\BP_GameMode_Spearhead.json"
-    }
-
-    for game_mode_id, bp_path in game_mode_id_to_bp_path.items():
-        game_mode = GameMode.objects.get(game_mode_id)
-        if game_mode:
-            game_mode._parse_bp(os.path.join(PARAMS.export_path, r"WRFrontiers\Content\Sparrow", bp_path))
+                    game_mode._parse_bp(os.path.join(PARAMS.export_path, r"WRFrontiers\Content\Sparrow", game_mode_id_to_bp_path[game_mode_id]))
 
     if to_file: # Condition prevents needlessly saving the same data multiple times, as it will also be saved if ran thru parse.py
         GameMode.to_file()
