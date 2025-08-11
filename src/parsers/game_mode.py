@@ -3,11 +3,11 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import log, path_to_id, get_json_data, asset_path_to_file_path, asset_path_to_file_path_and_index, PARAMS
+from utils import log, get_json_data, parse_colon_colon, asset_path_to_file_path_and_index, asset_path_to_data, path_to_id, asset_path_to_file_path, PARAMS
 from parsers.localization_table import parse_localization
 
-from parsers.object import Object
-from parsers.image import Image
+from parsers.object import Object, ParseTarget
+from parsers.ability import p_actor_class
 
 class GameMode(Object):
     objects = dict()
@@ -45,22 +45,22 @@ class GameMode(Object):
             "SubLevels": None, #contains some flags like Suffix, bMandatory, bVisible, bBlocking
             "SpawnerComponentsController": None,
             "WinScore": "value",
-            "MatchRewardConfig": self._p_match_reward,
+            "MatchRewardConfig": (self._p_match_reward, "match_rewards"),
             "MatchTimeLimitMinutes": "value",
             "KillCamLifetime": "value",
             "DropTimeLimitSeconds": "value",
             "AISquadClass": None, # spearhead AI is different to other AI it seems
-            "BaseProtectionBuff": self._p_base_protection_buff,
+            "BaseProtectionBuff": (self._p_actor_class, "base_protection_buff"),
             "RegenPercent": "value",
             "RegenDelay": "value",
             "RegenTickDuration": "value",
-            "TitanSettings": self._p_titan_settings,
-            "AbilityChargeSettings": self._p_ability_charge_settings,
+            "TitanSettings": (self._p_titan_settings, "titan_settings"),
+            "AbilityChargeSettings": (self._p_ability_charge_settings, "ability_charge_settings"),
             "KillCameraActorClass": None,
-            "BotNames": self._p_bot_names,
+            "BotNames": (self._p_bot_names, "bot_names"),
             "RibbonSystemClass": None,
             "PostCombatPipelineClass": None, #UI
-            "HonorSystemClass": self._p_honor_system,
+            "HonorSystemClass": (self._p_honor_system, "honor_system"),
             "DefaultPawnClass": None,
             "DefaultBotsConfig": None, #Intermediate for all modes; overridden server side by the list in meta root
             "DefaultPlayerName": None, #"Terminator" lmao
@@ -78,27 +78,47 @@ class GameMode(Object):
             "TeamControlsMoreBeaconsThreshold": "value",
         }
 
-        self._process_key_to_parser_function(key_to_parser_function, props, tabs=2)
+        parsed_data = self._process_key_to_parser_function(key_to_parser_function, props, tabs=2, set_attrs=False, default_configuration={
+            'target': ParseTarget.MATCH_KEY
+        })
+        
+        # Store data that wasn't parsed separately into defaultable_data
+        other_data = dict()
+        keys_to_store_as_attrs = ['match_rewards', 'base_protection_buff', 'titan_settings', 'ability_charge_settings']
+        for key, value in parsed_data.items():
+            if key not in keys_to_store_as_attrs:
+                other_data[key] = value
+            else:
+                setattr(self, key, value)
 
-    def _p_match_reward(self, props):
+        # Only store in obj if not empty
+        if other_data:
+            self.misc = other_data
+
+    def _p_match_reward(self, data):
+        data = asset_path_to_data(data["ObjectPath"])
+        parsed_data = dict()
+        for key, value in data["Properties"].items():
+            if key != "ID":
+                parsed_data[key] = value
+        return parsed_data
+        
+    def _p_actor_class(self, data):
+        return p_actor_class(self, data) #calls global p_actor_class and passes the object to use
+
+    def _p_titan_settings(self, data):
         pass
 
-    def _p_base_protection_buff(self, props):
+    def _p_ability_charge_settings(self, data):
         pass
 
-    def _p_titan_settings(self, props):
+    def _p_bot_names(self, data):
         pass
 
-    def _p_ability_charge_settings(self, props):
+    def _p_honor_system(self, data):
         pass
 
-    def _p_bot_names(self, props):
-        pass
-
-    def _p_honor_system(self, props):
-        pass
-
-    def _p_beacon_pts(self, props):
+    def _p_beacon_pts(self, data):
         pass
 
 def parse_game_modes(to_file=False):
