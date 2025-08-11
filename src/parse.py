@@ -53,3 +53,5 @@ PilotClass.to_file()
 PilotPersonality.to_file()
 PilotTalentType.to_file()
 PilotTalent.to_file()
+
+GameMode.to_file()

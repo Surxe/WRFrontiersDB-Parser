@@ -461,133 +461,6 @@ class Ability(Object):
             parsed_data["Type"] = parse_colon_colon(data["Properties"]["Type"])
         return parsed_data
     
-    def _p_actor_class(self, data: dict):
-        if type(data) is list:
-            for elem in data:
-                return self._p_actor_class(elem)
-        elif type(data) is dict:
-            data = asset_path_to_data(data["ObjectPath"])
-            data = asset_path_to_data(data["ClassDefaultObject"]["ObjectPath"])
-            if 'Properties' not in data:
-                return None
-            
-            key_to_parser_function = {
-                "UberGraphFrame": None,
-                "ExplosionFX": None,
-                "DropSoundEvent": None,
-                "AvoidMarker": None,
-                "Damage": None, # iron rain bulgasari has empty values in here, so think its unused
-                "ImpactExplosionSettings": None, #FX
-                "DamageContext": None,
-                "MeshComponent": None,
-                "ActivationSoundEvent": None,
-                "StopActivationSoundEvent": None,
-                "ActivationFx": None,
-                "ActivationFxRotation": None,
-                "RayTracingGroupId": None,
-                "ReloadTimeFactor": "value",
-                "Modifiers": "value",
-                "MeshFX": None,
-                "SocketToFX": None,
-                "MeshFXClass": None,
-                "StatusFXManager": None,
-                "Lifetime": "value",
-                "InitialLifetime": "value",
-                "Icon": (parse_image_asset_path, "icon_path"),
-                "ActiveSoundEventStart": None,
-                "ActiveSoundEventFinish": None,
-                "StatusFXManager": None,
-                "ServerAttachedTime": None,
-                "StackMode": parse_colon_colon,
-                "AttachPoint": None,
-                "BuffId": None,
-                "DurationFX": None,
-                "MeshFXFadeOutTime": None,
-                "ProxyMeshFXClass": None,
-                "ProxyMeshFXFadeOutTime": None,
-                "CameraFX": None,
-                "DirectDamage": "value",
-                "AoeDamage": "value",
-                "DirectDamagePerSecond": "value",
-                "AoeDamagePerSecond": "value",
-                "TickInterval": "value",
-                "DamageExplosionSettings": None, #FX
-                "Owner": None,
-                "CameraFXDestroyPolicy": None,
-                "Undying Buff Class": None, #used by ravana
-                "Damage Reduction Quotient": "value",
-                "UndyingLingerTime": "value",
-                "Radius": "value",
-                "Height": "value",
-                "BuffAreaComponent": None,
-                "HealingColorDelay": None, #FX
-                "HealingColorFadeOutDur": None, #FX
-                "Radius": "value",
-                "BuffSphereComponent": None, #lancelot, shows Me and AlliesAndMeExceptTitan as buff targets, choosing to ignore this grudgingly
-                "DecalComponent": None, #cosmetic
-                "ParentComponent": None, #lancelot
-                "HealthComponent": None, #ares. seems to reference function to detect when health is 0, so probably for starting the animation of the gun going down
-                "SceneComponent": None,
-                "HitSoundEvent": None,
-                "Health": "value",
-                "bReplicateMovement": "value",
-                "RemoteRole": None,
-                "InitialLifeSpan": "value",
-                "Sphere Radius": "value",
-                "AimBeamFX": None, #alpha ult
-                "AimGroundFX": None,
-                "MainDamageBeamFX": None,
-                "MainDamageGroundFX": None,
-                "ColorIdParam": None,
-                "ThinBeamSoundEvent": None,
-                "ThickBeamSoundEvent": None,
-                "VictimReactionOnSpawn": None,
-                "ActiveEffect": None, #legit only Matriarch ult, contains color info so just FX
-                "StackDamagePercent": "value", #purifier
-                "Owner": None,
-                "Exclusion": None,
-                "RootComponent": None,
-                "EffectColorName": None,
-                "DestroyReaction": None,
-                "HostileColor": None,
-                "CorpseDuration": None,
-                "AppearSoundEvent": None,
-                "DisappearSoundEvent": None,
-                "DebuffVfx": None,
-                "PrimaryActorTick": None, #contains bCanEverTick=true for ravana
-                "SpeedIncrement": "value", # sprint boost
-                "bRegenInAbsoulute": "value", #quick repair start
-                "ArmorRegenPerSecond": "value",
-                "RegenInterval": "value",
-                "bRemoveOnDamage": "value",
-                "bRemoveOnFull": "value",
-                "ArmorZonesByPriority": self._p_armor_zones,
-                "NiagaraSystem": None,
-                "ArmorRegenChannel": None,
-                "ShieldRegenChannel": None,
-                "PPMaterial": None, #material instance for flashbang fx
-                "Field Width": "value", #energy wall
-                "NeutralColor": None,
-                "IgnoredActorType": None, #would include this, but its an integer code, 1 for energy wall which i presume represents allies, but not worth including guesswork
-                "ShieldRegenPerSecond": "value",
-                "bRegenMoreDamagedZone": "value", # interesting for mesa
-                "TickInterval": "value",
-                "DamageDistribution": None, #gamma beam, references blank file
-                "ActiveEfficiencyPercent": "value", # fuel burn
-                "DurationParam": None,
-                "GroundedMeshFXs": None,
-                "AttacherReactionOnAttach": None, #voiceline
-                "OwnerReactionOnAttach": None,
-            }
-
-            parsed_data = self._process_key_to_parser_function(
-                key_to_parser_function, data["Properties"], log_descriptor="ActorClass", tabs=5, set_attrs=False, default_configuration={
-                    'target': ParseTarget.MATCH_KEY
-                }
-            )
-
-            return parsed_data
-    
     def _p_movement_component(self, data: dict):
         data = asset_path_to_data(data["ObjectPath"])
         if 'Properties' not in data:
@@ -609,15 +482,6 @@ class Ability(Object):
         stat_id = ModuleStat.get_from_asset_path(data["ObjectPath"])
         return stat_id
     
-    def _p_armor_zones(self, list: dict):
-        armor_zone_names = []
-        for elem in list:
-            armor_zone_asset_path = elem["ObjectPath"]
-            # armor zone file does not contain any front-facing information, so instead going to use the file name as a reference here
-            armor_zone_name = armor_zone_asset_path.split("DA_ArmorZone_")[-1].split(".")[0] #../DA_ArmorZone_Torso.0 -> Torso
-            armor_zone_names.append(armor_zone_name)
-        return armor_zone_names
-    
     def _p_pushing_settings(self, data: dict):
         data = asset_path_to_data(data["ObjectPath"])
         if 'Properties' not in data:
@@ -630,3 +494,157 @@ class Ability(Object):
         if 'Properties' not in data:
             return None
         return data["Properties"]
+    
+    def _p_actor_class(self, data):
+        return p_actor_class(self, data) #wrapper that makes it use Ability class
+
+def p_armor_zones(list: list):
+    armor_zone_names = []
+    for elem in list:
+        armor_zone_asset_path = elem["ObjectPath"]
+        # armor zone file does not contain any front-facing information, so instead going to use the file name as a reference here
+        armor_zone_name = armor_zone_asset_path.split("DA_ArmorZone_")[-1].split(".")[0] #../DA_ArmorZone_Torso.0 -> Torso
+        armor_zone_names.append(armor_zone_name)
+    return armor_zone_names
+
+def p_modifiers(list: list):
+    parsed_modifiers = []
+    for modifier in list:
+        what = parse_colon_colon(modifier["Key"])
+        operator = parse_colon_colon(modifier["Value"]["ModifierType"])
+        factor = modifier["Value"]["Factor"]
+        parsed_modifier = {
+            "what": what,
+            "operator": operator,
+            "value": factor
+        }
+        parsed_modifiers.append(parsed_modifier)
+    return parsed_modifiers
+
+def p_actor_class(obj, data: dict):
+    if type(data) is list:
+        for elem in data:
+            return p_actor_class(obj, elem)
+    elif type(data) is dict:
+        data = asset_path_to_data(data["ObjectPath"])
+        data = asset_path_to_data(data["ClassDefaultObject"]["ObjectPath"])
+        if 'Properties' not in data:
+            return None
+        
+        key_to_parser_function = {
+            "UberGraphFrame": None,
+            "ExplosionFX": None,
+            "DropSoundEvent": None,
+            "AvoidMarker": None,
+            "Damage": None, # iron rain bulgasari has empty values in here, so think its unused
+            "ImpactExplosionSettings": None, #FX
+            "DamageContext": None,
+            "MeshComponent": None,
+            "ActivationSoundEvent": None,
+            "StopActivationSoundEvent": None,
+            "ActivationFx": None,
+            "ActivationFxRotation": None,
+            "RayTracingGroupId": None,
+            "ReloadTimeFactor": "value",
+            "Modifiers": p_modifiers,
+            "MeshFX": None,
+            "SocketToFX": None,
+            "MeshFXClass": None,
+            "StatusFXManager": None,
+            "Lifetime": "value",
+            "InitialLifetime": "value",
+            "Icon": (parse_image_asset_path, "icon_path"),
+            "ActiveSoundEventStart": None,
+            "ActiveSoundEventFinish": None,
+            "StatusFXManager": None,
+            "ServerAttachedTime": None,
+            "StackMode": parse_colon_colon,
+            "AttachPoint": None,
+            "BuffId": None,
+            "DurationFX": None,
+            "MeshFXFadeOutTime": None,
+            "ProxyMeshFXClass": None,
+            "ProxyMeshFXFadeOutTime": None,
+            "CameraFX": None,
+            "DirectDamage": "value",
+            "AoeDamage": "value",
+            "DirectDamagePerSecond": "value",
+            "AoeDamagePerSecond": "value",
+            "TickInterval": "value",
+            "DamageExplosionSettings": None, #FX
+            "Owner": None,
+            "CameraFXDestroyPolicy": None,
+            "Undying Buff Class": None, #used by ravana
+            "Damage Reduction Quotient": "value",
+            "UndyingLingerTime": "value",
+            "Radius": "value",
+            "Height": "value",
+            "BuffAreaComponent": None,
+            "HealingColorDelay": None, #FX
+            "HealingColorFadeOutDur": None, #FX
+            "Radius": "value",
+            "BuffSphereComponent": None, #lancelot, shows Me and AlliesAndMeExceptTitan as buff targets, choosing to ignore this grudgingly
+            "DecalComponent": None, #cosmetic
+            "ParentComponent": None, #lancelot
+            "HealthComponent": None, #ares. seems to reference function to detect when health is 0, so probably for starting the animation of the gun going down
+            "SceneComponent": None,
+            "HitSoundEvent": None,
+            "Health": "value",
+            "bReplicateMovement": "value",
+            "RemoteRole": None,
+            "InitialLifeSpan": "value",
+            "Sphere Radius": "value",
+            "AimBeamFX": None, #alpha ult
+            "AimGroundFX": None,
+            "MainDamageBeamFX": None,
+            "MainDamageGroundFX": None,
+            "ColorIdParam": None,
+            "ThinBeamSoundEvent": None,
+            "ThickBeamSoundEvent": None,
+            "VictimReactionOnSpawn": None,
+            "ActiveEffect": None, #legit only Matriarch ult, contains color info so just FX
+            "StackDamagePercent": "value", #purifier
+            "Owner": None,
+            "Exclusion": None,
+            "RootComponent": None,
+            "EffectColorName": None,
+            "DestroyReaction": None,
+            "HostileColor": None,
+            "CorpseDuration": None,
+            "AppearSoundEvent": None,
+            "DisappearSoundEvent": None,
+            "DebuffVfx": None,
+            "PrimaryActorTick": None, #contains bCanEverTick=true for ravana
+            "SpeedIncrement": "value", # sprint boost
+            "bRegenInAbsoulute": "value", #quick repair start
+            "ArmorRegenPerSecond": "value",
+            "RegenInterval": "value",
+            "bRemoveOnDamage": "value",
+            "bRemoveOnFull": "value",
+            "ArmorZonesByPriority": p_armor_zones,
+            "NiagaraSystem": None,
+            "ArmorRegenChannel": None,
+            "ShieldRegenChannel": None,
+            "PPMaterial": None, #material instance for flashbang fx
+            "Field Width": "value", #energy wall
+            "NeutralColor": None,
+            "IgnoredActorType": None, #would include this, but its an integer code, 1 for energy wall which i presume represents allies, but not worth including guesswork
+            "ShieldRegenPerSecond": "value",
+            "bRegenMoreDamagedZone": "value", # interesting for mesa
+            "TickInterval": "value",
+            "DamageDistribution": None, #gamma beam, references blank file
+            "ActiveEfficiencyPercent": "value", # fuel burn
+            "DurationParam": None,
+            "GroundedMeshFXs": None,
+            "AttacherReactionOnAttach": None, #voiceline
+            "OwnerReactionOnAttach": None,
+            "WeaponFX": None,
+        }
+
+        parsed_data = obj._process_key_to_parser_function(
+            key_to_parser_function, data["Properties"], log_descriptor="ActorClass", tabs=5, set_attrs=False, default_configuration={
+                'target': ParseTarget.MATCH_KEY
+            }
+        )
+
+        return parsed_data
