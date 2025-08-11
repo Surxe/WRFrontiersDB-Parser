@@ -552,7 +552,7 @@ def p_actor_class(obj, data: dict):
             "MeshFXClass": None,
             "StatusFXManager": None,
             "Lifetime": "value",
-            "InitialLifetime": "value",
+            "InitialLifetime": None, # duplicate to Lifetime value
             "Icon": (parse_image_asset_path, "icon_path"),
             "ActiveSoundEventStart": None,
             "ActiveSoundEventFinish": None,

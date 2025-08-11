@@ -107,7 +107,26 @@ class GameMode(Object):
         return p_actor_class(self, data) #calls global p_actor_class and passes the object to use
 
     def _p_titan_settings(self, data):
-        pass
+        data = asset_path_to_data(data["ObjectPath"])["Properties"]
+        
+        key_to_parser_function = {
+            "TitanCharge": "value",
+            "MechKill": "value",
+            "TitanKill": "value",
+            "BeaconSteal": "value",
+            "BeaconCapture": "value",
+            "LastMechLost": "value",
+            "TitansDiff": "value",
+            "ScoreDiff": "value",
+            "TitanReadyMessageClass": None,
+            "EnemyTeamDeployedTitanMessageClass": None,
+            "BeaconHold": "value",
+            "bCanSpawnTitanWhileAlive": "value",
+        }
+
+        return self._process_key_to_parser_function(key_to_parser_function, data, tabs=2, set_attrs=False, default_configuration={
+            'target': ParseTarget.MATCH_KEY
+        })
 
     def _p_ability_charge_settings(self, data):
         pass
@@ -119,7 +138,12 @@ class GameMode(Object):
         pass
 
     def _p_beacon_pts(self, data):
-        pass
+        parsed_data = dict()
+        for elem in data:
+            key = elem["Key"]
+            value = elem["Value"]
+            parsed_data[key] = value
+        return parsed_data
 
 def parse_game_modes(to_file=False):
     root_path = os.path.join(PARAMS.export_path, r"WRFrontiers\Content\Sparrow\Mechanics\DA_Meta_Root.json")
