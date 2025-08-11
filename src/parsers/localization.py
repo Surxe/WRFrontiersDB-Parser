@@ -67,7 +67,6 @@ def parse_localizations():
 
             log(f"Parsing localization for language: {lang_code} from file: {file_path}", tabs=1)
             localization = Localization(lang_code, source_data)
-            localization._to_file()
 
 if __name__ == "__main__":
     parse_localizations()
