@@ -90,10 +90,13 @@ def get_json_data(file_path: str) -> dict:
     return data
 
 def clear_dir(dir: str) -> None:
-    for filename in os.listdir(dir):
-        file_path = os.path.join(dir, filename)
+    for file_or_dir_name in os.listdir(dir):
+        file_path = os.path.join(dir, file_or_dir_name)
         if os.path.isfile(file_path):
             os.remove(file_path)
+        elif os.path.isdir(file_path):
+            clear_dir(file_path)
+            os.rmdir(file_path)
 
 ###############################
 #    Unreal Engine Parsing    #

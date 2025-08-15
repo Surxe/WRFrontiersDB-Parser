@@ -9,6 +9,7 @@ from parsers.module import *
 from parsers.localization import *
 from parsers.pilot import *
 from parsers.progression_table import *
+from parsers.game_mode import *
 
 clear_dir("output")  # Clear the data directory before parsing
 
@@ -17,6 +18,7 @@ print()
 parse_modules() #module relies on english localization being added to each key just as a helpful Ctrl+F reference
 parse_pilots()  # Pilot parser relies on module data being parsed first
 parse_progression_table()
+parse_game_modes()
 
 ProgressionTable.to_file()
 Currency.to_file()
@@ -51,3 +53,9 @@ PilotClass.to_file()
 PilotPersonality.to_file()
 PilotTalentType.to_file()
 PilotTalent.to_file()
+
+GameMode.to_file()
+BotNames.to_file()
+HonorReward.to_file()
+
+Localization.to_file()
