@@ -9,6 +9,7 @@ from parsers.localization_table import parse_localization
 from parsers.object import Object, ParseTarget
 from parsers.ability import p_actor_class
 from parsers.bot_names import BotNames
+from parsers.honor_reward import HonorReward
 
 class GameMode(Object):
     objects = dict()
@@ -85,7 +86,7 @@ class GameMode(Object):
         
         # Store data that wasn't parsed separately into defaultable_data
         other_data = dict()
-        keys_to_store_as_attrs = ['match_rewards', 'base_protection_buff', 'titan_settings', 'ability_charge_settings']
+        keys_to_store_as_attrs = ['match_rewards', 'base_protection_buff', 'titan_settings', 'ability_charge_settings', 'honor_system', 'bot_names']
         for key, value in parsed_data.items():
             if key not in keys_to_store_as_attrs:
                 other_data[key] = value
@@ -149,7 +150,13 @@ class GameMode(Object):
         return BotNames.get_from_asset_path(data["ObjectPath"])
         
     def _p_honor_system(self, data):
-        pass
+        data = asset_path_to_data(data["ObjectPath"])
+        data = asset_path_to_data(data["ClassDefaultObject"]["ObjectPath"])["Properties"]["Rewards"]
+        ids = []
+        for honor_reward in data:
+            honor_reward_id = HonorReward.get_from_asset_path(honor_reward["ObjectPath"])
+            ids.append(honor_reward_id)
+        return ids
 
     def _p_beacon_pts(self, data):
         parsed_data = dict()
@@ -188,6 +195,7 @@ def parse_game_modes(to_file=False):
     if to_file: # Condition prevents needlessly saving the same data multiple times, as it will also be saved if ran thru parse.py
         GameMode.to_file()
         BotNames.to_file()
+        HonorReward.to_file()
 
 if __name__ == "__main__":
     parse_game_modes(to_file=True)
