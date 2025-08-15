@@ -9,7 +9,7 @@ from parsers.localization_table import parse_localization
 from parsers.image import parse_image_asset_path
 from parsers.pilot import Pilot
 
-from utils import asset_path_to_data, parse_colon_colon
+from utils import parse_colon_colon
 
 class CharacterPreset(Object):
     objects = dict()  # Dictionary to hold all CharacterPreset instances
@@ -19,26 +19,18 @@ class CharacterPreset(Object):
 
         key_to_parser_function = {
             "Name": parse_localization,
-            "TemplateType": self._p_template_type,
-            "CharacterTypeAsset": self._p_character_type_asset,
-            "CharacterType": self._p_character_type,
+            "TemplateType": None,
+            "CharacterTypeAsset": None,
+            "CharacterType": parse_colon_colon,
             "Modules": self._p_modules,
             "Pilot": self._p_pilot,
             "Icon": parse_image_asset_path,
-            "RobotAIDataAsset": self._p_robot_ai_data_asset,
+            "RobotAIDataAsset": None, #voiceline
+            "bShowInProgressDiscover": None,
             "ID": None,
         }
 
         self._process_key_to_parser_function(key_to_parser_function, props)
-
-    def _p_template_type(self, data):
-        pass
-
-    def _p_character_type_asset(self, data):
-        pass
-
-    def _p_character_type(self, data):
-        pass
 
     def _p_modules(self, data):
         modules = []
