@@ -276,7 +276,7 @@ class Ability(Object):
         spawn_action_data = asset_path_to_data(data["ObjectPath"])
 
         if 'Properties' not in spawn_action_data:
-            return None
+            return
 
         key_to_parser_function = {
             "TimeBetweenLaunch": "value",
@@ -453,7 +453,7 @@ class Ability(Object):
     def _p_max_speed_modifier(self, data: dict):
         data = asset_path_to_data(data["ObjectPath"])
         if "Properties" not in data:
-            return None
+            return
         parsed_data = dict()
         if "Value" in data["Properties"]:
             parsed_data["Value"] = data["Properties"]["Value"]
@@ -464,7 +464,7 @@ class Ability(Object):
     def _p_movement_component(self, data: dict):
         data = asset_path_to_data(data["ObjectPath"])
         if 'Properties' not in data:
-            return None
+            return
         return data["Properties"]
     
     def _p_ai_conditions(self, data: dict):
@@ -485,14 +485,14 @@ class Ability(Object):
     def _p_pushing_settings(self, data: dict):
         data = asset_path_to_data(data["ObjectPath"])
         if 'Properties' not in data:
-            return None
+            return
         else:
             return data["Properties"]
         
     def _p_charge_trigger(self, data: dict):
         data = asset_path_to_data(data["ObjectPath"])
         if 'Properties' not in data:
-            return None
+            return
         return data["Properties"]
     
     def _p_actor_class(self, data):
@@ -529,7 +529,7 @@ def p_actor_class(obj, data: dict):
         data = asset_path_to_data(data["ObjectPath"])
         data = asset_path_to_data(data["ClassDefaultObject"]["ObjectPath"])
         if 'Properties' not in data:
-            return None
+            return
         
         key_to_parser_function = {
             "UberGraphFrame": None,

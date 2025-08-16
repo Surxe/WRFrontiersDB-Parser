@@ -101,7 +101,7 @@ class Pilot(Object):
 
 def parse_pilot_wrapper(dir, file_name):
     if not file_name.endswith(".json"):
-        return None
+        return
     full_path = os.path.join(dir, file_name)
     pilot_id = path_to_id(file_name)
     log(f"Parsing {Pilot.__name__} {pilot_id} from {full_path}", tabs=0)

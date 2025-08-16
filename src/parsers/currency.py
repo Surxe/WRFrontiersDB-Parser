@@ -57,15 +57,15 @@ def parse_currency(data):
     }
     """
     if "Currency" not in data or "Amount" not in data:
-        return None
+        return
     
     currency_data = data["Currency"]
     current_amount = data["Amount"]
 
     if currency_data is None and current_amount == 0:
-        return None
+        return
     elif currency_data is None:
-        raise Exception(f"Structure change: {self.__class__.__name__} {self.id} has currency data with no Currency but Amount is {current_amount} and length of array is {len(data)}.", tabs=1)
+        raise Exception(f"Structure change: {Currency.__class__.__name__} {Currency.id} has currency data with no Currency but Amount is {current_amount} and length of array is {len(data)}.", tabs=1)
     
     currency_asset_path = currency_data["ObjectPath"]
     currency_id = Currency.get_from_asset_path(currency_asset_path)

@@ -27,5 +27,5 @@ class Skin(Object):
 
     def _p_customization_rarity(self, data):
         if data is None:
-            return None
+            return
         return CustomizationRarity.get_from_asset_path(data["ObjectPath"])

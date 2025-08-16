@@ -116,7 +116,7 @@ class PilotTalent(Object):
 
         if parsed_stats:
             return parsed_stats
-        return None
+        return
 
     def _p_buffs(self, buffs: list):
         parsed_buffs = []
@@ -165,4 +165,4 @@ class PilotTalent(Object):
 
         if parsed_buffs:
             return parsed_buffs
-        return None
+        return

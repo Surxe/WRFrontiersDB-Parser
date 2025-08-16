@@ -151,7 +151,10 @@ class GameMode(Object):
         
     def _p_honor_system(self, data):
         data = asset_path_to_data(data["ObjectPath"])
-        data = asset_path_to_data(data["ClassDefaultObject"]["ObjectPath"])["Properties"]["Rewards"]
+        data = asset_path_to_data(data["ClassDefaultObject"]["ObjectPath"])
+        if 'Properties' not in data:
+            return
+        data = data["Properties"]["Rewards"]
         ids = []
         for honor_reward in data:
             honor_reward_id = HonorReward.get_from_asset_path(honor_reward["ObjectPath"])

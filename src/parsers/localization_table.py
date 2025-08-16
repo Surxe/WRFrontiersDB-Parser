@@ -56,4 +56,4 @@ def parse_localization(data: dict):
             "InvariantString": invariant_string
         }
     else:
-        return None
+        return
