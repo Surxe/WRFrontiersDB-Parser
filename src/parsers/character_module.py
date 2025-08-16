@@ -5,7 +5,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import Object, ParseTarget
 from parsers.ability import Ability
-from utils import asset_path_to_data, parse_colon_colon
+from utils import asset_path_to_data, parse_colon_colon, parse_editor_curve_data
 
 class CharacterModule(Object):
     objects = dict()  # Dictionary to hold all CharacterModule instances
@@ -121,7 +121,7 @@ class CharacterModule(Object):
             "DefaultArmor": "value",
             "DefaultShield": "value",
             "DefaultDirectDamage": "value",
-            "DefaultAoeDamage": "value",
+            "DefaultAoeDamage": parse_editor_curve_data,
             "DefaultClipSize": "value",
             "DefaultProjectilesPerShot": "value",
             "DefaultProjectileSpeed": "value",
@@ -186,7 +186,7 @@ class CharacterModule(Object):
                 "AbilityChargePointsOnHit": "value",
                 "TitanChargePerHit": "value",
                 "DirectDamage": "value",
-                "AoeDamage": "value",
+                "AoeDamage": parse_editor_curve_data,
                 "FireFX": None,
                 "bContinuousFireFX": None,
                 "bHasArmorVisualImpact": None,

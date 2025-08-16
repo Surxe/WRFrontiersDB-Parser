@@ -144,6 +144,55 @@ def parse_hex(data: dict):
 def parse_colon_colon(data: str):
     return data.split("::")[-1] # i.e. "ESWeaponReloadType::X" -> "X"
 
+expected_curve_data = {
+    "TangentMode": "RCTM_Auto",
+    "TangentWeightMode": "RCTWM_WeightedNone",
+    "ArriveTangent": 0.0,
+    "ArriveTangentWeight": 0.0,
+    "LeaveTangent": 0.0,
+    "LeaveTangentWeight": 0.0
+}
+def parse_editor_curve_data(data: dict):
+    if 'DistToDamage' in data:
+        dist_data = data["DistToDamage"]
+    else:
+        dist_data = data
+    
+    dist_data = dist_data["EditorCurveData"]
+
+    if 'Keys' not in dist_data:
+        return dist_data
+    else:
+        dist_data = dist_data["Keys"]
+
+    parsed_curve = []
+    prev_interp_mode = None
+    for elem in dist_data:
+        for expected_key, expected_value in expected_curve_data.items():
+            if expected_key not in elem:
+                raise ValueError(f"Missing expected key '{expected_key}' in curve data element")
+            if elem[expected_key] != expected_value:
+                raise ValueError(f"Unexpected value for key '{expected_key}' in curve data element: {elem[expected_key]} (expected: {expected_value})")
+        interp_mode = elem["InterpMode"]
+        if prev_interp_mode is not None and interp_mode != prev_interp_mode:
+            raise ValueError(f"Unexpected interpolation mode change from {prev_interp_mode} to {interp_mode}")
+        prev_interp_mode = interp_mode
+        parsed_elem = {
+            "Time": elem["Time"],
+            "Value": elem["Value"]
+        }
+        parsed_curve.append(parsed_elem)
+
+    curve_data = {
+        "InterpMode": prev_interp_mode,
+        "CurveData": parsed_curve
+    }
+
+    if 'DistToDamage' in data:
+        data["DistToDamage"] = curve_data
+        return data
+    return curve_data
+
 ###############################
 #           String            #
 ###############################

@@ -1,2 +1,1 @@
 # everything in ctrl shift f "pass"
-# parse weapon falloff curves "EditorCurveData"

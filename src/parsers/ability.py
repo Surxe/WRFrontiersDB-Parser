@@ -4,7 +4,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import Object, ParseTarget, ParseAction
-from utils import asset_path_to_data, log, parse_colon_colon
+from utils import asset_path_to_data, log, parse_colon_colon, parse_editor_curve_data
 from parsers.image import parse_image_asset_path
 from parsers.localization_table import parse_localization
 from parsers.module_stat import ModuleStat
@@ -23,7 +23,7 @@ class Ability(Object):
             "ImpactPointsCount": "value",
             "ThinBeamTime": "value",
             "ThickBeamTime": "value",
-            "Damage": "value",
+            "Damage": parse_editor_curve_data,
             "ActorMeshFXClass": None,
             "ActorClass": self._p_actor_class,
             "bStandaloneActor": "value",
@@ -188,7 +188,7 @@ class Ability(Object):
             "SweepObjectTypes": None,
             "Swipe Impulse Magnitude": "value",  # grim scythe
             "On Collision Buff Duration": "value",
-            "On Collision AoE Damage": "value",
+            "On Collision AoE Damage": parse_editor_curve_data,
             "SweepRadius": "value",
             "Explosion Impulse Magnitude": "value",
             "Explosion Radius": "value",
@@ -363,7 +363,7 @@ class Ability(Object):
                 "MovementComponent": self._p_movement_component,
                 "BuffsOnHit": self._p_actor_class,
                 "DirectDamage": "value",
-                "AoeDamage": "value",
+                "AoeDamage": parse_editor_curve_data,
                 "VisualDamage": None,
                 "ExplosionSettings": None, #doesn't mention radius, looks too niche/complex to bother with
                 "OnComponentExploded": None, #references the same props, oddly
@@ -405,7 +405,7 @@ class Ability(Object):
                 "bSetVFXSizeFromCollision": None, #repulsor
                 "ObstaclesCollisionComponent": None,
                 "bUseGravityChangeFromDistanceCurve": "value", #ghost turret
-                "GravityChangeFromDistance": "value",
+                "GravityChangeFromDistance": parse_editor_curve_data,
             }
 
             parsed_proj = self._process_key_to_parser_function(
@@ -567,9 +567,9 @@ def p_actor_class(obj, data: dict):
             "ProxyMeshFXFadeOutTime": None,
             "CameraFX": None,
             "DirectDamage": "value",
-            "AoeDamage": "value",
+            "AoeDamage": parse_editor_curve_data,
             "DirectDamagePerSecond": "value",
-            "AoeDamagePerSecond": "value",
+            "AoeDamagePerSecond": parse_editor_curve_data,
             "TickInterval": "value",
             "DamageExplosionSettings": None, #FX
             "Owner": None,
