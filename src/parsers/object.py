@@ -205,7 +205,7 @@ class Object: #generic object that all classes extend
             return cls.objects[id]
         
     @classmethod
-    def get_from_asset_path(cls, asset_path: str, log_tabs: int = 1, sub_index=True) -> str:
+    def get_from_asset_path(cls, asset_path: str, log_tabs: int = 1, sub_index=True, create_if_missing=True) -> str:
         """
         Returns the ID of an object from its asset path.
         If the object does not exist, it creates a new instance by parsing the asset file.
@@ -213,7 +213,7 @@ class Object: #generic object that all classes extend
         """
         obj_id = path_to_id(asset_path)
         obj = cls.get_from_id(obj_id)
-        if obj is None:
+        if obj is None and create_if_missing:
             file_path, index = asset_path_to_file_path_and_index(asset_path)
             log(f"Parsing {cls.__name__} {obj_id} from {file_path} . {index}", tabs=log_tabs)
             obj_data = get_json_data(file_path)

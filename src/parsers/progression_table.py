@@ -61,7 +61,6 @@ class ProgressionTable(Object):
             "CharacterSkins": (lambda skins: [Skin.get_from_asset_path(skin["Skin"]["ObjectPath"]) for skin in skins], "skins_ids"),
             "CharacterSetups": self._confirm_empty,
             "PilotRewards": (self._p_pilots, "pilots"),
-            #TODO
         }
 
         parsed_reward = self._process_key_to_parser_function(key_to_parser_function, reward, set_attrs=False, log_descriptor='_p_level_reward()', tabs=4)
