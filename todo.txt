@@ -1,4 +1,2 @@
 # everything in ctrl shift f "pass"
 # parse weapon falloff curves "EditorCurveData"
-# parse game mode for titan ult charge
-# what builds the bots use
