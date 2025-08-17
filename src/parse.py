@@ -1,10 +1,29 @@
+
+import argparse
+import os
 from dotenv import load_dotenv
+
+# Parse command-line arguments for Params fields
+parser = argparse.ArgumentParser(description="Run WRFrontiersDB Parser with optional overrides.")
+parser.add_argument('--EXPORTS_PATH', type=str, help='Override EXPORTS_PATH')
+parser.add_argument('--GAME_NAME', type=str, help='Override GAME_NAME')
+parser.add_argument('--LOG_LEVEL', type=str, help='Override LOG_LEVEL')
+parser.add_argument('--OUTPUT_PATH', type=str, help='Override OUTPUT_PATH')
+args = parser.parse_args()
+
 # Force reload .env file, overriding any existing environment variables
 load_dotenv(override=True)
 
-from utils import clear_dir
+from utils import clear_dir, init_params
 
-# call other parsers
+# Initialize parameters with command-line args
+init_params(
+    export_path=args.EXPORTS_PATH,
+    game_name=args.GAME_NAME,
+    log_level=args.LOG_LEVEL,
+    output_path=args.OUTPUT_PATH
+)
+
 from parsers.module import *
 from parsers.localization import *
 from parsers.pilot import *

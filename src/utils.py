@@ -7,15 +7,17 @@ load_dotenv()
 ###############################
 #           Params            #
 ###############################
+
 class Params:
     """
     A class to hold parameters for the application.
     """
-    def __init__(self):
-        self.export_path = os.getenv('EXPORTS_PATH')
-        self.game_name = os.getenv('GAME_NAME')
-        self.log_level = os.getenv('LOG_LEVEL', 'DEBUG').upper()
-        self.output_path = os.getenv('OUTPUT_PATH', None)
+    def __init__(self, export_path=None, game_name=None, log_level=None, output_path=None):
+        # Use provided args if not None, else fallback to environment
+        self.export_path = export_path if export_path is not None else os.getenv('EXPORTS_PATH')
+        self.game_name = game_name if game_name is not None else os.getenv('GAME_NAME')
+        self.log_level = (log_level if log_level is not None else os.getenv('LOG_LEVEL', 'DEBUG')).upper()
+        self.output_path = output_path if output_path is not None else os.getenv('OUTPUT_PATH', None)
         self.validate()
         self.log()
 
@@ -54,7 +56,11 @@ class Params:
     def __str__(self):
         return f"Params(export_path={self.export_path}, game_name={self.game_name}, log_level={self.log_level})"
 
-PARAMS = Params()  # Initialize global Params object
+
+# Helper to initialize PARAMS with direct args if available
+def init_params(export_path=None, game_name=None, log_level=None, output_path=None):
+    global PARAMS
+    PARAMS = Params(export_path, game_name, log_level, output_path)
 
 ###############################
 #             LOG             #
