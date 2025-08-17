@@ -24,11 +24,9 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-echo "debugdebug ${PARSE_ARGS[@]}"
-
 # === RUN PARSER ===
 if [ "$LOG_LEVEL" = "DEBUG" ]; then
-    echo "Running parser..."
+    echo "Running parser with args: ${PARSE_ARGS[@]}"
 fi
 python3 src/parse.py "${PARSE_ARGS[@]}"
 
@@ -124,7 +122,6 @@ else
 fi
 
 # Configure Git settings for the cloned repository
-# Configure Git settings for the cloned repository
 cd "$DATA_REPO_DIR"
 if [ "$LOG_LEVEL" = "DEBUG" ] || [ "$LOG_LEVEL" = "INFO" ]; then
     git config --local user.email "parser@example.com"
@@ -180,7 +177,9 @@ if [ "$GAME_VERSION_TO_ARCHIVE" != "$NEW_GAME_VERSION" ]; then
         if [ "$LOG_LEVEL" = "DEBUG" ]; then
             echo "Archiving current data to $ARCHIVE_PATH..."
         fi
-        mv "$CURRENT_PATH"/* "$ARCHIVE_PATH"/
+    # Move all files and directories, handling non-empty dirs
+    cp -a "$CURRENT_PATH"/. "$ARCHIVE_PATH"/
+    rm -rf "$CURRENT_PATH"/*
     else
         if [ "$LOG_LEVEL" = "DEBUG" ]; then
             echo "No current data to archive."
