@@ -7,28 +7,14 @@ while [[ $# -gt 0 ]]; do
     case $key in
         --GAME_VERSION)
             NEW_GAME_VERSION="$2"
-            shift; shift
+            shift 2
             ;;
         --TARGET_BRANCH)
             TARGET_BRANCH="$2"
-            shift; shift
+            shift 2
             ;;
         --LOG_LEVEL)
             LOG_LEVEL="$2"
-            shift; shift
-            ;;
-        *)
-            shift
-            ;;
-    esac
-done
-
-# Send all OTHER arguments to parse.py
-PARSE_ARGS=()
-while [[ $# -gt 0 ]]; do
-    key="$1"
-    case $key in
-        --GAME_VERSION|--TARGET_BRANCH)
             shift 2
             ;;
         *)
@@ -40,7 +26,7 @@ done
 
 # === RUN PARSER ===
 if [ "$LOG_LEVEL" = "DEBUG" ]; then
-    echo "Running parser..."
+    echo "Running parser with args: ${PARSE_ARGS[@]}"
 fi
 python3 src/parse.py "${PARSE_ARGS[@]}"
 
@@ -136,7 +122,6 @@ else
 fi
 
 # Configure Git settings for the cloned repository
-# Configure Git settings for the cloned repository
 cd "$DATA_REPO_DIR"
 if [ "$LOG_LEVEL" = "DEBUG" ] || [ "$LOG_LEVEL" = "INFO" ]; then
     git config --local user.email "parser@example.com"
@@ -192,7 +177,9 @@ if [ "$GAME_VERSION_TO_ARCHIVE" != "$NEW_GAME_VERSION" ]; then
         if [ "$LOG_LEVEL" = "DEBUG" ]; then
             echo "Archiving current data to $ARCHIVE_PATH..."
         fi
-        mv "$CURRENT_PATH"/* "$ARCHIVE_PATH"/
+    # Move all files and directories, handling non-empty dirs
+    cp -a "$CURRENT_PATH"/. "$ARCHIVE_PATH"/
+    rm -rf "$CURRENT_PATH"/*
     else
         if [ "$LOG_LEVEL" = "DEBUG" ]; then
             echo "No current data to archive."

@@ -1,7 +1,10 @@
 from dotenv import load_dotenv
+
 import os
 import json
 import re
+import sys
+from loguru import logger
 load_dotenv()
 
 ###############################
@@ -18,6 +21,21 @@ class Params:
         self.game_name = game_name if game_name is not None else os.getenv('GAME_NAME')
         self.log_level = (log_level if log_level is not None else os.getenv('LOG_LEVEL', 'DEBUG')).upper()
         self.output_path = output_path if output_path is not None else os.getenv('OUTPUT_PATH', None)
+        # Setup loguru logging to /logs dir
+        logs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'logs')
+        os.makedirs(logs_dir, exist_ok=True)
+        if self.export_path:
+            log_filename = self.export_path.replace('\\', '/').rstrip('/').split('/')[-1] + '.log'
+            # i.e. F:/WRF/2025-08-12/<exports> to 2025-08-12.log
+        else:
+            log_filename = 'default.log'
+        log_path = os.path.join(logs_dir, log_filename)
+        logger.remove()
+        # Clear the log file before adding the handler
+        with open(log_path, 'w') as f:
+            pass
+        logger.add(log_path, level=self.log_level, rotation="10 MB", retention="10 days", enqueue=True)
+        logger.add(sys.stdout, level=self.log_level)
         self.validate()
         self.log()
 
@@ -47,12 +65,13 @@ class Params:
         """
         Logs the parameters.
         """
-        if self.log_level in ['DEBUG', 'INFO']:
-            print(f"Params initialized with:\n"
-                f"EXPORTS_PATH: {self.export_path}\n"
-                f"GAME_NAME: {self.game_name}\n"
-                f"LOG_LEVEL: {self.log_level}\n"
-                f"OUTPUT_PATH: {self.output_path}")
+        logger.info(
+            f"Params initialized with:\n"
+            f"EXPORTS_PATH: {self.export_path}\n"
+            f"GAME_NAME: {self.game_name}\n"
+            f"LOG_LEVEL: {self.log_level}\n"
+            f"OUTPUT_PATH: {self.output_path}"
+        )
 
     def __str__(self):
         return f"Params(export_path={self.export_path}, game_name={self.game_name}, log_level={self.log_level})"
@@ -67,20 +86,18 @@ def init_params(export_path=None, game_name=None, log_level=None, output_path=No
 #             LOG             #
 ###############################
 
+
+# Loguru-based log function
 def log(message: str, tabs: int = 0, log_level="DEBUG") -> None:
-    """
-    Logs a message with a specified number of tabs for indentation.
-    """
     if not isinstance(message, str):
         raise TypeError("Message must be a string.")
     if not isinstance(tabs, int) or tabs < 0:
         raise ValueError("Tabs must be a non-negative integer.")
-    if log_level not in ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']:
-        raise ValueError(f"LOG_LEVEL {log_level} must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL.")
-
     indent = '\t' * tabs
-    if PARAMS.log_level == log_level:
-        print(f"{indent}{message}")
+    level = log_level.upper()
+    if level not in ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']:
+        raise ValueError(f"LOG_LEVEL {log_level} must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL.")
+    logger.log(level, f"{indent}{message}")
 
 
 ###############################
