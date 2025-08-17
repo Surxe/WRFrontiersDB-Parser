@@ -25,7 +25,8 @@ class Params:
         logs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'logs')
         os.makedirs(logs_dir, exist_ok=True)
         if self.export_path:
-            log_filename = self.export_path.replace('\\', '/').split('/')[-1] + '.log'
+            log_filename = self.export_path.replace('\\', '/').rstrip('/').split('/')[-1] + '.log'
+            # i.e. F:/WRF/2025-08-12/<exports> to 2025-08-12.log
         else:
             log_filename = 'default.log'
         log_path = os.path.join(logs_dir, log_filename)
@@ -64,12 +65,13 @@ class Params:
         """
         Logs the parameters.
         """
-        if self.log_level in ['DEBUG', 'INFO']:
-            print(f"Params initialized with:\n"
-                f"EXPORTS_PATH: {self.export_path}\n"
-                f"GAME_NAME: {self.game_name}\n"
-                f"LOG_LEVEL: {self.log_level}\n"
-                f"OUTPUT_PATH: {self.output_path}")
+        logger.info(
+            f"Params initialized with:\n"
+            f"EXPORTS_PATH: {self.export_path}\n"
+            f"GAME_NAME: {self.game_name}\n"
+            f"LOG_LEVEL: {self.log_level}\n"
+            f"OUTPUT_PATH: {self.output_path}"
+        )
 
     def __str__(self):
         return f"Params(export_path={self.export_path}, game_name={self.game_name}, log_level={self.log_level})"
