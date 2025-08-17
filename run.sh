@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-# Parse named arguments
+# Parse named arguments, assumes --arg1 val1 --arg2 val2 format, not --arg1=val1
 while [[ $# -gt 0 ]]; do
     key="$1"
     case $key in
@@ -49,9 +49,15 @@ DATA_REPO_DIR="WRFrontiersDB-Data"
 OUTPUT_DIR="output"    # this should match PARAMS.output_path
 
 
+
 DEFAULT_NEW_GAME_VERSION=$(cat game_version.txt)
-NEW_GAME_VERSION="$DEFAULT_NEW_GAME_VERSION"
-TARGET_BRANCH="testing-grounds"
+echo "Debug $NEW_GAME_VERSION"
+if [ -z "$NEW_GAME_VERSION" ]; then
+    NEW_GAME_VERSION="$DEFAULT_NEW_GAME_VERSION"
+fi
+if [ -z "$TARGET_BRANCH" ]; then
+    TARGET_BRANCH="testing-grounds"
+fi
 
 # If NEW_GAME_VERSION is not empty and different from DEFAULT_NEW_GAME_VERSION, update game_version.txt
 if [ "$NEW_GAME_VERSION" != "$DEFAULT_NEW_GAME_VERSION" ]; then
