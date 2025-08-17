@@ -162,6 +162,7 @@ cython_debug/
 # App
 .env
 /output
+/logs
 WRFrontiersDB-Data
 game_version.txt
 
