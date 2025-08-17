@@ -110,11 +110,16 @@ export GIT_CONFIG_NOSYSTEM=1
 export GIT_CONFIG_GLOBAL=/dev/null
 export HOME="${USERPROFILE:-$HOME}"
 
+# Only print git output if LOG_LEVEL is DEBUG or INFO
 if [ ! -d "$DATA_REPO_DIR" ]; then
     if [ "$LOG_LEVEL" = "DEBUG" ]; then
         echo "Cloning WRFrontiersDB-Data..."
     fi
-    git clone "$DATA_REPO_URL" "$DATA_REPO_DIR"
+    if [ "$LOG_LEVEL" = "DEBUG" ] || [ "$LOG_LEVEL" = "INFO" ]; then
+        git clone "$DATA_REPO_URL" "$DATA_REPO_DIR"
+    else
+        git clone "$DATA_REPO_URL" "$DATA_REPO_DIR" > /dev/null 2>&1
+    fi
 else
     if [ "$LOG_LEVEL" = "DEBUG" ]; then
         echo "Repository already exists, deleting..."
@@ -123,27 +128,45 @@ else
     if [ "$LOG_LEVEL" = "DEBUG" ]; then
         echo "Re-cloning WRFrontiersDB-Data..."
     fi
-    git clone "$DATA_REPO_URL" "$DATA_REPO_DIR"
+    if [ "$LOG_LEVEL" = "DEBUG" ] || [ "$LOG_LEVEL" = "INFO" ]; then
+        git clone "$DATA_REPO_URL" "$DATA_REPO_DIR"
+    else
+        git clone "$DATA_REPO_URL" "$DATA_REPO_DIR" > /dev/null 2>&1
+    fi
 fi
 
 # Configure Git settings for the cloned repository
+# Configure Git settings for the cloned repository
 cd "$DATA_REPO_DIR"
-git config --local user.email "parser@example.com"
-git config --local user.name "Parser"
-git config --local credential.helper ""
+if [ "$LOG_LEVEL" = "DEBUG" ] || [ "$LOG_LEVEL" = "INFO" ]; then
+    git config --local user.email "parser@example.com"
+    git config --local user.name "Parser"
+    git config --local credential.helper ""
+else
+    git config --local user.email "parser@example.com" > /dev/null 2>&1
+    git config --local user.name "Parser" > /dev/null 2>&1
+    git config --local credential.helper "" > /dev/null 2>&1
+fi
 
 # Switch to target branch
 if [ "$LOG_LEVEL" = "DEBUG" ]; then
     echo "Switching to branch: $TARGET_BRANCH"
 fi
-git checkout "$TARGET_BRANCH" || git checkout -b "$TARGET_BRANCH"
+if [ "$LOG_LEVEL" = "DEBUG" ] || [ "$LOG_LEVEL" = "INFO" ]; then
+    git checkout "$TARGET_BRANCH" || git checkout -b "$TARGET_BRANCH"
+else
+    git checkout "$TARGET_BRANCH" > /dev/null 2>&1 || git checkout -b "$TARGET_BRANCH" > /dev/null 2>&1
+fi
 
 cd ..
 
 # === GET LATEST COMMIT TITLE AND DATE ===
-LATEST_COMMIT=$(git log -1 --format="%s - %ad" --date=short)
-if [ "$LOG_LEVEL" = "DEBUG" ]; then
+# Only print git log output if LOG_LEVEL is DEBUG or INFO
+if [ "$LOG_LEVEL" = "DEBUG" ] || [ "$LOG_LEVEL" = "INFO" ]; then
+    LATEST_COMMIT=$(git log -1 --format="%s - %ad" --date=short)
     echo "Latest commit: $LATEST_COMMIT"
+else
+    LATEST_COMMIT=$(git log -1 --format="%s - %ad" --date=short 2>/dev/null)
 fi
 cd "$DATA_REPO_DIR"
 
@@ -201,9 +224,16 @@ cp -r "../$OUTPUT_DIR"/* "$CURRENT_PATH/"
 echo "$NEW_GAME_VERSION" > "$CURRENT_PATH/version.txt"
 
 # === COMMIT AND PUSH ===
-git add .
-git commit -m "Data for version:$NEW_GAME_VERSION from latest Parser commit:$LATEST_COMMIT"
-git push origin "$TARGET_BRANCH"
+# Only print git add/commit/push output if LOG_LEVEL is DEBUG or INFO
+if [ "$LOG_LEVEL" = "DEBUG" ] || [ "$LOG_LEVEL" = "INFO" ]; then
+    git add .
+    git commit -m "Data for version:$NEW_GAME_VERSION from latest Parser commit:$LATEST_COMMIT"
+    git push origin "$TARGET_BRANCH"
+else
+    git add . > /dev/null 2>&1
+    git commit -m "Data for version:$NEW_GAME_VERSION from latest Parser commit:$LATEST_COMMIT" > /dev/null 2>&1
+    git push origin "$TARGET_BRANCH" > /dev/null 2>&1
+fi
 
 cd ..
 if [ "$LOG_LEVEL" = "DEBUG" ]; then

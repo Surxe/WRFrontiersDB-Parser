@@ -47,11 +47,12 @@ class Params:
         """
         Logs the parameters.
         """
-        print(f"Params initialized with:\n"
-              f"EXPORTS_PATH: {self.export_path}\n"
-              f"GAME_NAME: {self.game_name}\n"
-              f"LOG_LEVEL: {self.log_level}\n"
-              f"OUTPUT_PATH: {self.output_path}")
+        if self.log_level in ['DEBUG', 'INFO']:
+            print(f"Params initialized with:\n"
+                f"EXPORTS_PATH: {self.export_path}\n"
+                f"GAME_NAME: {self.game_name}\n"
+                f"LOG_LEVEL: {self.log_level}\n"
+                f"OUTPUT_PATH: {self.output_path}")
 
     def __str__(self):
         return f"Params(export_path={self.export_path}, game_name={self.game_name}, log_level={self.log_level})"
