@@ -1,6 +1,5 @@
 
 import argparse
-import os
 from dotenv import load_dotenv
 
 # Parse command-line arguments for Params fields
