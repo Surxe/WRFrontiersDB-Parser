@@ -15,29 +15,24 @@ DATA_REPO_URL="https://${GH_DATA_REPO_PAT}@github.com/Surxe/WRFrontiersDB-Data.g
 DATA_REPO_DIR="WRFrontiersDB-Data"
 OUTPUT_DIR="output"    # this should match PARAMS.output_path
 
-# Prompt for game version
 DEFAULT_NEW_GAME_VERSION=$(cat game_version.txt)
-echo -n "Enter game version (yyyy-mm-dd) [press {Enter} to use latest entered: $DEFAULT_NEW_GAME_VERSION]: "
-read NEW_GAME_VERSION
-if [ -z "$NEW_GAME_VERSION" ]; then
-        NEW_GAME_VERSION=$DEFAULT_NEW_GAME_VERSION
-else
-        # Write the new version to new_game_version.txt
-        echo "$NEW_GAME_VERSION" > game_version.txt
-        echo "Updated new_game_version.txt with: $NEW_GAME_VERSION"
-fi
-echo "Using game version: $NEW_GAME_VERSION"
+NEW_GAME_VERSION="${1:-$DEFAULT_NEW_GAME_VERSION}"
+TARGET_BRANCH="${2:-testing-grounds}"
 
-# Prompt for branch to push to
-echo "Available branches: testing-grounds, main"
-echo -n "Enter branch to push to [press {Enter} for testing-grounds]: "
-read TARGET_BRANCH
-if [ -z "$TARGET_BRANCH" ]; then
-    TARGET_BRANCH="testing-grounds"
-elif [ "$TARGET_BRANCH" != "testing-grounds" ] && [ "$TARGET_BRANCH" != "main" ]; then
+# If NEW_GAME_VERSION is not empty and different from DEFAULT_NEW_GAME_VERSION, update game_version.txt
+if [ "$NEW_GAME_VERSION" != "$DEFAULT_NEW_GAME_VERSION" ]; then
+    echo "$NEW_GAME_VERSION" > game_version.txt
+    echo "Updated game_version.txt with: $NEW_GAME_VERSION"
+fi
+
+# Validate TARGET_BRANCH
+if [ "$TARGET_BRANCH" != "testing-grounds" ] && [ "$TARGET_BRANCH" != "main" ]; then
     echo "❌ Invalid branch '$TARGET_BRANCH'. Only 'testing-grounds' and 'main' are allowed."
     exit 1
 fi
+
+echo "Using game version: $NEW_GAME_VERSION"
+echo "Using branch: $TARGET_BRANCH"
 echo "Using branch: $TARGET_BRANCH"
 
 # Saves data to data repository and archives previous data
