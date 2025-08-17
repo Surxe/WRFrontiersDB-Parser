@@ -164,4 +164,7 @@ cython_debug/
 /output
 WRFrontiersDB-Data
 game_version.txt
+
+# Personal
 notes.md
+run_all.sh
