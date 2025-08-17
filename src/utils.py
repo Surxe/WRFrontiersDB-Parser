@@ -66,7 +66,7 @@ def init_params(export_path=None, game_name=None, log_level=None, output_path=No
 #             LOG             #
 ###############################
 
-def log(message: str, tabs: int = 0) -> None:
+def log(message: str, tabs: int = 0, log_level="DEBUG") -> None:
     """
     Logs a message with a specified number of tabs for indentation.
     """
@@ -74,9 +74,11 @@ def log(message: str, tabs: int = 0) -> None:
         raise TypeError("Message must be a string.")
     if not isinstance(tabs, int) or tabs < 0:
         raise ValueError("Tabs must be a non-negative integer.")
-    
+    if log_level not in ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']:
+        raise ValueError(f"LOG_LEVEL {log_level} must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL.")
+
     indent = '\t' * tabs
-    if PARAMS.log_level == "DEBUG":
+    if PARAMS.log_level == log_level:
         print(f"{indent}{message}")
 
 

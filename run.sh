@@ -13,6 +13,10 @@ while [[ $# -gt 0 ]]; do
             TARGET_BRANCH="$2"
             shift; shift
             ;;
+        --LOG_LEVEL)
+            LOG_LEVEL="$2"
+            shift; shift
+            ;;
         *)
             shift
             ;;
@@ -51,7 +55,6 @@ OUTPUT_DIR="output"    # this should match PARAMS.output_path
 
 
 DEFAULT_NEW_GAME_VERSION=$(cat game_version.txt)
-echo "Debug $NEW_GAME_VERSION"
 if [ -z "$NEW_GAME_VERSION" ]; then
     NEW_GAME_VERSION="$DEFAULT_NEW_GAME_VERSION"
 fi
