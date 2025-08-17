@@ -1,9 +1,42 @@
 #!/bin/bash
 set -e
 
+# Parse named arguments
+while [[ $# -gt 0 ]]; do
+    key="$1"
+    case $key in
+        --GAME_VERSION)
+            NEW_GAME_VERSION="$2"
+            shift; shift
+            ;;
+        --TARGET_BRANCH)
+            TARGET_BRANCH="$2"
+            shift; shift
+            ;;
+        *)
+            shift
+            ;;
+    esac
+done
+
+# Send all OTHER arguments to parse.py
+PARSE_ARGS=()
+while [[ $# -gt 0 ]]; do
+    key="$1"
+    case $key in
+        --GAME_VERSION|--TARGET_BRANCH)
+            shift 2
+            ;;
+        *)
+            PARSE_ARGS+=("$1")
+            shift
+            ;;
+    esac
+done
+
 # === RUN PARSER ===
 echo "Running parser..."
-python3 src/parse.py
+python3 src/parse.py "${PARSE_ARGS[@]}"
 
 # Load GH_DATA_REPO_PAT from .env if it exists
 if [ -f .env ]; then
@@ -15,9 +48,10 @@ DATA_REPO_URL="https://${GH_DATA_REPO_PAT}@github.com/Surxe/WRFrontiersDB-Data.g
 DATA_REPO_DIR="WRFrontiersDB-Data"
 OUTPUT_DIR="output"    # this should match PARAMS.output_path
 
+
 DEFAULT_NEW_GAME_VERSION=$(cat game_version.txt)
-NEW_GAME_VERSION="${1:-$DEFAULT_NEW_GAME_VERSION}"
-TARGET_BRANCH="${2:-testing-grounds}"
+NEW_GAME_VERSION="$DEFAULT_NEW_GAME_VERSION"
+TARGET_BRANCH="testing-grounds"
 
 # If NEW_GAME_VERSION is not empty and different from DEFAULT_NEW_GAME_VERSION, update game_version.txt
 if [ "$NEW_GAME_VERSION" != "$DEFAULT_NEW_GAME_VERSION" ]; then
@@ -32,7 +66,6 @@ if [ "$TARGET_BRANCH" != "testing-grounds" ] && [ "$TARGET_BRANCH" != "main" ]; 
 fi
 
 echo "Using game version: $NEW_GAME_VERSION"
-echo "Using branch: $TARGET_BRANCH"
 echo "Using branch: $TARGET_BRANCH"
 
 # Saves data to data repository and archives previous data
