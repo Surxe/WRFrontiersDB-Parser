@@ -1,7 +1,9 @@
 from dotenv import load_dotenv
+
 import os
 import json
 import re
+from loguru import logger
 load_dotenv()
 
 ###############################
@@ -67,20 +69,18 @@ def init_params(export_path=None, game_name=None, log_level=None, output_path=No
 #             LOG             #
 ###############################
 
+
+# Loguru-based log function
 def log(message: str, tabs: int = 0, log_level="DEBUG") -> None:
-    """
-    Logs a message with a specified number of tabs for indentation.
-    """
     if not isinstance(message, str):
         raise TypeError("Message must be a string.")
     if not isinstance(tabs, int) or tabs < 0:
         raise ValueError("Tabs must be a non-negative integer.")
-    if log_level not in ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']:
-        raise ValueError(f"LOG_LEVEL {log_level} must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL.")
-
     indent = '\t' * tabs
-    if PARAMS.log_level == log_level:
-        print(f"{indent}{message}")
+    level = log_level.upper()
+    if level not in ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']:
+        raise ValueError(f"LOG_LEVEL {log_level} must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL.")
+    logger.log(level, f"{indent}{message}")
 
 
 ###############################
