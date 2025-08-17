@@ -7,28 +7,14 @@ while [[ $# -gt 0 ]]; do
     case $key in
         --GAME_VERSION)
             NEW_GAME_VERSION="$2"
-            shift; shift
+            shift 2
             ;;
         --TARGET_BRANCH)
             TARGET_BRANCH="$2"
-            shift; shift
+            shift 2
             ;;
         --LOG_LEVEL)
             LOG_LEVEL="$2"
-            shift; shift
-            ;;
-        *)
-            shift
-            ;;
-    esac
-done
-
-# Send all OTHER arguments to parse.py
-PARSE_ARGS=()
-while [[ $# -gt 0 ]]; do
-    key="$1"
-    case $key in
-        --GAME_VERSION|--TARGET_BRANCH)
             shift 2
             ;;
         *)
@@ -37,6 +23,8 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+echo "debugdebug ${PARSE_ARGS[@]}"
 
 # === RUN PARSER ===
 if [ "$LOG_LEVEL" = "DEBUG" ]; then
