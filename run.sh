@@ -39,12 +39,19 @@ while [[ $# -gt 0 ]]; do
 done
 
 # === RUN PARSER ===
-echo "Running parser..."
+if [ "$LOG_LEVEL" = "DEBUG" ]; then
+    echo "Running parser..."
+fi
 python3 src/parse.py "${PARSE_ARGS[@]}"
 
 # Load GH_DATA_REPO_PAT from .env if it exists
+# Only print if LOG_LEVEL is set and not DEBUG
+# Only print if LOG_LEVEL is DEBUG
 if [ -f .env ]; then
-        export GH_DATA_REPO_PAT=$(grep '^GH_DATA_REPO_PAT=' .env | cut -d '=' -f2- | sed 's/^"//;s/"$//')
+    if [ "$LOG_LEVEL" = "DEBUG" ]; then
+        echo "Loading GH_DATA_REPO_PAT from .env"
+    fi
+    export GH_DATA_REPO_PAT=$(grep '^GH_DATA_REPO_PAT=' .env | cut -d '=' -f2- | sed 's/^"//;s/"$//')
 fi
 
 # === CONFIGURATION ===
@@ -55,27 +62,45 @@ OUTPUT_DIR="output"    # this should match PARAMS.output_path
 
 
 DEFAULT_NEW_GAME_VERSION=$(cat game_version.txt)
+# Only print if LOG_LEVEL is set and not DEBUG
+# Only print if LOG_LEVEL is DEBUG
 if [ -z "$NEW_GAME_VERSION" ]; then
     NEW_GAME_VERSION="$DEFAULT_NEW_GAME_VERSION"
+    if [ "$LOG_LEVEL" = "DEBUG" ]; then
+        echo "Using default game version: $NEW_GAME_VERSION"
+    fi
 fi
 if [ -z "$TARGET_BRANCH" ]; then
     TARGET_BRANCH="testing-grounds"
+    if [ "$LOG_LEVEL" = "DEBUG" ]; then
+        echo "Using default branch: $TARGET_BRANCH"
+    fi
 fi
 
 # If NEW_GAME_VERSION is not empty and different from DEFAULT_NEW_GAME_VERSION, update game_version.txt
+# Only print if LOG_LEVEL is set and not DEBUG
+# Only print if LOG_LEVEL is DEBUG
 if [ "$NEW_GAME_VERSION" != "$DEFAULT_NEW_GAME_VERSION" ]; then
     echo "$NEW_GAME_VERSION" > game_version.txt
-    echo "Updated game_version.txt with: $NEW_GAME_VERSION"
+    if [ "$LOG_LEVEL" = "DEBUG" ]; then
+        echo "Updated game_version.txt with: $NEW_GAME_VERSION"
+    fi
 fi
 
 # Validate TARGET_BRANCH
+# Only print if LOG_LEVEL is set and not DEBUG
+# Only print if LOG_LEVEL is DEBUG
 if [ "$TARGET_BRANCH" != "testing-grounds" ] && [ "$TARGET_BRANCH" != "main" ]; then
-    echo "❌ Invalid branch '$TARGET_BRANCH'. Only 'testing-grounds' and 'main' are allowed."
+    if [ "$LOG_LEVEL" = "DEBUG" ]; then
+        echo "❌ Invalid branch '$TARGET_BRANCH'. Only 'testing-grounds' and 'main' are allowed."
+    fi
     exit 1
 fi
 
-echo "Using game version: $NEW_GAME_VERSION"
-echo "Using branch: $TARGET_BRANCH"
+if [ "$LOG_LEVEL" = "DEBUG" ]; then
+    echo "Using game version: $NEW_GAME_VERSION"
+    echo "Using branch: $TARGET_BRANCH"
+fi
 
 # Saves data to data repository and archives previous data
 
@@ -86,12 +111,18 @@ export GIT_CONFIG_GLOBAL=/dev/null
 export HOME="${USERPROFILE:-$HOME}"
 
 if [ ! -d "$DATA_REPO_DIR" ]; then
-    echo "Cloning WRFrontiersDB-Data..."
+    if [ "$LOG_LEVEL" = "DEBUG" ]; then
+        echo "Cloning WRFrontiersDB-Data..."
+    fi
     git clone "$DATA_REPO_URL" "$DATA_REPO_DIR"
 else
-    echo "Repository already exists, deleting..."
+    if [ "$LOG_LEVEL" = "DEBUG" ]; then
+        echo "Repository already exists, deleting..."
+    fi
     rm -rf "$DATA_REPO_DIR"
-    echo "Re-cloning WRFrontiersDB-Data..."
+    if [ "$LOG_LEVEL" = "DEBUG" ]; then
+        echo "Re-cloning WRFrontiersDB-Data..."
+    fi
     git clone "$DATA_REPO_URL" "$DATA_REPO_DIR"
 fi
 
@@ -102,23 +133,31 @@ git config --local user.name "Parser"
 git config --local credential.helper ""
 
 # Switch to target branch
-echo "Switching to branch: $TARGET_BRANCH"
+if [ "$LOG_LEVEL" = "DEBUG" ]; then
+    echo "Switching to branch: $TARGET_BRANCH"
+fi
 git checkout "$TARGET_BRANCH" || git checkout -b "$TARGET_BRANCH"
 
 cd ..
 
 # === GET LATEST COMMIT TITLE AND DATE ===
 LATEST_COMMIT=$(git log -1 --format="%s - %ad" --date=short)
-echo "Latest commit: $LATEST_COMMIT"
+if [ "$LOG_LEVEL" = "DEBUG" ]; then
+    echo "Latest commit: $LATEST_COMMIT"
+fi
 cd "$DATA_REPO_DIR"
 
 # Determine the game version to archive (in current/version.txt)
 CURRENT_PATH="current"
 if [ -f "$CURRENT_PATH/version.txt" ]; then
     GAME_VERSION_TO_ARCHIVE=$(cat "$CURRENT_PATH/version.txt")
-    echo "Will archive version $GAME_VERSION_TO_ARCHIVE from current/version.txt"
+    if [ "$LOG_LEVEL" = "DEBUG" ]; then
+        echo "Will archive version $GAME_VERSION_TO_ARCHIVE from current/version.txt"
+    fi
 else
-    echo "No current/version.txt found, will not archive any data."
+    if [ "$LOG_LEVEL" = "DEBUG" ]; then
+        echo "No current/version.txt found, will not archive any data."
+    fi
 fi
 
 # Only archive if the game version to archive is different to the new version
@@ -127,24 +166,34 @@ if [ "$GAME_VERSION_TO_ARCHIVE" != "$NEW_GAME_VERSION" ]; then
     # Move all files from current/*.ext to archive/<version>/*.ext
     mkdir -p "$ARCHIVE_PATH"
     if [ -d "$CURRENT_PATH" ]; then
-        echo "Archiving current data to $ARCHIVE_PATH..."
+        if [ "$LOG_LEVEL" = "DEBUG" ]; then
+            echo "Archiving current data to $ARCHIVE_PATH..."
+        fi
         mv "$CURRENT_PATH"/* "$ARCHIVE_PATH"/
     else
-        echo "No current data to archive."
+        if [ "$LOG_LEVEL" = "DEBUG" ]; then
+            echo "No current data to archive."
+        fi
     fi
 fi
 
 # Delete all files from current/*
 # This is to ensure that we start fresh for the new game version
 if [ -d "$CURRENT_PATH" ]; then
-    echo "Deleting old current data..."
+    if [ "$LOG_LEVEL" = "DEBUG" ]; then
+        echo "Deleting old current data..."
+    fi
     rm -rf "$CURRENT_PATH"/*
 else
-    echo "No current directory found, creating the dir..."
+    if [ "$LOG_LEVEL" = "DEBUG" ]; then
+        echo "No current directory found, creating the dir..."
+    fi
     mkdir -p "$CURRENT_PATH"
 fi
 
-echo "Copying new output to current/..."
+if [ "$LOG_LEVEL" = "DEBUG" ]; then
+    echo "Copying new output to current/..."
+fi
 # Copy all files from thisrepo/output/*.ext to thisrepo/WRFrontiersDB-Data/current/*.ext
 # This will happen even if the game version is the same, overwriting the current files.
 cp -r "../$OUTPUT_DIR"/* "$CURRENT_PATH/"
@@ -153,8 +202,10 @@ echo "$NEW_GAME_VERSION" > "$CURRENT_PATH/version.txt"
 
 # === COMMIT AND PUSH ===
 git add .
-git commit -m "Data for version:$NEW_GAME_VERSION from latest Parser commit:$LATEST_COMMIT" || echo "Nothing to commit."
+git commit -m "Data for version:$NEW_GAME_VERSION from latest Parser commit:$LATEST_COMMIT"
 git push origin "$TARGET_BRANCH"
 
 cd ..
-echo "✅ Data updated successfully and pushed to branch '$TARGET_BRANCH'."
+if [ "$LOG_LEVEL" = "DEBUG" ]; then
+    echo "✅ Data updated successfully and pushed to branch '$TARGET_BRANCH'."
+fi
