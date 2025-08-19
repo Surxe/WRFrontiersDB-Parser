@@ -232,6 +232,7 @@ class Ability(Object):
             "ResourceType": {"parser": "value", "action": ParseAction.DICT_ENTRY, "target_dict_path": "resource", "target": ParseTarget.MATCH_KEY_SNAKE},
             "CameraShakeOnDamage": None, # flashbang
             "SpawnActorCollisionHandlingMethod": None, #varangian
+            "Height": "value",
         }
 
         self._process_key_to_parser_function(key_to_parser_function, props, tabs=3, default_configuration={
@@ -286,7 +287,7 @@ class Ability(Object):
             "LaunchFX": None,
             "LaunchAkEvent": None,
             "bDestroyActorOnExit": "value",
-            "ActorClass": None,
+            "ActorClass": self._p_actor_class,
             "bAttachedActor": None,
             "AttachSocketName": None,
         }
@@ -461,12 +462,6 @@ class Ability(Object):
             parsed_data["Type"] = parse_colon_colon(data["Properties"]["Type"])
         return parsed_data
     
-    def _p_movement_component(self, data: dict):
-        data = asset_path_to_data(data["ObjectPath"])
-        if 'Properties' not in data:
-            return
-        return data["Properties"]
-    
     def _p_ai_conditions(self, data: dict):
         parsed_conditions = []
         for elem in data:
@@ -497,6 +492,9 @@ class Ability(Object):
     
     def _p_actor_class(self, data):
         return p_actor_class(self, data) #wrapper that makes it use Ability class
+    
+    def _p_movement_component(self, data):
+        return p_movement_component(data)
 
 def p_armor_zones(list: list):
     armor_zone_names = []
@@ -520,6 +518,33 @@ def p_modifiers(list: list):
         }
         parsed_modifiers.append(parsed_modifier)
     return parsed_modifiers
+
+def p_movement_component(data: dict):
+    data = asset_path_to_data(data["ObjectPath"])
+    if 'Properties' not in data:
+        return
+    return data["Properties"]
+
+def p_damage_applier(data: dict):
+    data = asset_path_to_data(data["ObjectPath"])["Properties"]
+
+    key_to_parser_function = {
+        "TickFunction": "value",
+        "DirectDamagePerSecond": "value",
+        "DamageStartedAudioEvent": None,
+        "DamageStopedAudioEvent": None,
+        "DamageMeshFXClass": None,
+    }
+
+    parsed_data = Ability._process_key_to_parser_function(
+            Ability('derp', {}), #TODO this is awful bandaid lol
+            key_to_parser_function, data, log_descriptor="ActorClass", tabs=6, set_attrs=False, default_configuration={
+                'target': ParseTarget.MATCH_KEY
+            }
+        )
+
+    return parsed_data
+
 
 def p_actor_class(obj, data: dict):
     if type(data) is list:
@@ -639,6 +664,34 @@ def p_actor_class(obj, data: dict):
             "AttacherReactionOnAttach": None, #voiceline
             "OwnerReactionOnAttach": None,
             "WeaponFX": None,
+            "CountStack": "value", #ceres
+            "RequiredCharForBoost": "value",
+            "MaxStacks": "value",
+            "BeamFX": None, # cyclops
+            "ImpactFX": None,
+            "BeamSoundEvent": None,
+            "EndPlayAkEvent": None,
+            "BeamSoundMaxDistance": None,
+            "DamageDelayTime": "value",
+            "Size": None, # atrophy, has x=0, y=0, z=0 so not using
+            "bOverrideScheduleSettings": "value",
+            "FallingSettings": "value",
+            "bAlwaysRelevant": None,
+            "ActivationDelay": "value", #camouflage web
+            "RootCollision": None,
+            "MovementComponent": p_movement_component,
+            "Mesh": None,
+            "StartSoundEvent": None,
+            "EndSoundEvent": None,
+            "GlitchSoundEvent": None,
+            "SphereVFX": None,
+            "DestroyVFX": None,
+            "VFXRadiusOffset": None,
+            "StartImpulseHorizontal": "value",
+            "StartImpulseVertical": "value",
+            "PathCurve": None, #galvanic screen uses tangent EditorCurveData, ignoring for now. #TODO
+            "DamageApplier": p_damage_applier,
+            "PerModuleColliderComponent": None,
         }
 
         parsed_data = obj._process_key_to_parser_function(
