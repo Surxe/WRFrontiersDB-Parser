@@ -537,7 +537,7 @@ def p_damage_applier(data: dict):
     }
 
     parsed_data = Ability._process_key_to_parser_function(
-            Ability('derp', {}), #TODO this is awful bandaid lol
+            Ability(), #TODO this is awful bandaid lol
             key_to_parser_function, data, log_descriptor="ActorClass", tabs=6, set_attrs=False, default_configuration={
                 'target': ParseTarget.MATCH_KEY
             }
