@@ -232,6 +232,7 @@ class Ability(Object):
             "ResourceType": {"parser": "value", "action": ParseAction.DICT_ENTRY, "target_dict_path": "resource", "target": ParseTarget.MATCH_KEY_SNAKE},
             "CameraShakeOnDamage": None, # flashbang
             "SpawnActorCollisionHandlingMethod": None, #varangian
+            "Height": "value",
         }
 
         self._process_key_to_parser_function(key_to_parser_function, props, tabs=3, default_configuration={
@@ -246,25 +247,6 @@ class Ability(Object):
         if not etype.isdigit():
             return etype
         #EffectType can be Defensive, Attack, or numerical code like 16
-
-    def _p_weapon_infos(self, list: list):
-        log(f"Parsing weapon infos for {self.id}", tabs=4)
-
-        # Lazy import to avoid circular dependency
-        from parsers.character_module import CharacterModule
-
-        last_weapon_module_asset_path = None
-        for weapon_info in list:
-            weapon_module_asset_path = weapon_info["WeaponModule"]["ObjectPath"]
-            # Ensure the path is not different to the previous one
-            if last_weapon_module_asset_path is not None and weapon_module_asset_path != last_weapon_module_asset_path:
-                raise ValueError(
-                    f"Data structure change: Multiple weapon modules with different asset paths found: {last_weapon_module_asset_path} and {weapon_module_asset_path}."
-                )
-            last_weapon_module_asset_path = weapon_module_asset_path
-
-        weapon_module_id = CharacterModule.get_from_asset_path(last_weapon_module_asset_path)
-        return weapon_module_id
     
     def _p_activate_weapons_action(self, data: dict):
         data = asset_path_to_data(data["ObjectPath"])
@@ -286,7 +268,7 @@ class Ability(Object):
             "LaunchFX": None,
             "LaunchAkEvent": None,
             "bDestroyActorOnExit": "value",
-            "ActorClass": None,
+            "ActorClass": self._p_actor_class,
             "bAttachedActor": None,
             "AttachSocketName": None,
         }
@@ -461,12 +443,6 @@ class Ability(Object):
             parsed_data["Type"] = parse_colon_colon(data["Properties"]["Type"])
         return parsed_data
     
-    def _p_movement_component(self, data: dict):
-        data = asset_path_to_data(data["ObjectPath"])
-        if 'Properties' not in data:
-            return
-        return data["Properties"]
-    
     def _p_ai_conditions(self, data: dict):
         parsed_conditions = []
         for elem in data:
@@ -497,6 +473,13 @@ class Ability(Object):
     
     def _p_actor_class(self, data):
         return p_actor_class(self, data) #wrapper that makes it use Ability class
+    
+    def _p_movement_component(self, data):
+        return p_movement_component(data)
+    
+    def _p_weapon_infos(self, data: dict):
+        log(f"Parsing weapon infos for {self.id}", tabs=4)
+        return p_weapon_infos(data)
 
 def p_armor_zones(list: list):
     armor_zone_names = []
@@ -520,6 +503,74 @@ def p_modifiers(list: list):
         }
         parsed_modifiers.append(parsed_modifier)
     return parsed_modifiers
+
+def p_movement_component(data: dict):
+    data = asset_path_to_data(data["ObjectPath"])
+    if 'Properties' not in data:
+        return
+    return data["Properties"]
+
+def p_focus_component(data: dict):
+    data = asset_path_to_data(data["ObjectPath"])
+    if 'Properties' not in data:
+        return
+    return data["Properties"]
+
+def p_damage_applier(data: dict):
+    data = asset_path_to_data(data["ObjectPath"])["Properties"]
+
+    key_to_parser_function = {
+        "TickFunction": "value",
+        "DirectDamagePerSecond": "value",
+        "DamageStartedAudioEvent": None,
+        "DamageStopedAudioEvent": None,
+        "DamageMeshFXClass": None,
+    }
+
+    parsed_data = Ability._process_key_to_parser_function(
+            Ability(), #TODO this is awful bandaid lol
+            key_to_parser_function, data, log_descriptor="ActorClass", tabs=6, set_attrs=False, default_configuration={
+                'target': ParseTarget.MATCH_KEY
+            }
+        )
+
+    return parsed_data
+
+def p_weapon_infos(list: list):
+    # Lazy import to avoid circular dependency
+    from parsers.character_module import CharacterModule
+
+    last_weapon_module_asset_path = None
+    for weapon_info in list:
+        weapon_module_asset_path = weapon_info["WeaponModule"]["ObjectPath"]
+        # Ensure the path is not different to the previous one
+        if last_weapon_module_asset_path is not None and weapon_module_asset_path != last_weapon_module_asset_path:
+            raise ValueError(
+                f"Data structure change: Multiple weapon modules with different asset paths found: {last_weapon_module_asset_path} and {weapon_module_asset_path}."
+            )
+        last_weapon_module_asset_path = weapon_module_asset_path
+
+    weapon_module_id = CharacterModule.get_from_asset_path(last_weapon_module_asset_path)
+    return weapon_module_id
+
+def p_capsule_component(data: dict):
+    data = asset_path_to_data(data["ObjectPath"])
+    if 'Properties' not in data:
+        return
+    props = data["Properties"]
+    return {
+        'CapsuleHalfHeight': props.get('CapsuleHalfHeight'),
+        'CapsuleRadius': props.get('CapsuleRadius')
+    }
+
+def p_transf_sphere_component(data: dict):
+    data = asset_path_to_data(data["ObjectPath"])
+    if 'Properties' not in data:
+        return
+    props = data["Properties"]
+    return {
+        'SphereRadius': props.get('SphereRadius')
+    }
 
 def p_actor_class(obj, data: dict):
     if type(data) is list:
@@ -639,6 +690,96 @@ def p_actor_class(obj, data: dict):
             "AttacherReactionOnAttach": None, #voiceline
             "OwnerReactionOnAttach": None,
             "WeaponFX": None,
+            "CountStack": "value", #ceres
+            "RequiredCharForBoost": "value",
+            "MaxStacks": "value",
+            "BeamFX": None, # cyclops
+            "ImpactFX": None,
+            "BeamSoundEvent": None,
+            "EndPlayAkEvent": None,
+            "BeamSoundMaxDistance": None,
+            "DamageDelayTime": "value",
+            "Size": None, # atrophy, has x=0, y=0, z=0 so not using
+            "bOverrideScheduleSettings": "value",
+            "FallingSettings": "value",
+            "bAlwaysRelevant": None,
+            "ActivationDelay": "value", #camouflage web
+            "RootCollision": None,
+            "MovementComponent": p_movement_component,
+            "Mesh": None,
+            "StartSoundEvent": None,
+            "EndSoundEvent": None,
+            "GlitchSoundEvent": None,
+            "SphereVFX": None,
+            "DestroyVFX": None,
+            "VFXRadiusOffset": None,
+            "StartImpulseHorizontal": "value",
+            "StartImpulseVertical": "value",
+            "PathCurve": None, #galvanic screen uses tangent EditorCurveData, ignoring for now. #TODO
+            "DamageApplier": p_damage_applier,
+            "PerModuleColliderComponent": None,
+            "OpenTime": "value", #ghost turret
+            "DesiredDamage": "value",
+            "FocusComponent": p_focus_component,
+            "PassiveWeaponComponent": None, #contains no data
+            "SoundSystemComponent": None,
+            "WeaponInfos": {"parser": p_weapon_infos, "action": ParseAction.ATTRIBUTE, "target": "weapon"},
+            "EnemyMaterialInstance": None,
+            "FriendMaterialInstance": None,
+            "bCanBeDamaged": "value",
+            "ActiveRadius": "value", #minefield
+            "BuffsOnHit": obj._p_actor_class,
+            "SingleExplosionSoundEvent": None,
+            "FinalExplosionSoundEvent": None,
+            "MineNiagaraEffect": None,
+            "FinalExplosionNiagaraEffect": None,
+            "ExplosionNiagaraEffect": None,
+            "MineLocationEQ": None,
+            "ExplosionStartSoundEvent": None, #smoke wall
+            "BoxComponent": None,
+            "CapsuleComponent": p_capsule_component, #supressor
+            "bShouldFall": "value",
+            "FallingSpeed": "value",
+            "MaxScanRadius": "value",
+            "ScanLifetime": "value",
+            "SpottingBuffClass": None,
+            "DeactivationLoopSound": None, #singulators
+            "CollisionComponent": p_capsule_component,
+            "TransfusionSphereComponent": p_transf_sphere_component,
+            "spawnDuration": "value",
+            "TransfusionRadius": "value",
+            "TransfusionInterval": "value",
+            "TransfusionSourceFx": None,
+            "TransfusionSphereFx": None,
+            "TransfusionRayFx": None,
+            "SpawnSoundEvent": None,
+            "Harpoon Shot Delay": "value", #snare
+            "Snare Debuff": obj._p_actor_class,
+            "Harpoon Direct Damage": "value",
+            "Snap Object Types": None,
+            "Death VFX": None,
+            "Snare Rope VFX": None,
+            "Snare Bones": None,
+            "Start Sound": None,
+            "End Sound": None,
+            "Tracking Radius": "value",
+            "Un Tracking Offset": "value",
+            "bReplicates": "value",
+            "Pull Force Magnitude": "value",
+            "Snare VFX": None,
+            "EnemyColor": None,
+            "CollisionMeshComponent": None, #nanite field vfx i think
+            "DisappearNaniteFX": None,
+            "TransitionTime": "value", #tyr
+            "DroneMaterial": None,
+            "AuraMesh": None,
+            "DroneSkeletalMesh": None,
+            "StartHealingSoundEvent": None,
+            "StopHealingSoundEvent": None,
+            "FriendlyColor": None,
+            "Buff": obj._p_actor_class,
+            "WasSpottedSoundEvent": None, #echo burst
+            "SpottedSoundEvent": None,
         }
 
         parsed_data = obj._process_key_to_parser_function(
