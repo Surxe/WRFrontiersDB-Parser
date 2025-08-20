@@ -2,3 +2,4 @@
 BP_BuffArea_Mundus CountStack, MaxStacks, RequiredCharForBoost, Radius
 dps calcs
 lvl1 to 13 summary diff summary
+nanite repair missing id from char module entry
