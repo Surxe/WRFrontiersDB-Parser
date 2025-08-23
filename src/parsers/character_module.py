@@ -5,7 +5,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import Object, ParseTarget
 from parsers.ability import Ability
-from utils import asset_path_to_data, parse_colon_colon, parse_editor_curve_data
+from utils import log, asset_path_to_data, parse_colon_colon, parse_editor_curve_data
 
 class CharacterModule(Object):
     objects = dict()  # Dictionary to hold all CharacterModule instances
@@ -14,7 +14,7 @@ class CharacterModule(Object):
         class_default_object = self.source_data["ClassDefaultObject"]
         cdo_data = asset_path_to_data(class_default_object["ObjectPath"])
         props = cdo_data["Properties"]
-        
+
         key_to_parser_function = {
             "RootComponent": None,
             "ModuleScaler": (self._p_module_scalar, "module_scaler"),
@@ -242,9 +242,11 @@ class CharacterModule(Object):
         parsed_abilities = []
         for ability in list:
             ability_asset_path = ability["ObjectPath"]
-            ability_data = asset_path_to_data(ability_asset_path)
-            ability_template_asset_path = ability_data["Template"]["ObjectPath"]
-            ability_id = Ability.get_from_asset_path(ability_template_asset_path)
+            #ability_data = asset_path_to_data(ability_asset_path)
+            #ability_template_asset_path = ability_data["Template"]["ObjectPath"]
+            ability_id = Ability.get_from_asset_path(ability_asset_path)
+            if self.id == 'BP_Ability_RegenerationFull':
+                log(f"Found!! {list} {ability_id}")
             parsed_abilities.append(ability_id)
         return parsed_abilities
 

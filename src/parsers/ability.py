@@ -12,11 +12,20 @@ from parsers.module_stat import ModuleStat
 class Ability(Object):
     objects = dict()  # Dictionary to hold all Class instances
 
+
     def _parse(self):
-        props = self.source_data.get("Properties")
+        # Wrapper for main ability parsing
+        return self._parse_from_data(self.source_data)
+
+    def _parse_from_data(self, source_data: dict):
+        props = source_data.get("Properties")
         if not props:
-            return
-        
+            return {}
+
+        template_ability_data = None
+        if 'Template' in source_data:
+            template_ability_data = self._p_template_ability(source_data["Template"])
+
         key_to_parser_function = {
             "UberGraphFrame": None,
             "ExplodeCount": "value",
@@ -235,11 +244,44 @@ class Ability(Object):
             "Height": "value",
         }
 
-        self._process_key_to_parser_function(key_to_parser_function, props, tabs=3, default_configuration={
+        my_ability_data = self._process_key_to_parser_function(key_to_parser_function, props, tabs=3, set_attrs=False, default_configuration={
             'action': ParseAction.DICT_ENTRY,
             'target_dict_path': 'misc',
             'target': ParseTarget.MATCH_KEY
         })
+
+        overlayed_data = {}
+        if template_ability_data:
+            for key, value in template_ability_data.items():
+                if value is not None and value != []:
+                    overlayed_data[key] = value
+
+        for key, value in my_ability_data.items():
+            if value is not None and value != []:
+                overlayed_data[key] = value
+
+        for key, value in overlayed_data.items():
+            setattr(self, key, value)
+
+        return overlayed_data
+
+    def _p_template_ability(self, data: dict):
+        # Recursively parse template ability using the same logic as main ability
+        asset_path = data["ObjectPath"]
+        template_data = asset_path_to_data(asset_path)
+        if template_data and "Template" in template_data:
+            base_template_data = self._p_template_ability(template_data["Template"])
+        else:
+            base_template_data = {}
+
+        parsed_template_data = self._parse_from_data(template_data) if template_data else {}
+
+        # Overlay base_template_data with parsed_template_data
+        overlayed_data = dict(base_template_data)
+        for key, value in parsed_template_data.items():
+            if value is not None and value != []:
+                overlayed_data[key] = value
+        return overlayed_data
 
     def _p_effect_type(self, data: str):
         etype = parse_colon_colon(data)
@@ -250,6 +292,8 @@ class Ability(Object):
     
     def _p_activate_weapons_action(self, data: dict):
         data = asset_path_to_data(data["ObjectPath"])
+        if data is None or data == [] or 'Properties' not in data:
+            return
         return self._p_weapon_infos(data["Properties"]["WeaponInfos"])
 
     def _p_spawn_action(self, data: dict):
@@ -286,6 +330,9 @@ class Ability(Object):
 
         conf_ac_data = asset_path_to_data(data["ObjectPath"])
         targeting_action_data = asset_path_to_data(conf_ac_data["Properties"]["TargetingAction"]["ObjectPath"])
+
+        if data is None or data == [] or 'Properties' not in data:
+            return
 
         key_to_parser_function = {
             "FirstLocationOffset": "value",
@@ -442,16 +489,29 @@ class Ability(Object):
         if "Type" in data["Properties"]:
             parsed_data["Type"] = parse_colon_colon(data["Properties"]["Type"])
         return parsed_data
-    
+
+
+    def _p_ai_condition(self, data: dict) -> dict:
+        """Recursively parse and overlay AI condition and its template."""
+        condition_data = asset_path_to_data(data["ObjectPath"])
+        if not condition_data:
+            return {}
+        # Recursively parse template if present
+        if "Template" in condition_data:
+            base = self._p_ai_condition(condition_data["Template"])
+        else:
+            base = {}
+        props = condition_data.get("Properties", {})
+        result = dict(base)
+        result.update(props)
+        return result
+
     def _p_ai_conditions(self, data: dict):
         parsed_conditions = []
         for elem in data:
             if elem is None:
                 continue
-            condition_data = asset_path_to_data(elem["ObjectPath"])
-            if 'Properties' not in condition_data:
-                continue
-            parsed_conditions.append(condition_data["Properties"])
+            parsed_conditions.append(self._p_ai_condition(elem))
         return parsed_conditions
 
     def _p_stat(self, data: dict):
@@ -466,6 +526,8 @@ class Ability(Object):
             return data["Properties"]
         
     def _p_charge_trigger(self, data: dict):
+        if data is None or data == []:
+            return
         data = asset_path_to_data(data["ObjectPath"])
         if 'Properties' not in data:
             return
