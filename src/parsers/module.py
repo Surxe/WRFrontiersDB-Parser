@@ -104,7 +104,10 @@ class Module(Object):
         for elem in data:
             asset_path = elem["ObjectPath"]
             ability_scalar_data = asset_path_to_data(asset_path)
-            self.levels["abilities_scalars"].append(self._p_scalars(ability_scalar_data))
+            scalars = self._p_scalars(ability_scalar_data)
+            if not scalars:
+                continue
+            self.levels["abilities_scalars"].append(scalars)
 
     def _p_scalars(self, data):
         if "LevelsData" not in data["Properties"]:
@@ -169,7 +172,7 @@ class Module(Object):
             if "UpgradeCurrency" in level and "UpgradeCost" in level:
                 upgrade_currency = level["UpgradeCurrency"]
                 upgrade_cost = level["UpgradeCost"]
-                if upgrade_currency is not None and upgrade_cost > 0:
+                if upgrade_currency is not None:
                     parsed_level["UpgradeCurrency"] = {
                         "currency_id": upgrade_currency,
                         "amount": upgrade_cost
@@ -184,7 +187,7 @@ class Module(Object):
                 if scrap_reward_currency_key in level and scrap_reward_amount_key in level:
                     scrap_reward_currency = level[scrap_reward_currency_key]
                     scrap_reward_amount = level[scrap_reward_amount_key]
-                    if scrap_reward_currency is not None and scrap_reward_amount > 0:
+                    if scrap_reward_currency is not None:
                         parsed_level['ScrapRewards'].append({
                             "currency_id": scrap_reward_currency,
                             "amount": scrap_reward_amount
