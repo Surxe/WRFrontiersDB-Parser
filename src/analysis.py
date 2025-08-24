@@ -50,9 +50,6 @@ class Analysis:
             
             # Ignore some superficial keys
             superficial_keys = ['Level', 'Def', 'Atk', 'Mob', 'AbilityPower', 'Mobility', 'ModuleClass_1', 'ModuleClass_2', 'ModuleTag_1', 'ModuleTag_2', 'ModuleFaction', 'FirePower', 'bIsPerk']
-            for module_id, diffs in level_diffs.items():
-                for key in superficial_keys:
-                    diffs.pop(key, None)
             
             diffs = {}
             for key in level_base.keys():
@@ -66,12 +63,6 @@ class Analysis:
                     diffs[key] = calc_diff(base_value, max_value)
 
                 level_diffs[module_id] = diffs
-
-        # Format. 0.1715715715 -> 17.1%
-        for module_id, diffs in level_diffs.items():
-            for key, value in diffs.items():
-                if isinstance(value, str) or isinstance(value, list) or isinstance(value, dict):
-                    diffs[key] = value
 
         self.level_diffs = level_diffs
 
