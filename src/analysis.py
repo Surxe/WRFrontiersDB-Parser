@@ -14,6 +14,9 @@ class Analysis:
         self.analysis_level_diff()
 
     def analysis_level_diff(self):
+        # Determine cumulative upgrade cost
+        sum_sum_costs = {} # across all modules. currency
+
         # Extract %diff between lvl1 and lvl13, ignore diffs of 0
         distinct_stat_keys = set()
         level_diffs = {}
@@ -67,8 +70,7 @@ class Analysis:
                 if diff[key] is not None:
                     distinct_stat_keys.add(key)
 
-            # Determine cumulative upgrade cost
-            sum_costs = {}
+            sum_costs = {} #module: currency
             if module.levels['module_scalars'] is None:
                 continue
             for level_index, level_data in enumerate(module.levels['module_scalars']['variables']):
@@ -83,7 +85,10 @@ class Analysis:
                 # aggregate it
                 if currency_id not in sum_costs:
                     sum_costs[currency_id] = 0
+                if currency_id not in sum_sum_costs:
+                    sum_sum_costs[currency_id] = 0
                 sum_costs[currency_id] += currency_amount
+                sum_sum_costs[currency_id] += currency_amount
 
             # Add all data to the record
             module_name = getattr(module, 'name', None)
@@ -94,6 +99,7 @@ class Analysis:
                 level_diffs[module_id]['name'] = module_name
 
         self.level_diffs_by_module = level_diffs
+        self.total_upgrade_cost_for_all_modules = sum_sum_costs
 
         stat_keys_to_not_rank = ['PrimaryParameter', 'SecondaryParameter'] #what these affect vary a lot per robot, not really rankable
         stat_keys_to_rank = [distinct_stat_key for distinct_stat_key in distinct_stat_keys if distinct_stat_key not in stat_keys_to_not_rank]
@@ -145,7 +151,7 @@ class Analysis:
             return stat_to_more_is_better_final
         
         stat_to_more_is_better = get_more_is_better_map(self)
-        print(f"stat_keys where more_is_better=False: {[stat_key for stat_key, more_is_better in stat_to_more_is_better.items() if not more_is_better]}") #curiousity
+        #print(f"stat_keys where more_is_better=False: {[stat_key for stat_key, more_is_better in stat_to_more_is_better.items() if not more_is_better]}") #curiousity
 
         # For each stat, assign a rank to each module based on its percent increase. Worst = top 100% (1), best = top 0% (0)
         stat_ranks = {key: {} for key in stat_keys_to_rank}
@@ -180,6 +186,7 @@ class Analysis:
         data = {}
         data['level_diffs_by_module'] = self.level_diffs_by_module
         data['level_diffs_by_stat'] = self.level_diffs_by_stat
+        data['total_upgrade_cost_for_all_modules'] = self.total_upgrade_cost_for_all_modules
         return json.dumps(data, ensure_ascii=False, indent=4)
 
     def to_file(self):
