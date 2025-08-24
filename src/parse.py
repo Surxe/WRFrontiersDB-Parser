@@ -39,7 +39,7 @@ parse_pilots()  # Pilot parser relies on module data being parsed first
 parse_progression_table()
 parse_game_modes()
 parse_bot_presets()
-analyze(Module)
+analyze(Module, ModuleStat)
 
 
 ProgressionTable.to_file()

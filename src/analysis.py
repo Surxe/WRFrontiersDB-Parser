@@ -8,8 +8,9 @@ from utils import log, PARAMS
 import json
 
 class Analysis:
-    def __init__(self, module_class):
+    def __init__(self, module_class, module_stat_class):
         self.module_class = module_class
+        self.module_stat_class = module_stat_class
         self.analysis_level_diff()
 
     def analysis_level_diff(self):
@@ -94,12 +95,61 @@ class Analysis:
 
         self.level_diffs_by_module = level_diffs
 
-        # For each stat, assign a rank to each module based on its percent increase. Worst = top 100% (1), best = top 0% (0)
-        stat_ranks = {key: {} for key in distinct_stat_keys}
         stat_keys_to_not_rank = ['PrimaryParameter', 'SecondaryParameter'] #what these affect vary a lot per robot, not really rankable
-        for stat_key in distinct_stat_keys:
-            if stat_key in stat_keys_to_not_rank:
-                continue
+        stat_keys_to_rank = [distinct_stat_key for distinct_stat_key in distinct_stat_keys if distinct_stat_key not in stat_keys_to_not_rank]
+
+        def get_more_is_better_map(self):
+            # stat_key: <more_is_better> or <ModuleStat.more_is_better>
+            stat_to_more_is_better = {
+                "ChargeDuration": "DA_ModuleStat_ChargeDrain",
+                "Cooldown": "DA_ModuleStat_Cooldown",
+                "ShieldRegeneration": "DA_ModuleStat_ShieldRegeneration",
+                "TimeToReload": "DA_ModuleStat_ReloadingTime",
+                "DamageArmor": "DA_ModuleStat_ArmorDamage",
+                "AoeArmor": True,
+                "RoundsPerMinute": "DA_ModuleStat_FireRate",
+                "FuelCapacity": "DA_ModuleStat_FuelCapacity",
+                "ShieldAmount": "DA_ModuleStat_ShieldAmount",
+                "ShieldDelayReduction": "DA_ModuleStat_ShieldDelayReduction",
+                "AoeNoArmor": True,
+                "Armor": "DA_ModuleStat_Armor",
+                "TimeBetweenShots": True,
+                "DamageNoArmor": "DA_ModuleStat_ShieldDamage",
+                # all other stats are linked to ModuleStat by ModuleStat.short_key for more_is_better
+            }
+
+            # Create map stat_key: <more_is_better> from the above
+            stat_to_more_is_better_final = {}
+            for stat_key in stat_keys_to_rank:
+                # Get mapped entry
+                stat_to_more_is_better_entry = stat_to_more_is_better.get(stat_key)
+
+                # Get the more_is_better value from it
+                if stat_to_more_is_better_entry is None:
+                    # find module stat by short_key
+                    module_stat = next((stat for stat in self.module_stat_class.objects.values() if stat.short_key == stat_key), None) #mstat's more_is_better (found by short_key)
+                    if module_stat is None:
+                        raise ValueError(f"Unknown module stat for short_key {stat_key}")
+                    more_is_better = getattr(module_stat, 'more_is_better', True)
+                elif isinstance(stat_to_more_is_better_entry, str): #id of ModuleStat
+                    module_stat = self.module_stat_class.objects[stat_to_more_is_better_entry] #modulestat's more_is_better
+                    more_is_better = getattr(module_stat, 'more_is_better', True)
+                elif isinstance(stat_to_more_is_better_entry, bool):
+                    more_is_better = stat_to_more_is_better_entry
+                else:
+                    raise ValueError(f"Unknown more_is_better entry for stat {stat_key}: {stat_to_more_is_better_entry}")
+
+                # Store the result in the final mapping
+                stat_to_more_is_better_final[stat_key] = more_is_better
+            
+            return stat_to_more_is_better_final
+        
+        stat_to_more_is_better = get_more_is_better_map(self)
+        print(f"stat_keys where more_is_better=False: {[stat_key for stat_key, more_is_better in stat_to_more_is_better.items() if not more_is_better]}") #curiousity
+
+        # For each stat, assign a rank to each module based on its percent increase. Worst = top 100% (1), best = top 0% (0)
+        stat_ranks = {key: {} for key in stat_keys_to_rank}
+        for stat_key in stat_ranks.keys():
             # Gather all modules with this stat and their percent increases
             module_increases = []
             for module_id, module_diff_data in self.level_diffs_by_module.items():
@@ -107,13 +157,14 @@ class Analysis:
                 if percent_increase is not None:
                     module_increases.append((module_id, percent_increase))
             # Sort modules by percent increase (descending, best first)
-            module_increases.sort(key=lambda x: (float('-inf') if isinstance(x[1], str) else x[1]), reverse=False)
+            should_reverse = not stat_to_more_is_better[stat_key]
+            module_increases.sort(key=lambda x: (float('-inf') if isinstance(x[1], str) else x[1]), reverse=should_reverse)
             # Assign ranks: highest gets len-1, lowest gets 0
             for rank, (module_id, _) in enumerate(module_increases[::-1]):
                 stat_ranks[stat_key][module_id] = rank
         # Store ranks in each module's diff data
         for module_id, module_diff_data in self.level_diffs_by_module.items():
-            module_stat_ranks = {stat: stat_ranks[stat].get(module_id)/len(stat_ranks[stat]) if stat in stat_ranks and len(stat_ranks[stat]) > 0 else 0 for stat in distinct_stat_keys if module_id in stat_ranks[stat]}
+            module_stat_ranks = {stat: stat_ranks[stat].get(module_id)/len(stat_ranks[stat]) if stat in stat_ranks and len(stat_ranks[stat]) > 0 else 0 for stat in stat_ranks.keys() if module_id in stat_ranks[stat]}
             # Sort by key
             module_stat_ranks = dict(sorted(module_stat_ranks.items()))
             module_diff_data['stats_percentile'] = module_stat_ranks
@@ -136,6 +187,6 @@ class Analysis:
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(self.to_json())
 
-def analyze(module_class):
-    analysis = Analysis(module_class)
+def analyze(module_class, module_stat_class):
+    analysis = Analysis(module_class, module_stat_class)
     analysis.to_file()

@@ -1,3 +1,4 @@
 # everything in ctrl shift f "pass"
 dps calcs
 lvl1 to 13 summary diff summary
+rank stats backwards if its bMoreIsWorse
