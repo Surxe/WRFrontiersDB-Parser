@@ -29,6 +29,7 @@ from parsers.pilot import *
 from parsers.progression_table import *
 from parsers.game_mode import *
 from parsers.bot_preset import *
+from analysis import *
 
 clear_dir("output")  # Clear the data directory before parsing
 
@@ -38,6 +39,8 @@ parse_pilots()  # Pilot parser relies on module data being parsed first
 parse_progression_table()
 parse_game_modes()
 parse_bot_presets()
+analyze(Module)
+
 
 ProgressionTable.to_file()
 Currency.to_file()
