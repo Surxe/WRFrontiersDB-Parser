@@ -82,6 +82,7 @@ class CharacterModule(Object):
             "bShouldUseCharactersFocusTarget": "value", #tesla coil weapon
             "Muzzles": None, # list of sockets for tesla coil
             "bUseCharacterWideMuzzleSearch": "value",
+            "Socket_Muzzle": None, #old tesla coil
         }
 
         parsed_data = self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="CharacterModule", set_attrs=False, tabs=1, default_configuration={

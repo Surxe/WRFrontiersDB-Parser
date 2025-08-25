@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import log, get_json_data, asset_path_to_file_path_and_index, asset_path_to_data, path_to_id, asset_path_to_file_path, PARAMS, parse_editor_curve_data
+from utils import parse_colon_colon, log, get_json_data, asset_path_to_file_path_and_index, asset_path_to_data, path_to_id, asset_path_to_file_path, PARAMS, parse_editor_curve_data
 from parsers.localization_table import parse_localization
 
 from parsers.object import Object, ParseTarget
@@ -78,6 +78,8 @@ class GameMode(Object):
             "EnemyTeamCloseToVictoryMessageClass": None,
             "PointsPerBeaconsDiff": self._p_beacon_pts,
             "TeamControlsMoreBeaconsThreshold": "value",
+            "WarpProbeSelectionMethod": parse_colon_colon,
+            "FirstWarpProbeSettings": self._p_warp_probe_settings,
         }
 
         parsed_data = self._process_key_to_parser_function(key_to_parser_function, props, tabs=2, set_attrs=False, default_configuration={
@@ -96,6 +98,9 @@ class GameMode(Object):
         # Only store in obj if not empty
         if other_data:
             self.misc = other_data
+
+    def _p_warp_probe_settings(self, data):
+        return parse_colon_colon(data["SelectionMethod"])
 
     def _p_match_reward(self, data):
         data = asset_path_to_data(data["ObjectPath"])
