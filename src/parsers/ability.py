@@ -12,7 +12,6 @@ from parsers.module_stat import ModuleStat
 class Ability(Object):
     objects = dict()  # Dictionary to hold all Class instances
 
-
     def _parse(self):
         # Wrapper for main ability parsing
         return self._parse_from_data(self.source_data)
