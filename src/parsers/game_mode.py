@@ -186,10 +186,10 @@ def parse_game_modes(to_file=False):
 
         # Manually map to the game mode setting file, which is separate to the name & description container file, and only connected server side
         game_mode_id_to_bp_path = {
-            "DA_GameMode_BeaconRush": r"GameModes\Beacon\BP_GameMode_Beacon.json",
-            "DA_GameMode_Elimination": r"GameModes\Elimination\BP_GameMode_Elimination.json",
-            "DA_GameMode_TeamDeathMatch": r"GameModes\TeamDeathMatch\BP_GameMode_TeamDeathMatch.json",
-            "DA_GameMode_Spearhead": r"GameModes\Spearhead\BP_GameMode_Spearhead.json"
+            "DA_GameMode_BeaconRush.0": r"GameModes\Beacon\BP_GameMode_Beacon.json",
+            "DA_GameMode_Elimination.0": r"GameModes\Elimination\BP_GameMode_Elimination.json",
+            "DA_GameMode_TeamDeathMatch.0": r"GameModes\TeamDeathMatch\BP_GameMode_TeamDeathMatch.json",
+            "DA_GameMode_Spearhead.0": r"GameModes\Spearhead\BP_GameMode_Spearhead.json"
         }
 
         # Only parse gamemodes that have a localized display name, these are actual game modes. Others include Hangar, tutorial, title menu, or even just list of bot names
