@@ -189,10 +189,13 @@ expected_curve_data = {
 def parse_editor_curve_data(data: dict):
     if 'DistToDamage' in data:
         dist_data = data["DistToDamage"]
+    elif 'FloatCurve' in data:
+        dist_data = data['FloatCurve']
     else:
         dist_data = data
     
-    dist_data = dist_data["EditorCurveData"]
+    if 'EditorCurveData' in dist_data:
+        dist_data = dist_data["EditorCurveData"]
 
     if 'Keys' not in dist_data:
         return dist_data
