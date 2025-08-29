@@ -53,7 +53,7 @@ class Module(Object):
                 "ModuleStatsTable": (self._p_module_stats_table, "module_stats_table_id"),
                 "ModuleType": (self._p_module_type, "module_type_id"),
                 "Sockets": (self._p_sockets, "module_socket_type_ids"),
-                "Levels": (self._p_levels, None),
+                "Levels": None,
                 "ID": None,
             }
             
@@ -273,34 +273,7 @@ class Module(Object):
             module_socket_type_id = ModuleSocketType.get_from_asset_path(asset_path)
             module_socket_type_ids.append(module_socket_type_id)
         return module_socket_type_ids
-
-    def _p_levels(self, data):
-        if not hasattr(self, "levels"):
-            self.levels = dict()
-        self.levels["scrap_rewards"] = {}
-        self.levels["scrap_rewards"]["variables"] = []
-
-        for index, level in enumerate(data):
-            # Item is only purchaseable at level 0, so we set the price only for the first level
-            if index == 0 and "Price" in level:
-                price = level["Price"]
-                self.price = parse_currency(price)
-                
-            # Add scrap rewards to its respective level
-            if 'ScrapRewards' in level:
-                scrap_rewards_data = level["ScrapRewards"]
-                parsed_scrap_rewards = []
-                for elem in scrap_rewards_data:
-                    if type(elem) is dict and "Currency" in elem and "Amount" in elem:
-                        parsed_elem = parse_currency(elem)
-                        if parsed_elem is None:
-                            return
-                        parsed_scrap_rewards.append(parsed_elem)
-                    else:
-                        parsed_scrap_rewards.append(elem)
-
-                self.levels["scrap_rewards"]["variables"].append(parsed_scrap_rewards)
-
+    
 
 def parse_modules(to_file=False):
     modules_source_path = os.path.join(PARAMS.export_path, r"WRFrontiers\Content\Sparrow\Mechanics\Meta\Entities\Modules")
