@@ -137,26 +137,34 @@ def asset_path_to_file_path(asset_path):
         # "/Game/DungeonCrawler/Maps/Dungeon/Modules/Crypt/Edge/Armory/Armory_A.Armory_A" -> "F:\DarkAndDarkerWiki\Exports\DungeonCrawler\Content\Maps\Dungeon\Modules\Crypt\Edge\Armory\Armory_A.json"
     return PARAMS.export_path + "\\" + asset_path.split('.')[0].replace("/Game/",f"\\{game_name}\\Content\\") + ".json"
 
+def path_to_index(path: str) -> int:
+    index_str = path.split('.')[-1]
+    if index_str == "" or index_str is None: # ../Armor/Armor_A.5 -> 5
+        raise Exception("No index found in asset_path: "+path)
+    if not index_str.isdigit(): #../Armory/Armory_A.Armory_A -> 0
+        return 0
+    return int(index_str)
+
 # Converts "asset_path_name" or "ObjectPath" to the actual file path and the index of the asset
 # when a asset/object path is referenced, the index corresponds to the specific element of the asset to jump to
 # i.e. if file A references file B with index 2, it means within file B's json of [a, b, c], it will jump to the data within c
 def asset_path_to_file_path_and_index(asset_path):
-    index = asset_path.split('.')[-1]
-    if index == "" or index is None: # ../Armor/Armor_A.5 -> 5
-        raise Exception("No index found in asset_path: "+asset_path)
-    if not index.isdigit(): #../Armory/Armory_A.Armory_A -> 0
-        index = 0
-    return asset_path_to_file_path(asset_path), int(index)
-
+    index = path_to_index(asset_path)
+    return asset_path_to_file_path(asset_path), index
 
 def asset_path_to_data(asset_path) -> dict: # "/Game/DungeonCrawler/Data/Generated/V2/LootDrop/LootDropGroup/Id_LootDropGroup_GhostKing.Id_LootDropGroup_GhostKing" -> the data found within the file stored locally
     file_path, index = asset_path_to_file_path_and_index(asset_path)
     data = get_json_data(file_path)
     return data[index] #json via asset path is technically an array with just one element
 
+def path_to_file_name(asset_path) -> str:
+    return asset_path.split('/')[-1].split('.')[0]
+
 def path_to_id(asset_path) -> str: # "/Game/DungeonCrawler/Data/Generated/V2/LootDrop/LootDropGroup/Id_LootDropGroup_GhostKing.Id_LootDropGroup_GhostKing" -> "Id_LootDropGroup_GhostKing"
-    # technically also works for file_path # "DungeonCrawler/ContentData/Generated/V2/LootDrop/LootDropGroup/Id_LootDropGroup_GhostKing.Id_LootDropGroup_GhostKing" -> "Id_LootDropGroup_GhostKing"
-    return asset_path.split("/")[-1].split(".")[0]
+    # technically also works for file_path # "DungeonCrawler/ContentData/Generated/V2/LootDrop/LootDropGroup/Id_LootDropGroup_GhostKing.Id_LootDropGroup_GhostKing" -> "Id_LootDropGroup_GhostKing.0"
+    file_name = path_to_file_name(asset_path)
+    index = path_to_index(asset_path)
+    return f"{file_name}.{index}" # /path/to/DA_Thing.0 -> DA_Thing.0
 
 ###############################
 # Frequent Structure Parsing  #

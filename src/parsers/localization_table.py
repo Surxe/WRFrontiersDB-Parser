@@ -6,7 +6,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from parsers.object import Object
 from parsers.localization import Localization
 
-from utils import path_to_id
+from utils import path_to_file_name
 
 class LocalizationTable(Object):
     objects = dict()  # Dictionary to hold all LocalizationTable instances
@@ -31,7 +31,7 @@ def parse_localization(data: dict):
             localization_table = LocalizationTable.get_from_id(localization_table_id)
             localization_table_namespace = localization_table.table_namespace
         else:
-            localization_table_namespace = path_to_id(data["TableId"]).split('ST_')[-1] #ST_C_Currencies -> namespace is C_Currencies
+            localization_table_namespace = path_to_file_name(data["TableId"]).split('ST_')[-1] #ST_C_Currencies -> namespace is C_Currencies
 
     invariant_string = None
     if "CultureInvariantString" in data:

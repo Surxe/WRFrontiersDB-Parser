@@ -62,20 +62,20 @@ class Analysis:
 
     def _get_more_is_better_map(self, stat_keys_to_rank):
         stat_to_more_is_better = {
-            "ChargeDuration": "DA_ModuleStat_ChargeDrain",
-            "Cooldown": "DA_ModuleStat_Cooldown",
-            "ShieldRegeneration": "DA_ModuleStat_ShieldRegeneration",
-            "TimeToReload": "DA_ModuleStat_ReloadingTime",
-            "DamageArmor": "DA_ModuleStat_ArmorDamage",
+            "ChargeDuration": "DA_ModuleStat_ChargeDrain.0",
+            "Cooldown": "DA_ModuleStat_Cooldown.0",
+            "ShieldRegeneration": "DA_ModuleStat_ShieldRegeneration.0",
+            "TimeToReload": "DA_ModuleStat_ReloadingTime.0",
+            "DamageArmor": "DA_ModuleStat_ArmorDamage.0",
             "AoeArmor": True,
-            "RoundsPerMinute": "DA_ModuleStat_FireRate",
-            "FuelCapacity": "DA_ModuleStat_FuelCapacity",
-            "ShieldAmount": "DA_ModuleStat_ShieldAmount",
-            "ShieldDelayReduction": "DA_ModuleStat_ShieldDelayReduction",
+            "RoundsPerMinute": "DA_ModuleStat_FireRate.0",
+            "FuelCapacity": "DA_ModuleStat_FuelCapacity.0",
+            "ShieldAmount": "DA_ModuleStat_ShieldAmount.0",
+            "ShieldDelayReduction": "DA_ModuleStat_ShieldDelayReduction.0",
             "AoeNoArmor": True,
-            "Armor": "DA_ModuleStat_Armor",
+            "Armor": "DA_ModuleStat_Armor.0",
             "TimeBetweenShots": True,
-            "DamageNoArmor": "DA_ModuleStat_ShieldDamage",
+            "DamageNoArmor": "DA_ModuleStat_ShieldDamage.0",
         }
         stat_to_more_is_better_final = {}
         for stat_key in stat_keys_to_rank:

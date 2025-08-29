@@ -12,7 +12,6 @@ from parsers.module_stat import ModuleStat
 class Ability(Object):
     objects = dict()  # Dictionary to hold all Class instances
 
-
     def _parse(self):
         # Wrapper for main ability parsing
         return self._parse_from_data(self.source_data)
@@ -47,6 +46,7 @@ class Ability(Object):
             "ReactionOnRecharge": None, #voice line
             "SpawnActorAction": {"parser": self._p_spawn_action, "action": ParseAction.DICT_ENTRY, "target": ParseTarget.MATCH_KEY_SNAKE},
             "ConfirmationAction": {"parser": self._p_confirmation_action, "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY_SNAKE},
+            "ActorCDOShapeComponent": self._p_actor_class,
             "TargetingActionWithConfirmation": {"parser": self._p_confirmation_action, "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY_SNAKE},
             "ImmediateTargetingAction": None,
             "SPawnAction": None, #typo on their end
@@ -242,6 +242,20 @@ class Ability(Object):
             "CameraShakeOnDamage": None, # flashbang
             "SpawnActorCollisionHandlingMethod": None, #varangian
             "Height": "value",
+            "MaxRegeneratedUnits": "value", #fuel reserve
+            "RestrictActivationWhileAirborne": "value",
+            "WeaponNiagaraFX": None, #instant reload
+            "UsageFuelCost": "value", #alpha chassis dash
+            "FuelConsumptionDuration": "value",
+            "MinimumDuration": "value",
+            "LevitationHeight": "value", #anansi legs
+            "AccelerationForce": "value",
+            "MaxVelocityHorizontal": "value",
+            "DragCoefficientX": "value",
+            "DragCoefficientY": "value",
+            "FuelUsagePerSecond": "value",
+            "MinFuelRequired": "value",
+            "SpawnRelativeLocation": "value", #old camo web
         }
 
         my_ability_data = self._process_key_to_parser_function(key_to_parser_function, props, tabs=3, set_attrs=False, default_configuration={
@@ -315,6 +329,7 @@ class Ability(Object):
             "ActorClass": self._p_actor_class,
             "bAttachedActor": None,
             "AttachSocketName": None,
+            "OnActorSpawning": None, #matriarch shoulder L
         }
 
         parsed_spawn_data = self._process_key_to_parser_function(
@@ -467,6 +482,8 @@ class Ability(Object):
                 "VelocityThreshold": "value",
                 "VerticalAcceleration": "value",
                 "RequestedDirectionAcceleration": "value",
+                "MinSpeedToStartAction": "value", #alpha chassis dash
+                "bBlocksAirControl": "value",
             }
 
             parsed_action = self._process_key_to_parser_function(
@@ -640,11 +657,16 @@ def p_actor_class(obj, data: dict):
             return p_actor_class(obj, elem)
     elif type(data) is dict:
         data = asset_path_to_data(data["ObjectPath"])
-        data = asset_path_to_data(data["ClassDefaultObject"]["ObjectPath"])
+        if 'ClassDefaultObject' in data:
+            data = asset_path_to_data(data["ClassDefaultObject"]["ObjectPath"])
         if 'Properties' not in data:
             return
         
         key_to_parser_function = {
+            "CapsuleHalfHeight": "value",
+            "CapsuleRadius": "value",
+            "BodyInstance": None,
+            "RelativeLocation": "value",
             "UberGraphFrame": None,
             "ExplosionFX": None,
             "DropSoundEvent": None,
@@ -842,6 +864,14 @@ def p_actor_class(obj, data: dict):
             "Buff": obj._p_actor_class,
             "WasSpottedSoundEvent": None, #echo burst
             "SpottedSoundEvent": None,
+            "bIndestructible": "value", #ares torso
+            "SphereRadius": "value", #ceres torso
+            "AttachParent": None,
+            "bGenerateOverlapEvents": "value", #grim snare
+            "AreaClassOverride": None, #tyr torso- basically empty path
+            "bUseSystemDefaultObstacleAreaClass": None,
+            "RelativeScale3D": "value",
+            "RootVFX": None, #old camo web
         }
 
         parsed_data = obj._process_key_to_parser_function(
