@@ -3,4 +3,3 @@ dps calcs
 # parse powerups
 # hive armordps gain is suspiciously high
 # shield damage missing from magneto
-# parse DistanceSettings

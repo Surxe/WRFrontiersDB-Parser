@@ -128,7 +128,7 @@ class CharacterModule(Object):
             "DefaultProjectileSpeed": "value",
             "DefaultTimeToReload": "value",
             "DefaultTimeBetweenShots": "value",
-            "DefaultDistanceSettings": "value",
+            "DefaultDistanceSettings": self._p_distance_settings,
             "DefaultFirePower": "value",
             "DefaultSpread": "value",
             "DefaultLegsArmor": "value",
@@ -286,5 +286,36 @@ class CharacterModule(Object):
         }
 
         return self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="BallisticBehavior", set_attrs=False, tabs=2, default_configuration={
+            'target': ParseTarget.MATCH_KEY
+        })
+    
+    def _p_distance_settings(self, data):
+        parsed_distance_settings = []
+        prev_interp_mode = None
+        for elem in data:
+            distance_state = parse_colon_colon(elem["Key"])
+            parsed_distance_setting = self._p_this_distance_setting(elem["Value"])
+            parsed_distance_setting["DistanceState"] = distance_state
+            interp_mode = parsed_distance_setting["InterpMode"]
+            if prev_interp_mode is not None and interp_mode != prev_interp_mode:
+                raise ValueError(f"Inconsistent InterpModes found in DistanceSettings for {self.__class__.__name__} {self.id}: {prev_interp_mode} and {interp_mode}")
+            prev_interp_mode = interp_mode
+            del parsed_distance_setting["InterpMode"]
+            parsed_distance_settings.append(parsed_distance_setting)
+        
+        return {
+            "InterpMode": prev_interp_mode,
+            "CurveData": parsed_distance_settings
+        }
+
+
+    def _p_this_distance_setting(self, data):
+        key_to_parser_function = {
+            "Distance": "value",
+            "InterpolationMode": (parse_colon_colon, "InterpMode"),
+            "DirectDamageMultiplier": "value",
+        }
+
+        return self._process_key_to_parser_function(key_to_parser_function, data, log_descriptor="DistanceSetting", set_attrs=False, tabs=2, default_configuration={
             'target': ParseTarget.MATCH_KEY
         })
