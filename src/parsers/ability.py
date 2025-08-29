@@ -256,6 +256,15 @@ class Ability(Object):
             "FuelUsagePerSecond": "value",
             "MinFuelRequired": "value",
             "SpawnRelativeLocation": "value", #old camo web
+            "VerticalAccelerationForceCurve": self._p_vertical_accel_curve,
+            "AirControlBoostMultiplier": "value",
+            "AirControlBoostVelocityThreshold": "value",
+            "JumpMovementMode": parse_colon_colon,
+            "GroundAction": None, #anansi chassis, too complex to bother
+            "InAirAction": None, #same
+            "InAirJumpFuelCostPenaltyByNum": "value",
+            "AfterJumpFuelRegenerationDelay": "value",
+            "DelayBetweenActions": "value",
         }
 
         my_ability_data = self._process_key_to_parser_function(key_to_parser_function, props, tabs=3, set_attrs=False, default_configuration={
@@ -296,6 +305,11 @@ class Ability(Object):
             if value is not None and value != []:
                 overlayed_data[key] = value
         return overlayed_data
+    
+    def _p_vertical_accel_curve(self, data: dict):
+        data = asset_path_to_data(data["ObjectPath"])["Properties"]
+        return parse_editor_curve_data(data)
+
 
     def _p_effect_type(self, data: str):
         etype = parse_colon_colon(data)

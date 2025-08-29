@@ -80,9 +80,10 @@ class GameMode(Object):
             "TeamControlsMoreBeaconsThreshold": "value",
             "WarpProbeSelectionMethod": parse_colon_colon,
             "FirstWarpProbeSettings": self._p_warp_probe_settings,
+            "InactivePlayerStateLifeSpan": "value", #spearhead
         }
 
-        parsed_data = self._process_key_to_parser_function(key_to_parser_function, props, tabs=2, set_attrs=False, default_configuration={
+        parsed_data = self._process_key_to_parser_function(key_to_parser_function, props, tabs=2, log_descriptor="BP", set_attrs=False, default_configuration={
             'target': ParseTarget.MATCH_KEY
         })
         
