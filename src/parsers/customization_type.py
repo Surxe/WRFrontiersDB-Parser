@@ -18,6 +18,8 @@ class CustomizationType(Object):
             "HumanName": (parse_localization, "name"), 
             "TypeTip": (parse_localization, "type_tip"),
             "GroupReward": (self._p_group_reward, "group_reward_id"),
+            "InfoPanelWidgetClass": None, #UI; old
+            "ItemPictureWidgetClass": None, #UI; old
         }
 
         self._process_key_to_parser_function(key_to_parser_function, props, tabs=2)

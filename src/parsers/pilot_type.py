@@ -23,6 +23,7 @@ class PilotType(Object):
             "SortOrder": "value",
             "HasExtendedBio": "value",
             "CanChangeTalents": "value",
+            "ItemInfoPanelClass": None, #UI; old
             "ID": None,
         }
 

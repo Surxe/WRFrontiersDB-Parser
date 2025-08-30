@@ -135,10 +135,15 @@ def asset_path_to_file_path(asset_path):
         # "DungeonCrawler/Content/DungeonCrawler/ActorStatus/Buff/AbyssalFlame/GE_AbyssalFlame.0" -> "F:\DarkAndDarkerWiki\Exports\DungeonCrawler\Content\DungeonCrawler\ActorStatus\Buff\AbyssalFlame\GE_AbyssalFlame.json"
     # asset_path_name (V2) are prefixed with \Game instead of \DungeonCrawler\Content, and suffixed with .<index>
         # "/Game/DungeonCrawler/Maps/Dungeon/Modules/Crypt/Edge/Armory/Armory_A.Armory_A" -> "F:\DarkAndDarkerWiki\Exports\DungeonCrawler\Content\Maps\Dungeon\Modules\Crypt\Edge\Armory\Armory_A.json"
-    path = PARAMS.export_path + "\\" + asset_path.split('.')[0].replace("/Game/",f"\\{game_name}\\Content\\") + ".json"
+    
+    # "BlueprintGeneratedClass'/Game/Sparrow/.../BP_Buff_A.BP_Buff_A_C'" -> use the part in quotes
+    # if ' in asset path twice
+    if "\'" in asset_path and asset_path.count("\'") == 2:
+        asset_path = asset_path.split("\'")[1]
+    file_path = PARAMS.export_path + "\\" + asset_path.split('.')[0].replace("/Game/",f"\\{game_name}\\Content\\") + ".json"
     # Normalize slashes and redundant separators
-    path = os.path.normpath(path)
-    return path
+    file_path = os.path.normpath(file_path)
+    return file_path
 
 def path_to_index(path: str) -> int:
     index_str = path.split('.')[-1]

@@ -224,6 +224,10 @@ class Ability(Object):
             "VerticalImpulsePowerRatio": "value",
             "MinVerticalImpulsePower": "value",
             "DistanceBetweenMines": "value", #minefield
+            "MineFieldCount": "value",
+            "ActivationFuelCost": "value", #grim l shoulder
+            "bUseOwnerCollisionProfile": "value",
+            "CustomCollisionProfile": None,
             "TargetBuff": self._p_actor_class,  # fuel burn
             "JumpFuelCost": "value", #jump jet (flying)
             "FuelCostToStartAirborne": "value",
@@ -265,6 +269,11 @@ class Ability(Object):
             "InAirJumpFuelCostPenaltyByNum": "value",
             "AfterJumpFuelRegenerationDelay": "value",
             "DelayBetweenActions": "value",
+            "ActivationFuelCost": "value", #blink
+            "TargetingAction": self._p_targeting_action,
+            "FriendlyEffectMaterial": None,
+            "HostileEffectMaterial": None,
+            "TransitionTime": "value",
         }
 
         my_ability_data = self._process_key_to_parser_function(key_to_parser_function, props, tabs=3, set_attrs=False, default_configuration={
@@ -273,15 +282,20 @@ class Ability(Object):
             'target': ParseTarget.MATCH_KEY
         })
 
-        overlayed_data = {}
-        if template_ability_data:
-            for key, value in template_ability_data.items():
-                if value is not None and value != []:
-                    overlayed_data[key] = value
 
-        for key, value in my_ability_data.items():
-            if value is not None and value != []:
-                overlayed_data[key] = value
+        def overlay_dict(base, overlay):
+            result = dict(base)
+            for key, value in overlay.items():
+                if value is not None and value != []:
+                    if isinstance(value, dict) and isinstance(result.get(key), dict):
+                        result[key] = overlay_dict(result[key], value)
+                    else:
+                        result[key] = value
+            return result
+
+        overlayed_data = template_ability_data if template_ability_data else {}
+        overlayed_data = overlay_dict(overlayed_data, my_ability_data)
+
 
         for key, value in overlayed_data.items():
             setattr(self, key, value)
@@ -353,12 +367,10 @@ class Ability(Object):
         )
 
         return parsed_spawn_data
-
-    def _p_confirmation_action(self, data: dict):
-        log(f"Parsing confirmation action for {self.id}", tabs=4)
-
-        conf_ac_data = asset_path_to_data(data["ObjectPath"])
-        targeting_action_data = asset_path_to_data(conf_ac_data["Properties"]["TargetingAction"]["ObjectPath"])
+    
+    def _p_targeting_action(self, data: dict):
+        log(f"Parsing targeting action for {self.id}", tabs=4)
+        targeting_action_data = asset_path_to_data(data["ObjectPath"])
 
         if data is None or data == [] or 'Properties' not in data:
             return
@@ -388,6 +400,14 @@ class Ability(Object):
         )
 
         return parsed_targeting_data
+
+    def _p_confirmation_action(self, data: dict):
+        log(f"Parsing confirmation action for {self.id}", tabs=4)
+
+        conf_ac_data = asset_path_to_data(data["ObjectPath"])
+        return self._p_targeting_action(conf_ac_data["Properties"]["TargetingAction"])
+
+        
 
     def _p_projectile_types(self, data: dict):
         log(f"Parsing projectile types for {self.id}", tabs=4)
@@ -665,233 +685,305 @@ def p_transf_sphere_component(data: dict):
         'SphereRadius': props.get('SphereRadius')
     }
 
+def p_buffs(data: dict):
+    parsed_buffs = []
+    for buff in data:
+        parsed_buff = {
+            "Target": parse_colon_colon(buff["Value"]["Target"]),
+            "BuffLingerTime": buff["Value"]["BuffLingerTime"]
+        }
+
+        buff_asset_path = buff["Key"]
+        buff_data = p_actor_class(Ability(), buff_asset_path)
+        if buff_data:
+            parsed_buff.update(buff_data)
+
+        parsed_buffs.append(parsed_buff)
+
+    return parsed_buffs
+
+def p_buff_area_component(data: dict):
+    data = asset_path_to_data(data["ObjectPath"])
+    if 'Properties' not in data:
+        return
+    props = data["Properties"]
+    
+    key_to_parser_function = {
+        "Buffs": p_buffs,
+    }
+
+    return Ability._process_key_to_parser_function(
+        Ability(),
+        key_to_parser_function,
+        props,
+        log_descriptor="BuffAreaComponent",
+        tabs=6,
+        set_attrs=False
+    )
+
+def p_prevent_focus(data: dict):
+    return [parse_colon_colon(elem) for elem in data]
+
+def p_modifier(data: dict):
+    data = asset_path_to_data(data["ObjectPath"])
+    if 'Properties' not in data:
+        return
+    props = data["Properties"]
+    return props["Value"]
+
 def p_actor_class(obj, data: dict):
     if type(data) is list:
         for elem in data:
             return p_actor_class(obj, elem)
     elif type(data) is dict:
         data = asset_path_to_data(data["ObjectPath"])
-        if 'ClassDefaultObject' in data:
-            data = asset_path_to_data(data["ClassDefaultObject"]["ObjectPath"])
-        if 'Properties' not in data:
-            return
-        
-        key_to_parser_function = {
-            "CapsuleHalfHeight": "value",
-            "CapsuleRadius": "value",
-            "BodyInstance": None,
-            "RelativeLocation": "value",
-            "UberGraphFrame": None,
-            "ExplosionFX": None,
-            "DropSoundEvent": None,
-            "AvoidMarker": None,
-            "Damage": None, # iron rain bulgasari has empty values in here, so think its unused
-            "ImpactExplosionSettings": None, #FX
-            "DamageContext": None,
-            "MeshComponent": None,
-            "ActivationSoundEvent": None,
-            "StopActivationSoundEvent": None,
-            "ActivationFx": None,
-            "ActivationFxRotation": None,
-            "RayTracingGroupId": None,
-            "ReloadTimeFactor": "value",
-            "Modifiers": p_modifiers,
-            "MeshFX": None,
-            "SocketToFX": None,
-            "MeshFXClass": None,
-            "StatusFXManager": None,
-            "Lifetime": "value",
-            "InitialLifetime": None, # duplicate to Lifetime value
-            "Icon": (parse_image_asset_path, "icon_path"),
-            "ActiveSoundEventStart": None,
-            "ActiveSoundEventFinish": None,
-            "StatusFXManager": None,
-            "ServerAttachedTime": None,
-            "StackMode": parse_colon_colon,
-            "AttachPoint": None,
-            "BuffId": None,
-            "DurationFX": None,
-            "MeshFXFadeOutTime": None,
-            "ProxyMeshFXClass": None,
-            "ProxyMeshFXFadeOutTime": None,
-            "CameraFX": None,
-            "DirectDamage": "value",
-            "AoeDamage": parse_editor_curve_data,
-            "DirectDamagePerSecond": "value",
-            "AoeDamagePerSecond": parse_editor_curve_data,
-            "TickInterval": "value",
-            "DamageExplosionSettings": None, #FX
-            "Owner": None,
-            "CameraFXDestroyPolicy": None,
-            "Undying Buff Class": None, #used by ravana
-            "Damage Reduction Quotient": "value",
-            "UndyingLingerTime": "value",
-            "Radius": "value",
-            "Height": "value",
-            "BuffAreaComponent": None,
-            "HealingColorDelay": None, #FX
-            "HealingColorFadeOutDur": None, #FX
-            "Radius": "value",
-            "BuffSphereComponent": None, #lancelot, shows Me and AlliesAndMeExceptTitan as buff targets, choosing to ignore this grudgingly
-            "DecalComponent": None, #cosmetic
-            "ParentComponent": None, #lancelot
-            "HealthComponent": None, #ares. seems to reference function to detect when health is 0, so probably for starting the animation of the gun going down
-            "SceneComponent": None,
-            "HitSoundEvent": None,
-            "Health": "value",
-            "bReplicateMovement": "value",
-            "RemoteRole": None,
-            "InitialLifeSpan": "value",
-            "Sphere Radius": "value",
-            "AimBeamFX": None, #alpha ult
-            "AimGroundFX": None,
-            "MainDamageBeamFX": None,
-            "MainDamageGroundFX": None,
-            "ColorIdParam": None,
-            "ThinBeamSoundEvent": None,
-            "ThickBeamSoundEvent": None,
-            "VictimReactionOnSpawn": None,
-            "ActiveEffect": None, #legit only Matriarch ult, contains color info so just FX
-            "StackDamagePercent": "value", #purifier
-            "Owner": None,
-            "Exclusion": None,
-            "RootComponent": None,
-            "EffectColorName": None,
-            "DestroyReaction": None,
-            "HostileColor": None,
-            "CorpseDuration": None,
-            "AppearSoundEvent": None,
-            "DisappearSoundEvent": None,
-            "DebuffVfx": None,
-            "PrimaryActorTick": None, #contains bCanEverTick=true for ravana
-            "SpeedIncrement": "value", # sprint boost
-            "bRegenInAbsoulute": "value", #quick repair start
-            "ArmorRegenPerSecond": "value",
-            "RegenInterval": "value",
-            "bRemoveOnDamage": "value",
-            "bRemoveOnFull": "value",
-            "ArmorZonesByPriority": p_armor_zones,
-            "NiagaraSystem": None,
-            "ArmorRegenChannel": None,
-            "ShieldRegenChannel": None,
-            "PPMaterial": None, #material instance for flashbang fx
-            "Field Width": "value", #energy wall
-            "NeutralColor": None,
-            "IgnoredActorType": None, #would include this, but its an integer code, 1 for energy wall which i presume represents allies, but not worth including guesswork
-            "ShieldRegenPerSecond": "value",
-            "bRegenMoreDamagedZone": "value", # interesting for mesa
-            "TickInterval": "value",
-            "DamageDistribution": None, #gamma beam, references blank file
-            "ActiveEfficiencyPercent": "value", # fuel burn
-            "DurationParam": None,
-            "GroundedMeshFXs": None,
-            "AttacherReactionOnAttach": None, #voiceline
-            "OwnerReactionOnAttach": None,
-            "WeaponFX": None,
-            "CountStack": "value", #ceres
-            "RequiredCharForBoost": "value",
-            "MaxStacks": "value",
-            "BeamFX": None, # cyclops
-            "ImpactFX": None,
-            "BeamSoundEvent": None,
-            "EndPlayAkEvent": None,
-            "BeamSoundMaxDistance": None,
-            "DamageDelayTime": "value",
-            "Size": None, # atrophy, has x=0, y=0, z=0 so not using
-            "bOverrideScheduleSettings": "value",
-            "FallingSettings": "value",
-            "bAlwaysRelevant": None,
-            "ActivationDelay": "value", #camouflage web
-            "RootCollision": None,
-            "MovementComponent": p_movement_component,
-            "Mesh": None,
-            "StartSoundEvent": None,
-            "EndSoundEvent": None,
-            "GlitchSoundEvent": None,
-            "SphereVFX": None,
-            "DestroyVFX": None,
-            "VFXRadiusOffset": None,
-            "StartImpulseHorizontal": "value",
-            "StartImpulseVertical": "value",
-            "PathCurve": None, #galvanic screen uses tangent EditorCurveData, ignoring for now. #TODO
-            "DamageApplier": p_damage_applier,
-            "PerModuleColliderComponent": None,
-            "OpenTime": "value", #ghost turret
-            "DesiredDamage": "value",
-            "FocusComponent": p_focus_component,
-            "PassiveWeaponComponent": None, #contains no data
-            "SoundSystemComponent": None,
-            "WeaponInfos": {"parser": p_weapon_infos, "action": ParseAction.ATTRIBUTE, "target": "weapon"},
-            "EnemyMaterialInstance": None,
-            "FriendMaterialInstance": None,
-            "bCanBeDamaged": "value",
-            "ActiveRadius": "value", #minefield
-            "BuffsOnHit": obj._p_actor_class,
-            "SingleExplosionSoundEvent": None,
-            "FinalExplosionSoundEvent": None,
-            "MineNiagaraEffect": None,
-            "FinalExplosionNiagaraEffect": None,
-            "ExplosionNiagaraEffect": None,
-            "MineLocationEQ": None,
-            "ExplosionStartSoundEvent": None, #smoke wall
-            "BoxComponent": None,
-            "CapsuleComponent": p_capsule_component, #supressor
-            "bShouldFall": "value",
-            "FallingSpeed": "value",
-            "MaxScanRadius": "value",
-            "ScanLifetime": "value",
-            "SpottingBuffClass": None,
-            "DeactivationLoopSound": None, #singulators
-            "CollisionComponent": p_capsule_component,
-            "TransfusionSphereComponent": p_transf_sphere_component,
-            "spawnDuration": "value",
-            "TransfusionRadius": "value",
-            "TransfusionInterval": "value",
-            "TransfusionSourceFx": None,
-            "TransfusionSphereFx": None,
-            "TransfusionRayFx": None,
-            "SpawnSoundEvent": None,
-            "Harpoon Shot Delay": "value", #snare
-            "Snare Debuff": obj._p_actor_class,
-            "Harpoon Direct Damage": "value",
-            "Snap Object Types": None,
-            "Death VFX": None,
-            "Snare Rope VFX": None,
-            "Snare Bones": None,
-            "Start Sound": None,
-            "End Sound": None,
-            "Tracking Radius": "value",
-            "Un Tracking Offset": "value",
-            "bReplicates": "value",
-            "Pull Force Magnitude": "value",
-            "Snare VFX": None,
-            "EnemyColor": None,
-            "CollisionMeshComponent": None, #nanite field vfx i think
-            "DisappearNaniteFX": None,
-            "TransitionTime": "value", #tyr
-            "DroneMaterial": None,
-            "AuraMesh": None,
-            "DroneSkeletalMesh": None,
-            "StartHealingSoundEvent": None,
-            "StopHealingSoundEvent": None,
-            "FriendlyColor": None,
-            "Buff": obj._p_actor_class,
-            "WasSpottedSoundEvent": None, #echo burst
-            "SpottedSoundEvent": None,
-            "bIndestructible": "value", #ares torso
-            "SphereRadius": "value", #ceres torso
-            "AttachParent": None,
-            "bGenerateOverlapEvents": "value", #grim snare
-            "AreaClassOverride": None, #tyr torso- basically empty path
-            "bUseSystemDefaultObstacleAreaClass": None,
-            "RelativeScale3D": "value",
-            "RootVFX": None, #old camo web
+    elif type(data) is str:
+        # is an asset path
+        data = asset_path_to_data(data)
+    else:
+        raise ValueError("Invalid data format")
+
+    if 'ClassDefaultObject' in data:
+        data = asset_path_to_data(data["ClassDefaultObject"]["ObjectPath"])
+    if 'Properties' not in data:
+        return
+    props = data["Properties"]
+
+    key_to_parser_function = {
+        "Modifier": p_modifier,
+        "DurationParamName": None,
+        "OvertipFX": None,
+        "Buffs": "value", #TODO
+        "DeactivationSoundEvent": None,
+        "ExplosionSoundEvent": None,
+        "CapsuleHalfHeight": "value",
+        "CapsuleRadius": "value",
+        "BodyInstance": None,
+        "RelativeLocation": "value",
+        "UberGraphFrame": None,
+        "ExplosionFX": None,
+        "DropSoundEvent": None,
+        "AvoidMarker": None,
+        "Damage": None, # iron rain bulgasari has empty values in here, so think its unused
+        "ImpactExplosionSettings": None, #FX
+        "DamageContext": None,
+        "MeshComponent": None,
+        "ActivationSoundEvent": None,
+        "StopActivationSoundEvent": None,
+        "ActivationFx": None,
+        "ActivationFxRotation": None,
+        "RayTracingGroupId": None,
+        "ReloadTimeFactor": "value",
+        "Modifiers": p_modifiers,
+        "MeshFX": None,
+        "SocketToFX": None,
+        "MeshFXClass": None,
+        "StatusFXManager": None,
+        "Lifetime": "value",
+        "InitialLifetime": None, # duplicate to Lifetime value
+        "Icon": (parse_image_asset_path, "icon_path"),
+        "PreventFocusFor": p_prevent_focus,
+        "CountermeasuresEffect": None, #vfx griffin
+        "NewDamageDistribution": None, #contains no data, griffin
+        "Min Health": "value", #griffin
+        "FriendColor": None,
+        "HealingHostileColor": None,
+        "HealingFriendColor": None,
+        "activeEfficiency": "value", #lancelot
+        "ActiveEffectSocketName": None,
+        "ActiveEffectFx": None,
+        "ActiveSoundEventStart": None,
+        "ActiveSoundEventFinish": None,
+        "StatusFXManager": None,
+        "ServerAttachedTime": None,
+        "StackMode": parse_colon_colon,
+        "AttachPoint": None,
+        "BuffId": None,
+        "DurationFX": None,
+        "MeshFXFadeOutTime": None,
+        "ProxyMeshFXClass": None,
+        "ProxyMeshFXFadeOutTime": None,
+        "CameraFX": None,
+        "DirectDamage": "value",
+        "AoeDamage": parse_editor_curve_data,
+        "DirectDamagePerSecond": "value",
+        "AoeDamagePerSecond": parse_editor_curve_data,
+        "TickInterval": "value",
+        "DamageExplosionSettings": None, #FX
+        "Owner": None,
+        "CameraFXDestroyPolicy": None,
+        "Undying Buff Class": None, #used by ravana
+        "Damage Reduction Quotient": "value",
+        "UndyingLingerTime": "value",
+        "Radius": "value",
+        "Height": "value",
+        "BuffAreaComponent": p_buff_area_component,
+        "HealingColorDelay": None, #FX
+        "HealingColorFadeOutDur": None, #FX
+        "Radius": "value",
+        "BuffSphereComponent": None, #lancelot, shows Me and AlliesAndMeExceptTitan as buff targets, choosing to ignore this grudgingly
+        "DecalComponent": None, #cosmetic
+        "ParentComponent": None, #lancelot
+        "HealthComponent": None, #ares. seems to reference function to detect when health is 0, so probably for starting the animation of the gun going down
+        "SceneComponent": None,
+        "HitSoundEvent": None,
+        "Health": "value",
+        "bReplicateMovement": "value",
+        "RemoteRole": None,
+        "InitialLifeSpan": "value",
+        "Sphere Radius": "value",
+        "AimBeamFX": None, #alpha ult
+        "AimGroundFX": None,
+        "MainDamageBeamFX": None,
+        "MainDamageGroundFX": None,
+        "ColorIdParam": None,
+        "ThinBeamSoundEvent": None,
+        "ThickBeamSoundEvent": None,
+        "VictimReactionOnSpawn": None,
+        "ActiveEffect": None, #legit only Matriarch ult, contains color info so just FX
+        "StackDamagePercent": "value", #purifier
+        "Owner": None,
+        "Exclusion": None,
+        "RootComponent": None,
+        "EffectColorName": None,
+        "DestroyReaction": None,
+        "HostileColor": None,
+        "CorpseDuration": None,
+        "AppearSoundEvent": None,
+        "DisappearSoundEvent": None,
+        "DebuffVfx": None,
+        "PrimaryActorTick": None, #contains bCanEverTick=true for ravana
+        "SpeedIncrement": "value", # sprint boost
+        "bRegenInAbsoulute": "value", #quick repair start
+        "ArmorRegenPerSecond": "value",
+        "RegenInterval": "value",
+        "bRemoveOnDamage": "value",
+        "bRemoveOnFull": "value",
+        "ArmorZonesByPriority": p_armor_zones,
+        "NiagaraSystem": None,
+        "ArmorRegenChannel": None,
+        "ShieldRegenChannel": None,
+        "PPMaterial": None, #material instance for flashbang fx
+        "Field Width": "value", #energy wall
+        "NeutralColor": None,
+        "IgnoredActorType": None, #would include this, but its an integer code, 1 for energy wall which i presume represents allies, but not worth including guesswork
+        "ShieldRegenPerSecond": "value",
+        "bRegenMoreDamagedZone": "value", # interesting for mesa
+        "TickInterval": "value",
+        "DamageDistribution": None, #gamma beam, references blank file
+        "ActiveEfficiencyPercent": "value", # fuel burn
+        "DurationParam": None,
+        "GroundedMeshFXs": None,
+        "AttacherReactionOnAttach": None, #voiceline
+        "OwnerReactionOnAttach": None,
+        "WeaponFX": None,
+        "CountStack": "value", #ceres
+        "RequiredCharForBoost": "value",
+        "MaxStacks": "value",
+        "BeamFX": None, # cyclops
+        "ImpactFX": None,
+        "BeamSoundEvent": None,
+        "EndPlayAkEvent": None,
+        "BeamSoundMaxDistance": None,
+        "DamageDelayTime": "value",
+        "Size": None, # atrophy, has x=0, y=0, z=0 so not using
+        "bOverrideScheduleSettings": "value",
+        "FallingSettings": "value",
+        "bAlwaysRelevant": None,
+        "ActivationDelay": "value", #camouflage web
+        "RootCollision": None,
+        "MovementComponent": p_movement_component,
+        "Mesh": None,
+        "StartSoundEvent": None,
+        "EndSoundEvent": None,
+        "GlitchSoundEvent": None,
+        "SphereVFX": None,
+        "DestroyVFX": None,
+        "VFXRadiusOffset": None,
+        "StartImpulseHorizontal": "value",
+        "StartImpulseVertical": "value",
+        "PathCurve": None, #galvanic screen uses tangent EditorCurveData, ignoring for now. #TODO
+        "DamageApplier": p_damage_applier,
+        "PerModuleColliderComponent": None,
+        "OpenTime": "value", #ghost turret
+        "DesiredDamage": "value",
+        "FocusComponent": p_focus_component,
+        "PassiveWeaponComponent": None, #contains no data
+        "SoundSystemComponent": None,
+        "WeaponInfos": {"parser": p_weapon_infos, "action": ParseAction.ATTRIBUTE, "target": "weapon"},
+        "EnemyMaterialInstance": None,
+        "FriendMaterialInstance": None,
+        "bCanBeDamaged": "value",
+        "ActiveRadius": "value", #minefield
+        "BuffsOnHit": obj._p_actor_class,
+        "SingleExplosionSoundEvent": None,
+        "FinalExplosionSoundEvent": None,
+        "MineNiagaraEffect": None,
+        "FinalExplosionNiagaraEffect": None,
+        "ExplosionNiagaraEffect": None,
+        "MineLocationEQ": None,
+        "ExplosionStartSoundEvent": None, #smoke wall
+        "BoxComponent": None,
+        "CapsuleComponent": p_capsule_component, #supressor
+        "bShouldFall": "value",
+        "FallingSpeed": "value",
+        "MaxScanRadius": "value",
+        "ScanLifetime": "value",
+        "SpottingBuffClass": None,
+        "DeactivationLoopSound": None, #singulators
+        "CollisionComponent": p_capsule_component,
+        "TransfusionSphereComponent": p_transf_sphere_component,
+        "spawnDuration": "value",
+        "TransfusionRadius": "value",
+        "TransfusionInterval": "value",
+        "TransfusionSourceFx": None,
+        "TransfusionSphereFx": None,
+        "TransfusionRayFx": None,
+        "SpawnSoundEvent": None,
+        "Harpoon Shot Delay": "value", #snare
+        "Snare Debuff": obj._p_actor_class,
+        "Harpoon Direct Damage": "value",
+        "Snap Object Types": None,
+        "Death VFX": None,
+        "Snare Rope VFX": None,
+        "Snare Bones": None,
+        "Start Sound": None,
+        "End Sound": None,
+        "Tracking Radius": "value",
+        "Un Tracking Offset": "value",
+        "bReplicates": "value",
+        "Pull Force Magnitude": "value",
+        "Snare VFX": None,
+        "EnemyColor": None,
+        "CollisionMeshComponent": None, #nanite field vfx i think
+        "DisappearNaniteFX": None,
+        "TransitionTime": "value", #tyr
+        "DroneMaterial": None,
+        "AuraMesh": None,
+        "DroneSkeletalMesh": None,
+        "StartHealingSoundEvent": None,
+        "StopHealingSoundEvent": None,
+        "FriendlyColor": None,
+        "Buff": obj._p_actor_class,
+        "WasSpottedSoundEvent": None, #echo burst
+        "SpottedSoundEvent": None,
+        "bIndestructible": "value", #ares torso
+        "SphereRadius": "value", #ceres torso
+        "AttachParent": None,
+        "bGenerateOverlapEvents": "value", #grim snare
+        "AreaClassOverride": None, #tyr torso- basically empty path
+        "bUseSystemDefaultObstacleAreaClass": None,
+        "RelativeScale3D": "value",
+        "RootVFX": None, #old camo web
+        "SpeedMultiplier": "value", #matriarch nanite field
+        "MaxAccelMultiplier": "value",
+        "ArmorRegenPercentPerSecond": "value",
+    }
+
+    parsed_data = obj._process_key_to_parser_function(
+        key_to_parser_function, props, log_descriptor="ActorClass", tabs=5, set_attrs=False, default_configuration={
+            'target': ParseTarget.MATCH_KEY
         }
+    )
 
-        parsed_data = obj._process_key_to_parser_function(
-            key_to_parser_function, data["Properties"], log_descriptor="ActorClass", tabs=5, set_attrs=False, default_configuration={
-                'target': ParseTarget.MATCH_KEY
-            }
-        )
-
-        return parsed_data
+    return parsed_data
