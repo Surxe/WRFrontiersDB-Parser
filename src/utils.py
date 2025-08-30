@@ -17,7 +17,7 @@ class Params:
     """
     def __init__(self, export_path=None, game_name=None, log_level=None, output_path=None):
         # Use provided args if not None, else fallback to environment
-        self.export_path = export_path if export_path is not None else os.getenv('EXPORTS_PATH')
+        self.export_path = os.path.normpath(export_path if export_path is not None else os.getenv('EXPORTS_PATH'))
         self.game_name = game_name if game_name is not None else os.getenv('GAME_NAME')
         self.log_level = (log_level if log_level is not None else os.getenv('LOG_LEVEL', 'DEBUG')).upper()
         self.output_path = output_path if output_path is not None else os.getenv('OUTPUT_PATH', None)
@@ -135,7 +135,10 @@ def asset_path_to_file_path(asset_path):
         # "DungeonCrawler/Content/DungeonCrawler/ActorStatus/Buff/AbyssalFlame/GE_AbyssalFlame.0" -> "F:\DarkAndDarkerWiki\Exports\DungeonCrawler\Content\DungeonCrawler\ActorStatus\Buff\AbyssalFlame\GE_AbyssalFlame.json"
     # asset_path_name (V2) are prefixed with \Game instead of \DungeonCrawler\Content, and suffixed with .<index>
         # "/Game/DungeonCrawler/Maps/Dungeon/Modules/Crypt/Edge/Armory/Armory_A.Armory_A" -> "F:\DarkAndDarkerWiki\Exports\DungeonCrawler\Content\Maps\Dungeon\Modules\Crypt\Edge\Armory\Armory_A.json"
-    return PARAMS.export_path + "\\" + asset_path.split('.')[0].replace("/Game/",f"\\{game_name}\\Content\\") + ".json"
+    path = PARAMS.export_path + "\\" + asset_path.split('.')[0].replace("/Game/",f"\\{game_name}\\Content\\") + ".json"
+    # Normalize slashes and redundant separators
+    path = os.path.normpath(path)
+    return path
 
 def path_to_index(path: str) -> int:
     index_str = path.split('.')[-1]
