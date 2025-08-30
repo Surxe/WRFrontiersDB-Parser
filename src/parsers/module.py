@@ -67,23 +67,17 @@ class Module(Object):
         return ModuleRarity.get_from_asset_path(asset_path)
 
     def _p_character_modules(self, data):
-        character_module = dict()
-        character_module_mounts = []
-        asset_path_name = None
+        character_modules = []
         for character_module in data:
             new_asset_path_name = character_module["Value"]["AssetPathName"]
-            character_module_mounts.append(parse_colon_colon(character_module["Key"]))  # "ESCharacterModuleMountWay::Left" -> Left
-
-            # Confirm that all character modules have the same asset path name
-            if asset_path_name is not None and new_asset_path_name != asset_path_name:
-                raise Exception(f"Data structure change: {self.__class__.__name__} {self.id} character module data has more than one character module file ")
-            
+            mount = parse_colon_colon(character_module["Key"]) # "ESCharacterModuleMountWay::Left" -> Left
             character_module_id = CharacterModule.get_from_asset_path(new_asset_path_name)
+            character_modules.append({
+                "character_module_id": character_module_id,
+                "mount": mount,
+            })
 
-        return {
-            "id": character_module_id,
-            "mounts": character_module_mounts,
-        }
+        return character_modules
                 
     def _p_module_tags(self, data):
         module_tags = []
