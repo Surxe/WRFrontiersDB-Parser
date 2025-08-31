@@ -13,8 +13,12 @@ class Ability(Object):
     objects = dict()  # Dictionary to hold all Class instances
 
     def _parse(self):
+        if 'ClassDefaultObject' in self.source_data:
+            data = asset_path_to_data(self.source_data["ClassDefaultObject"]["ObjectPath"])
+        else:
+            data = self.source_data
         # Wrapper for main ability parsing
-        return self._parse_from_data(self.source_data)
+        return self._parse_from_data(data)
 
     def _parse_from_data(self, source_data: dict):
         props = source_data.get("Properties")
@@ -36,7 +40,7 @@ class Ability(Object):
             "ActorClass": self._p_actor_class,
             "bStandaloneActor": "value",
             "DestroyWithOwner": "value",
-            "TargetingType": {"parser": parse_colon_colon, "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY_SNAKE},
+            "TargetingType": {"parser": parse_colon_colon, "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY},
             "TargetingStartedSoundEvent": None,
             "TargetingEndedSoundEvent": None,
             #"TargetingMarkerClass": {'parser': self._p_confirmation_action, 'target': 'targeting'},
@@ -45,9 +49,9 @@ class Ability(Object):
             "SystemTemplate": None,
             "ReactionOnRecharge": None, #voice line
             "SpawnActorAction": {"parser": self._p_spawn_action, "action": ParseAction.DICT_ENTRY, "target": ParseTarget.MATCH_KEY_SNAKE},
-            "ConfirmationAction": {"parser": self._p_confirmation_action, "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY_SNAKE},
+            "ConfirmationAction": {"parser": self._p_confirmation_action, "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY},
             "ActorCDOShapeComponent": self._p_actor_class,
-            "TargetingActionWithConfirmation": {"parser": self._p_confirmation_action, "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY_SNAKE},
+            "TargetingActionWithConfirmation": {"parser": self._p_confirmation_action, "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY},
             "ImmediateTargetingAction": None,
             "SPawnAction": None, #typo on their end
             "ProjectileTypes": {"parser": self._p_projectile_types, "action": ParseAction.ATTRIBUTE, "target": ParseTarget.MATCH_KEY_SNAKE},
@@ -124,7 +128,7 @@ class Ability(Object):
             "CancellationCooldown": "value",
             "StackingBuffClass": self._p_actor_class,
             "MaxStacks": "value",
-            "MaxTargetingDistance": {"parser": "value", "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY_SNAKE}, #lancelot, despite it not having any targeting and iirc radius specified elsewhere
+            "MaxTargetingDistance": {"parser": "value", "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY}, #lancelot, despite it not having any targeting and iirc radius specified elsewhere
             "Mobility Modifier": "value",  # grim snare
             "Max Speed Modifier": "value",  
             "PreferredInputAction": None, #cyclops targeting, too complex to bother
@@ -144,7 +148,7 @@ class Ability(Object):
             "LaunchRotation": "value",
             "FlyTime": "value", #unknown usage for bulgasari
             "MaxSpawnDistance": "value",
-            "bLockOnActor": {"parser": "value", "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY_SNAKE},
+            "bLockOnActor": {"parser": "value", "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY},
             "TargetingMarkerClass": None,
             "AssistanceRadius": None,
             "RetributionAnimTime": None,
@@ -699,6 +703,14 @@ def p_modifier(data: dict):
     props = data["Properties"]
     return props["Value"]
 
+def p_ability_classes(data: dict):
+    ids = []
+    for ability_class in data:
+        ability_id = Ability.get_from_asset_path(ability_class["ObjectPath"])
+        print(Ability.objects[ability_id].source_data)
+        ids.append(ability_id)
+    return ids
+
 def p_actor_class(obj, data: dict):
     if type(data) is list:
         for elem in data:
@@ -718,6 +730,16 @@ def p_actor_class(obj, data: dict):
     props = data["Properties"]
 
     key_to_parser_function = {
+        "UltimateChargeAddition": "value",
+        "NiagaraSystemInstance": None,
+        "NiagaraVarName_FadeOut": None,
+        "NiagaraVarName_Radius": None,
+        "NiagaraRadius_Titan": None,
+        "NiagaraRadius_Mech": None,
+        "Effect": None, #vfx
+        "Regen amount": "value",
+        "bIsActiveSoundEventOneShot": None, 
+        "OutgoingDamageMultiplier": None, #double damage powerup has this as 1.2x, but also 2x Modifiers, so ignoring this
         "Modifier": p_modifier,
         "DurationParamName": None,
         "OvertipFX": None,
@@ -946,6 +968,8 @@ def p_actor_class(obj, data: dict):
         "SpeedMultiplier": "value", #matriarch nanite field
         "MaxAccelMultiplier": "value",
         "ArmorRegenPercentPerSecond": "value",
+        "AbilityClasses": p_ability_classes, #orbital strike powerup
+        "MaxAbilitiesInvocationsCount": "value",
     }
 
     parsed_data = obj._process_key_to_parser_function(

@@ -3,9 +3,12 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import log, path_to_id, get_json_data, asset_path_to_data, PARAMS, merge_dicts
+from utils import log, get_json_data, asset_path_to_data, PARAMS, merge_dicts, parse_hex
+from parsers.ability import p_actor_class
+from parsers.image import parse_image_asset_path
 
 from parsers.object import Object
+from parsers.image import Image
 
 class Powerup(Object):
     objects = dict()
@@ -22,6 +25,27 @@ class Powerup(Object):
             template_ability_data = self._parse_and_merge_template(source_data["Template"])
 
         key_to_parser_function = {
+            "AttachedBuff": self._p_actor_class,
+            "BuffDuration": "value",
+            "MinimapIcon": (parse_image_asset_path, "icon_path"),
+            "MinimapIconTint": (parse_hex, "icon_hex"),
+            "Root": None,
+            "OverlapComponent": None,
+            "MeshComponent": None,
+            "ReactionTypeTouchedActor": None,
+            "CapturedByFriendlyTeamMessage": None,
+            "RootComponent": None,
+            "UberGraphFrame": None,
+            "Level": None, #"HighGround" for all, unknown usage
+            "SpawnSound": None,
+            "ConsumeSound": None,
+            "ReactionTypeTouchedActor": None,
+            "RotationSpeed": None,
+            "SpawnAnnouncer": None,
+            "CapturedByEnemyTeamMessage": None,
+            "Score": "value",
+            "VFXClass": None,
+            "CorpseDuration": None,
             "ID": None,
         }
 
@@ -31,6 +55,9 @@ class Powerup(Object):
 
         for key, value in overlayed_data.items():
             setattr(self, key, value)
+
+    def _p_actor_class(self, data: dict):
+        return p_actor_class(self, data)
 
 def parse_powerup_wrapper(full_path, id):
     log(f"Parsing {Powerup.__name__} {id} from {full_path}", tabs=0)
@@ -61,7 +88,7 @@ def parse_powerups(to_file=False):
 
     if to_file: # Condition prevents needlessly saving the same data multiple times, as it will also be saved if ran thru parse.py
         Powerup.to_file()
-        #Image.to_file()
+        Image.to_file()
 
 if __name__ == "__main__":
     parse_powerups(to_file=True)

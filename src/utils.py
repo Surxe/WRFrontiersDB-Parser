@@ -181,6 +181,7 @@ def path_to_id(asset_path) -> str: # "/Game/DungeonCrawler/Data/Generated/V2/Loo
 # Parsers for common structures used in this specific game data
     
 def parse_hex(data: dict):
+    data = data["SpecifiedColor"] if "SpecifiedColor" in data else data
     return data["Hex"]
 
 def parse_colon_colon(data: str):
