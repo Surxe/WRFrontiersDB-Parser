@@ -4,7 +4,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import Object, ParseTarget, ParseAction
-from utils import asset_path_to_data, log, parse_colon_colon, parse_editor_curve_data
+from utils import asset_path_to_data, log, parse_colon_colon, parse_editor_curve_data, merge_dicts, remove_blank_values
 from parsers.image import parse_image_asset_path
 from parsers.localization_table import parse_localization
 from parsers.module_stat import ModuleStat
@@ -13,8 +13,14 @@ class Ability(Object):
     objects = dict()  # Dictionary to hold all Class instances
 
     def _parse(self):
+        if 'ClassDefaultObject' in self.source_data:
+            data = asset_path_to_data(self.source_data["ClassDefaultObject"]["ObjectPath"])
+        else:
+            data = self.source_data
         # Wrapper for main ability parsing
-        return self._parse_from_data(self.source_data)
+        overlayed_data = self._parse_from_data(data)
+        for key, value in overlayed_data.items():
+            setattr(self, key, value)
 
     def _parse_from_data(self, source_data: dict):
         props = source_data.get("Properties")
@@ -23,7 +29,7 @@ class Ability(Object):
 
         template_ability_data = None
         if 'Template' in source_data:
-            template_ability_data = self._p_template_ability(source_data["Template"])
+            template_ability_data = self._parse_and_merge_template(source_data["Template"])
 
         key_to_parser_function = {
             "UberGraphFrame": None,
@@ -36,7 +42,7 @@ class Ability(Object):
             "ActorClass": self._p_actor_class,
             "bStandaloneActor": "value",
             "DestroyWithOwner": "value",
-            "TargetingType": {"parser": parse_colon_colon, "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY_SNAKE},
+            "TargetingType": {"parser": parse_colon_colon, "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY},
             "TargetingStartedSoundEvent": None,
             "TargetingEndedSoundEvent": None,
             #"TargetingMarkerClass": {'parser': self._p_confirmation_action, 'target': 'targeting'},
@@ -45,9 +51,9 @@ class Ability(Object):
             "SystemTemplate": None,
             "ReactionOnRecharge": None, #voice line
             "SpawnActorAction": {"parser": self._p_spawn_action, "action": ParseAction.DICT_ENTRY, "target": ParseTarget.MATCH_KEY_SNAKE},
-            "ConfirmationAction": {"parser": self._p_confirmation_action, "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY_SNAKE},
+            "ConfirmationAction": {"parser": self._p_confirmation_action, "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY},
             "ActorCDOShapeComponent": self._p_actor_class,
-            "TargetingActionWithConfirmation": {"parser": self._p_confirmation_action, "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY_SNAKE},
+            "TargetingActionWithConfirmation": {"parser": self._p_confirmation_action, "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY},
             "ImmediateTargetingAction": None,
             "SPawnAction": None, #typo on their end
             "ProjectileTypes": {"parser": self._p_projectile_types, "action": ParseAction.ATTRIBUTE, "target": ParseTarget.MATCH_KEY_SNAKE},
@@ -124,7 +130,7 @@ class Ability(Object):
             "CancellationCooldown": "value",
             "StackingBuffClass": self._p_actor_class,
             "MaxStacks": "value",
-            "MaxTargetingDistance": {"parser": "value", "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY_SNAKE}, #lancelot, despite it not having any targeting and iirc radius specified elsewhere
+            "MaxTargetingDistance": {"parser": "value", "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY}, #lancelot, despite it not having any targeting and iirc radius specified elsewhere
             "Mobility Modifier": "value",  # grim snare
             "Max Speed Modifier": "value",  
             "PreferredInputAction": None, #cyclops targeting, too complex to bother
@@ -144,7 +150,7 @@ class Ability(Object):
             "LaunchRotation": "value",
             "FlyTime": "value", #unknown usage for bulgasari
             "MaxSpawnDistance": "value",
-            "bLockOnActor": {"parser": "value", "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY_SNAKE},
+            "bLockOnActor": {"parser": "value", "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY},
             "TargetingMarkerClass": None,
             "AssistanceRadius": None,
             "RetributionAnimTime": None,
@@ -276,50 +282,17 @@ class Ability(Object):
             "TransitionTime": "value",
         }
 
-        my_ability_data = self._process_key_to_parser_function(key_to_parser_function, props, tabs=3, set_attrs=False, default_configuration={
-            'action': ParseAction.DICT_ENTRY,
-            'target_dict_path': 'misc',
-            'target': ParseTarget.MATCH_KEY
-        })
+        my_ability_data = self._process_key_to_parser_function(
+            key_to_parser_function, props, tabs=3, set_attrs=False, default_configuration={
+                'action': ParseAction.DICT_ENTRY,
+                'target_dict_path': 'misc',
+                'target': ParseTarget.MATCH_KEY
+            })
 
-
-        def overlay_dict(base, overlay):
-            result = dict(base)
-            for key, value in overlay.items():
-                if value is not None and value != []:
-                    if isinstance(value, dict) and isinstance(result.get(key), dict):
-                        result[key] = overlay_dict(result[key], value)
-                    else:
-                        result[key] = value
-            return result
-
-        overlayed_data = template_ability_data if template_ability_data else {}
-        overlayed_data = overlay_dict(overlayed_data, my_ability_data)
-
-
-        for key, value in overlayed_data.items():
-            setattr(self, key, value)
+        overlayed_data = merge_dicts(template_ability_data, my_ability_data)
 
         return overlayed_data
 
-    def _p_template_ability(self, data: dict):
-        # Recursively parse template ability using the same logic as main ability
-        asset_path = data["ObjectPath"]
-        template_data = asset_path_to_data(asset_path)
-        if template_data and "Template" in template_data:
-            base_template_data = self._p_template_ability(template_data["Template"])
-        else:
-            base_template_data = {}
-
-        parsed_template_data = self._parse_from_data(template_data) if template_data else {}
-
-        # Overlay base_template_data with parsed_template_data
-        overlayed_data = dict(base_template_data)
-        for key, value in parsed_template_data.items():
-            if value is not None and value != []:
-                overlayed_data[key] = value
-        return overlayed_data
-    
     def _p_vertical_accel_curve(self, data: dict):
         data = asset_path_to_data(data["ObjectPath"])["Properties"]
         return parse_editor_curve_data(data)
@@ -562,7 +535,11 @@ class Ability(Object):
         for elem in data:
             if elem is None:
                 continue
-            parsed_conditions.append(self._p_ai_condition(elem))
+            parsed_ai_condition = self._p_ai_condition(elem)
+            if parsed_ai_condition:
+                parsed_conditions.append(parsed_ai_condition)
+        if not parsed_conditions:
+            return
         return parsed_conditions
 
     def _p_stat(self, data: dict):
@@ -731,6 +708,14 @@ def p_modifier(data: dict):
     props = data["Properties"]
     return props["Value"]
 
+def p_ability_classes(data: dict):
+    ids = []
+    for ability_class in data:
+        ability_id = Ability.get_from_asset_path(ability_class["ObjectPath"])
+        print(Ability.objects[ability_id].source_data)
+        ids.append(ability_id)
+    return ids
+
 def p_actor_class(obj, data: dict):
     if type(data) is list:
         for elem in data:
@@ -750,6 +735,16 @@ def p_actor_class(obj, data: dict):
     props = data["Properties"]
 
     key_to_parser_function = {
+        "UltimateChargeAddition": "value",
+        "NiagaraSystemInstance": None,
+        "NiagaraVarName_FadeOut": None,
+        "NiagaraVarName_Radius": None,
+        "NiagaraRadius_Titan": None,
+        "NiagaraRadius_Mech": None,
+        "Effect": None, #vfx
+        "Regen amount": "value",
+        "bIsActiveSoundEventOneShot": None, 
+        "OutgoingDamageMultiplier": None, #double damage powerup has this as 1.2x, but also 2x Modifiers, so ignoring this
         "Modifier": p_modifier,
         "DurationParamName": None,
         "OvertipFX": None,
@@ -978,6 +973,8 @@ def p_actor_class(obj, data: dict):
         "SpeedMultiplier": "value", #matriarch nanite field
         "MaxAccelMultiplier": "value",
         "ArmorRegenPercentPerSecond": "value",
+        "AbilityClasses": p_ability_classes, #orbital strike powerup
+        "MaxAbilitiesInvocationsCount": "value",
     }
 
     parsed_data = obj._process_key_to_parser_function(

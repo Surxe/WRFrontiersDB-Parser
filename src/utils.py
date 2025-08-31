@@ -181,6 +181,7 @@ def path_to_id(asset_path) -> str: # "/Game/DungeonCrawler/Data/Generated/V2/Loo
 # Parsers for common structures used in this specific game data
     
 def parse_hex(data: dict):
+    data = data["SpecifiedColor"] if "SpecifiedColor" in data else data
     return data["Hex"]
 
 def parse_colon_colon(data: str):
@@ -204,6 +205,11 @@ def parse_editor_curve_data(data: dict):
     
     if 'EditorCurveData' in dist_data:
         dist_data = dist_data["EditorCurveData"]
+
+    if 'KeyHandlesToIndices' in dist_data:
+        del dist_data['KeyHandlesToIndices']
+    if not dist_data:
+        return
 
     if 'Keys' not in dist_data:
         return dist_data
@@ -250,3 +256,34 @@ def to_snake_case(text):
     s2 = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1)
     # Replace spaces with underscores and convert to lowercase
     return s2.replace(' ', '_').lower()
+
+
+###############################
+#        Dictionary          #
+###############################
+
+def remove_blank_values(d: dict) -> dict:
+    """Remove keys with blank values from a dictionary- recursively."""
+    if not isinstance(d, dict):
+        return d
+    return {k: remove_blank_values(v) for k, v in d.items() if v not in [None, "", [], {}]}
+
+def merge_dicts(base: dict, overlay: dict) -> dict:
+    """Recursively merge two dictionaries."""
+    result = dict(base if base else {})
+    if not overlay:
+        return result
+    for key, value in overlay.items():
+        if value is not None and value != []:
+            val1 = value
+            val2 = result.get(key)
+            type_1 = type(val1)
+            type_2 = type(val2)
+            if val1 is not None and val2 is not None and type_1 != type_2:
+                raise TypeError(f"Type mismatch for key '{key}': {type_1} vs {type_2}")
+            if isinstance(value, dict) and isinstance(result.get(key), dict):
+                result[key] = merge_dicts(result[key], value)
+            else:
+                # use overlay's value
+                result[key] = value
+    return remove_blank_values(result)

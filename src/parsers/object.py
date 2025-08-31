@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import PARAMS, path_to_id, asset_path_to_file_path_and_index, get_json_data, log, to_snake_case
+from utils import PARAMS, path_to_id, asset_path_to_file_path_and_index, get_json_data, log, to_snake_case, merge_dicts, asset_path_to_data
 
 import json
 
@@ -179,6 +179,21 @@ class Object: #generic object that all classes extend
 
         if not set_attrs:
             return parsed_data
+        
+    def _parse_from_data(source_data: dict):
+        raise NotImplementedError("Subclasses must implement _parse_from_data to use _parse_and_merge_template()")
+
+    def _parse_and_merge_template(self, template: dict):
+        """
+        Recursively parse and merge template ability data.
+        """
+        asset_path = template["ObjectPath"]
+        template_data = asset_path_to_data(asset_path)
+        base_template_data = {}
+        if template_data and "Template" in template_data:
+            base_template_data = self._parse_and_merge_template(template_data["Template"])
+        parsed_template_data = self._parse_from_data(template_data) if template_data else {}
+        return merge_dicts(base_template_data, parsed_template_data)
 
     def to_dict(self):
         """

@@ -56,6 +56,6 @@ def parse_badge_visual_info(data: dict):
     returned_data = dict()
     returned_data["image_path"] = image_path
     if tint_hex is not None:
-        returned_data["tint_hex"] = tint_hex
+        returned_data["hex"] = tint_hex
     
     return returned_data
