@@ -174,7 +174,7 @@ class CharacterModule(Object):
                 "bSingleShot": "value",
                 "ConsumeAllClipOnShot": "value",
                 "ProjectileMappings": self._p_projectile_mappings,
-                "ProjectileClass": None,
+                "ProjectileClass": self._p_projectile_class,
                 "BallisticBehavior": self._p_ballistic_behavior,
                 "bEnableProximityFuse": "value",
                 "ProximityFuseRadius": "value",
@@ -238,6 +238,20 @@ class CharacterModule(Object):
             parsed_data[key] = value
 
         return parsed_data
+    
+    def _p_projectile_class(self, data):
+        data = asset_path_to_data(asset_path_to_data(data["ObjectPath"])["ClassDefaultObject"]["ObjectPath"])
+
+        key_to_parser_function = {
+            "ObstacleDamageModifier": "value", #TODO
+            "CollisionComponent": "value", #TODO
+            "MovementComponent": "value", #TODO
+            "DirectDamage": None, #seen elsewhere
+            "AoeDamage": None, #seen elsewhere
+        }
+
+        # projectile class is a TEMPLATE
+        
 
     def _p_abilities(self, list: list):
         parsed_abilities = []
