@@ -29,6 +29,7 @@ from parsers.pilot import *
 from parsers.progression_table import *
 from parsers.game_mode import *
 from parsers.bot_preset import *
+from parsers.powerup import *
 from analysis import *
 
 clear_dir("output")  # Clear the data directory before parsing
@@ -39,6 +40,7 @@ parse_pilots()  # Pilot parser relies on module data being parsed first
 parse_progression_table()
 parse_game_modes()
 parse_bot_presets()
+# parse_powerups()
 analyze(Module, ModuleStat)
 
 
@@ -82,6 +84,8 @@ HonorReward.to_file()
 BotPreset.to_file()
 DropTeam.to_file()
 CharacterPreset.to_file()
+
+Powerup.to_file()
 
 Localization.to_file()
 Image.to_file()

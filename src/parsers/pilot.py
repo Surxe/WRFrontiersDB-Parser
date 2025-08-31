@@ -107,7 +107,6 @@ def parse_pilot_wrapper(dir, file_name):
     log(f"Parsing {Pilot.__name__} {pilot_id} from {full_path}", tabs=0)
     pilot_data = get_json_data(full_path)
     pilot = Pilot(pilot_id, pilot_data)
-    Pilot.objects[pilot_id] = pilot
     return pilot
 
 def parse_pilots(to_file=False):
