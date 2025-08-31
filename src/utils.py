@@ -206,6 +206,11 @@ def parse_editor_curve_data(data: dict):
     if 'EditorCurveData' in dist_data:
         dist_data = dist_data["EditorCurveData"]
 
+    if 'KeyHandlesToIndices' in dist_data:
+        del dist_data['KeyHandlesToIndices']
+    if not dist_data:
+        return
+
     if 'Keys' not in dist_data:
         return dist_data
     else:
@@ -257,10 +262,16 @@ def to_snake_case(text):
 #        Dictionary          #
 ###############################
 
+def remove_blank_values(d: dict) -> dict:
+    """Remove keys with blank values from a dictionary- recursively."""
+    if not isinstance(d, dict):
+        return d
+    return {k: remove_blank_values(v) for k, v in d.items() if v not in [None, "", [], {}]}
+
 def merge_dicts(base: dict, overlay: dict) -> dict:
     """Recursively merge two dictionaries."""
     result = dict(base if base else {})
-    if overlay is None:
+    if not overlay:
         return result
     for key, value in overlay.items():
         if value is not None and value != []:
@@ -275,4 +286,4 @@ def merge_dicts(base: dict, overlay: dict) -> dict:
             else:
                 # use overlay's value
                 result[key] = value
-    return result
+    return remove_blank_values(result)

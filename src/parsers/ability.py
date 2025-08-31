@@ -4,7 +4,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import Object, ParseTarget, ParseAction
-from utils import asset_path_to_data, log, parse_colon_colon, parse_editor_curve_data, merge_dicts
+from utils import asset_path_to_data, log, parse_colon_colon, parse_editor_curve_data, merge_dicts, remove_blank_values
 from parsers.image import parse_image_asset_path
 from parsers.localization_table import parse_localization
 from parsers.module_stat import ModuleStat
@@ -535,7 +535,11 @@ class Ability(Object):
         for elem in data:
             if elem is None:
                 continue
-            parsed_conditions.append(self._p_ai_condition(elem))
+            parsed_ai_condition = self._p_ai_condition(elem)
+            if parsed_ai_condition:
+                parsed_conditions.append(parsed_ai_condition)
+        if not parsed_conditions:
+            return
         return parsed_conditions
 
     def _p_stat(self, data: dict):
