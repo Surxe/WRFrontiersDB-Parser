@@ -250,3 +250,28 @@ def to_snake_case(text):
     s2 = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1)
     # Replace spaces with underscores and convert to lowercase
     return s2.replace(' ', '_').lower()
+
+
+###############################
+#        Dictionary          #
+###############################
+
+def merge_dicts(base: dict, overlay: dict) -> dict:
+    """Recursively merge two dictionaries."""
+    result = dict(base if base else {})
+    if overlay is None:
+        return result
+    for key, value in overlay.items():
+        if value is not None and value != []:
+            val1 = value
+            val2 = result.get(key)
+            type_1 = type(val1)
+            type_2 = type(val2)
+            if val1 is not None and val2 is not None and type_1 != type_2:
+                raise TypeError(f"Type mismatch for key '{key}': {type_1} vs {type_2}")
+            if isinstance(value, dict) and isinstance(result.get(key), dict):
+                result[key] = merge_dicts(result[key], value)
+            else:
+                # use overlay's value
+                result[key] = value
+    return result

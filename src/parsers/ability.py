@@ -4,7 +4,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import Object, ParseTarget, ParseAction
-from utils import asset_path_to_data, log, parse_colon_colon, parse_editor_curve_data
+from utils import asset_path_to_data, log, parse_colon_colon, parse_editor_curve_data, merge_dicts
 from parsers.image import parse_image_asset_path
 from parsers.localization_table import parse_localization
 from parsers.module_stat import ModuleStat
@@ -23,7 +23,7 @@ class Ability(Object):
 
         template_ability_data = None
         if 'Template' in source_data:
-            template_ability_data = self._p_template_ability(source_data["Template"])
+            template_ability_data = self._parse_and_merge_template(source_data["Template"])
 
         key_to_parser_function = {
             "UberGraphFrame": None,
@@ -276,49 +276,17 @@ class Ability(Object):
             "TransitionTime": "value",
         }
 
-        my_ability_data = self._process_key_to_parser_function(key_to_parser_function, props, tabs=3, set_attrs=False, default_configuration={
-            'action': ParseAction.DICT_ENTRY,
-            'target_dict_path': 'misc',
-            'target': ParseTarget.MATCH_KEY
-        })
+        my_ability_data = self._process_key_to_parser_function(
+            key_to_parser_function, props, tabs=3, set_attrs=False, default_configuration={
+                'action': ParseAction.DICT_ENTRY,
+                'target_dict_path': 'misc',
+                'target': ParseTarget.MATCH_KEY
+            })
 
-
-        def overlay_dict(base, overlay):
-            result = dict(base)
-            for key, value in overlay.items():
-                if value is not None and value != []:
-                    if isinstance(value, dict) and isinstance(result.get(key), dict):
-                        result[key] = overlay_dict(result[key], value)
-                    else:
-                        result[key] = value
-            return result
-
-        overlayed_data = template_ability_data if template_ability_data else {}
-        overlayed_data = overlay_dict(overlayed_data, my_ability_data)
-
+        overlayed_data = merge_dicts(template_ability_data, my_ability_data)
 
         for key, value in overlayed_data.items():
             setattr(self, key, value)
-
-        return overlayed_data
-
-    def _p_template_ability(self, data: dict):
-        # Recursively parse template ability using the same logic as main ability
-        asset_path = data["ObjectPath"]
-        template_data = asset_path_to_data(asset_path)
-        if template_data and "Template" in template_data:
-            base_template_data = self._p_template_ability(template_data["Template"])
-        else:
-            base_template_data = {}
-
-        parsed_template_data = self._parse_from_data(template_data) if template_data else {}
-
-        # Overlay base_template_data with parsed_template_data
-        overlayed_data = dict(base_template_data)
-        for key, value in parsed_template_data.items():
-            if value is not None and value != []:
-                overlayed_data[key] = value
-        return overlayed_data
     
     def _p_vertical_accel_curve(self, data: dict):
         data = asset_path_to_data(data["ObjectPath"])["Properties"]
