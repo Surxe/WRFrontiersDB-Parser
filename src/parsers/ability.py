@@ -18,7 +18,9 @@ class Ability(Object):
         else:
             data = self.source_data
         # Wrapper for main ability parsing
-        return self._parse_from_data(data)
+        overlayed_data = self._parse_from_data(data)
+        for key, value in overlayed_data.items():
+            setattr(self, key, value)
 
     def _parse_from_data(self, source_data: dict):
         props = source_data.get("Properties")
@@ -289,9 +291,8 @@ class Ability(Object):
 
         overlayed_data = merge_dicts(template_ability_data, my_ability_data)
 
-        for key, value in overlayed_data.items():
-            setattr(self, key, value)
-    
+        return overlayed_data
+
     def _p_vertical_accel_curve(self, data: dict):
         data = asset_path_to_data(data["ObjectPath"])["Properties"]
         return parse_editor_curve_data(data)

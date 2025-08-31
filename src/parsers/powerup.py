@@ -15,7 +15,9 @@ class Powerup(Object):
 
     def _parse(self):
         # Wrapper for main ability parsing
-        return self._parse_from_data(self.source_data)
+        overlayed_data = self._parse_from_data(self.source_data)
+        for key, value in overlayed_data.items():
+            setattr(self, key, value)
     
     def _parse_from_data(self, source_data: dict):
         props = source_data["Properties"]
@@ -53,8 +55,7 @@ class Powerup(Object):
 
         overlayed_data = merge_dicts(template_ability_data, my_powerup_data)
 
-        for key, value in overlayed_data.items():
-            setattr(self, key, value)
+        return overlayed_data
 
     def _p_actor_class(self, data: dict):
         return p_actor_class(self, data)
