@@ -4,8 +4,8 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import Object, ParseTarget
-from parsers.ability import Ability
-from utils import asset_path_to_data, parse_colon_colon, parse_editor_curve_data
+from parsers.ability import Ability, p_movement_component, p_collision_component
+from utils import asset_path_to_data, parse_colon_colon, parse_editor_curve_data, merge_dicts
 
 class CharacterModule(Object):
     objects = dict()  # Dictionary to hold all CharacterModule instances
@@ -143,8 +143,12 @@ class CharacterModule(Object):
             "DefaultPrimaryArmor": "value",
         }
 
-        parsed_data = self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="ModuleScalar", set_attrs=False, tabs=2
-                                                           , default_configuration={
+        parsed_data = self._process_key_to_parser_function(key_to_parser_function, 
+                                                           props, 
+                                                           log_descriptor="ModuleScalar", 
+                                                           set_attrs=False, 
+                                                           tabs=2,
+                                                           default_configuration={
                                                                'target': ParseTarget.MATCH_KEY
                                                            })
         for key, value in parsed_data.items():
@@ -152,6 +156,9 @@ class CharacterModule(Object):
             parsed_module_scalers[key_to_store_value_in] = value
 
         return parsed_module_scalers
+    
+    def _p_obstacle_dmg_modifier(self, data):
+        return asset_path_to_data(data["ObjectPath"])["Properties"]["Value"]
 
     def _p_fire_modes(self, data):
         if len(data) != 1:
@@ -174,7 +181,7 @@ class CharacterModule(Object):
                 "bSingleShot": "value",
                 "ConsumeAllClipOnShot": "value",
                 "ProjectileMappings": self._p_projectile_mappings,
-                "ProjectileClass": self._p_projectile_class,
+                "ProjectileClass": None, #recursive called
                 "BallisticBehavior": self._p_ballistic_behavior,
                 "bEnableProximityFuse": "value",
                 "ProximityFuseRadius": "value",
@@ -203,11 +210,37 @@ class CharacterModule(Object):
                 "Weapon": None, # essentially empty. RetributionAutoAim uses it
                 "TimeBetweenShakes": "value", #Bayonet- generally no clue what it means but its 1s
                 "HalfConeAngle": "value", # tesla coil
+
+                # seen in template only
+                "ObstacleDamageModifier": self._p_obstacle_dmg_modifier,
+                "CollisionComponent": p_collision_component,
+                "MovementComponent": self._p_movement_component,
+                "DirectDamage": "value",
+                "AoeDamage": "value",
+                "CanBeTransfused": None,
+                "CollisionProfileName": "value",
+                "MeshComponent": None,
+                "GravityChangeFromDistance": parse_editor_curve_data,
+                "NumberOfMulticomponent": "value",
+                "TracerFX": None,
+                "WaveRadiusParam": None,
+                "bShowIncomingMissilesWarning": "value",
+                "ImportedDistanceSettings": self._p_distance_settings,
+                "RootComponent": None, #scatter, points to same CollisionComponent
             }
 
-            return self._process_key_to_parser_function(key_to_parser_function, data, log_descriptor="FiringBehavior", set_attrs=False, tabs=2, default_configuration={
+            # Recursively parse template if present
+            if "ProjectileClass" in data:
+                base = _p_firing_behavior(asset_path_to_data(asset_path_to_data(data["ProjectileClass"]["ObjectPath"])["ClassDefaultObject"]["ObjectPath"])["Properties"])
+            else:
+                base = {}
+            result = dict(base)
+
+            overlay = self._process_key_to_parser_function(key_to_parser_function, data, log_descriptor="FiringBehavior", set_attrs=False, tabs=2, default_configuration={
                 'target': ParseTarget.MATCH_KEY
             })
+
+            return merge_dicts(result, overlay)
 
         parsed_data = dict()
 
@@ -239,19 +272,8 @@ class CharacterModule(Object):
 
         return parsed_data
     
-    def _p_projectile_class(self, data):
-        data = asset_path_to_data(asset_path_to_data(data["ObjectPath"])["ClassDefaultObject"]["ObjectPath"])
-
-        key_to_parser_function = {
-            "ObstacleDamageModifier": "value", #TODO
-            "CollisionComponent": "value", #TODO
-            "MovementComponent": "value", #TODO
-            "DirectDamage": None, #seen elsewhere
-            "AoeDamage": None, #seen elsewhere
-        }
-
-        # projectile class is a TEMPLATE
-        
+    def _p_movement_component(self, data):
+        return p_movement_component(data)
 
     def _p_abilities(self, list: list):
         parsed_abilities = []
