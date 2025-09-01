@@ -421,10 +421,10 @@ class Ability(Object):
                 "CorpseTime": "value",
                 "CorpseVisible": "value", #unsure what this and corpse time refer to. This is used only by napalm, so I would have guessed its napalm area duration, but there's a buff for the napalm area that is 5s which is what I feel like it is in game. CorpseTime is 3s here. worth checking in game if its 3s or 5s #TODO
                 "CollisionProfileName": "value",
-                "ExpansionDistanceSettingsDefault": "value",
-                "EffectiveDistanceSettingsDefault": "value",
-                "MaxDistanceSettingsDefault": "value",
-                "DeathDistanceSettingsDefault": "value",
+                "ExpansionDistanceSettingsDefault": (self._p_distance, "ExpansionDistanceSettings"),
+                "EffectiveDistanceSettingsDefault": (self._p_distance, "EffectiveDistanceSettings"),
+                "MaxDistanceSettingsDefault": (self._p_distance, "MaxDistanceSettings"),
+                "DeathDistanceSettingsDefault": (self._p_distance, "DeathDistanceSettings"),
                 "OwnerReactionOnHit": None, # voiceline
                 "VictimReactionOnHoming": None,
                 "VictimReactionOnHit": None, # voiceline
@@ -570,6 +570,9 @@ class Ability(Object):
     def _p_weapon_infos(self, data: dict):
         log(f"Parsing weapon infos for {self.id}", tabs=4)
         return p_weapon_infos(data)
+    
+    def _p_distance(self, data):
+        return data["Distance"]
 
 def p_armor_zones(list: list):
     armor_zone_names = []
@@ -656,6 +659,8 @@ def p_collision_component(data):
         "BodyInstance": None,
         "CapsuleHalfHeight": "value",
         "CapsuleRadius": "value",
+        "RelativeScale3D": "value",
+        "bTraceComplexOnMove": None,
     }
 
     return Ability._process_key_to_parser_function(Ability(), key_to_parser_function, props, log_descriptor="CollisionComponent", set_attrs=False, tabs=2, default_configuration={

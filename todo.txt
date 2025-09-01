@@ -2,3 +2,5 @@
 dps calcs
 # parse powerups
 # shield damage missing from magneto
+# projectileclass in projectilemappings
+# PreInfinityExtrap and PostInfinityExtrap in editorcurvedata

@@ -165,11 +165,12 @@ class CharacterModule(Object):
             raise ValueError(f"Structure changed for {self.__class__.__name__} {self.id}: expected 1 FireMode, got {len(data)}")
         fire_mode = data[0]
         fire_mode_data = asset_path_to_data(fire_mode["ObjectPath"])
-        firing_behavior_data = asset_path_to_data(fire_mode_data["Properties"]["FiringBehavior"]["ObjectPath"])
-        props = firing_behavior_data["Properties"]
-        # contains damage related data that is overlayed over the Default damage found in ModuleScalars
 
-        def _p_firing_behavior(data):
+        def p_firing_behavior(data):
+            data = asset_path_to_data(data["ObjectPath"])
+            data = data["Properties"]
+            # contains damage related data that is overlayed over the Default damage found in ModuleScalars
+            
             key_to_parser_function = {
                 "JumpsCount": "value",
                 "JumpPowerQuotient": "value",
@@ -227,11 +228,23 @@ class CharacterModule(Object):
                 "bShowIncomingMissilesWarning": "value",
                 "ImportedDistanceSettings": self._p_distance_settings,
                 "RootComponent": None, #scatter, points to same CollisionComponent
+                "ExpansionDistanceSettingsDefault": None,
+                "EffectiveDistanceSettingsDefault": None,
+                "MaxDistanceSettingsDefault": None,
+                "DeathDistanceSettingsDefault": None,
+                "DefaultDistanceSettings": (self._p_distance_settings, "DistanceSettings"),
+                "UberGraphFrame": None,
+                "AliveComponentsMaskParam": None,
+                "CoordsParam": None,
+                "DirectionParam": None,
+                "ExplosionSoundEvent": None,
+                "ExplosionFX": None,
+                "DistanceSettingsCurve": (parse_editor_curve_data, "DistanceSettings")
             }
 
             # Recursively parse template if present
             if "ProjectileClass" in data:
-                base = _p_firing_behavior(asset_path_to_data(asset_path_to_data(data["ProjectileClass"]["ObjectPath"])["ClassDefaultObject"]["ObjectPath"])["Properties"])
+                base = p_firing_behavior(asset_path_to_data(data["ProjectileClass"]["ObjectPath"])["ClassDefaultObject"])
             else:
                 base = {}
             result = dict(base)
@@ -242,36 +255,44 @@ class CharacterModule(Object):
 
             return merge_dicts(result, overlay)
 
-        parsed_data = dict()
+        def p_burst_behavior(data):
+            data = asset_path_to_data(data["ObjectPath"])
+            props = data["Properties"]
 
-        firing_behavior_parsed_data = _p_firing_behavior(props)
-        for key, value in firing_behavior_parsed_data.items():
-            parsed_data[key] = value
-
-        if "BurstBehavior" not in fire_mode_data["Properties"]:
-            return parsed_data
-        burst_behavior_data = asset_path_to_data(fire_mode_data["Properties"]["BurstBehavior"]["ObjectPath"])
-        props = burst_behavior_data["Properties"]
-
-        def _p_burst_behavior(data):
             key_to_parser_function = {
                 "BurstLength": "value",
                 "TimeBetweenBursts": "value",
                 "bOneShotEffectPerBurst": "value",
             }
             
-            return self._process_key_to_parser_function(key_to_parser_function, data, log_descriptor="BurstBehavior", set_attrs=False, tabs=2, default_configuration={
+            return self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="BurstBehavior", set_attrs=False, tabs=2, default_configuration={
                 'target': ParseTarget.MATCH_KEY
             })
         
-        burst_behavior_parsed_data = _p_burst_behavior(props)
-        for key, value in burst_behavior_parsed_data.items():
-            if key in parsed_data:
-                raise ValueError(f"Duplicate key found in FiringBehavior and BurstBehavior: {key}")
-            parsed_data[key] = value
+        def p_charging_behavior(data):
+            data = asset_path_to_data(data["ObjectPath"])
+            props = data["Properties"]
 
-        return parsed_data
-    
+            key_to_parser_function = {
+                "TimeToCharge": "value",
+                "ShootOnFullCharge": "value",
+                "ChargeModifiers": "value",#TODO
+            }
+
+            return self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="ChargingBehavior", set_attrs=False, tabs=2, default_configuration={
+                'target': ParseTarget.MATCH_KEY
+            })
+
+        key_to_parser_function = {
+            "FiringBehavior": p_firing_behavior,
+            "BurstBehavior": p_burst_behavior,
+            "ChargingBehavior": p_charging_behavior
+        }
+        
+        return self._process_key_to_parser_function(key_to_parser_function, fire_mode_data["Properties"], log_descriptor="FireMode", set_attrs=False, tabs=1, default_configuration={
+            'target': ParseTarget.MATCH_KEY
+        })
+
     def _p_movement_component(self, data):
         return p_movement_component(data)
 
@@ -343,7 +364,6 @@ class CharacterModule(Object):
             "InterpMode": prev_interp_mode,
             "CurveData": parsed_distance_settings
         }
-
 
     def _p_this_distance_setting(self, data):
         key_to_parser_function = {
