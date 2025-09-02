@@ -125,7 +125,7 @@ class GameMode(Object):
             "BeaconCapture": "value",
             "LastMechLost": "value",
             "TitansDiff": parse_editor_curve_data,
-            "ScoreDiff": "value",
+            "ScoreDiff": parse_editor_curve_data,
             "TitanReadyMessageClass": None,
             "EnemyTeamDeployedTitanMessageClass": None,
             "BeaconHold": "value",

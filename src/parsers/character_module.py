@@ -217,7 +217,7 @@ class CharacterModule(Object):
                 "CollisionComponent": p_collision_component,
                 "MovementComponent": self._p_movement_component,
                 "DirectDamage": "value",
-                "AoeDamage": "value",
+                "AoeDamage": parse_editor_curve_data,
                 "CanBeTransfused": None,
                 "CollisionProfileName": "value",
                 "MeshComponent": None,
@@ -374,7 +374,7 @@ class CharacterModule(Object):
             "bUseFocusComponentAlignment": "value",
             "ProjectileClass": None,
             "HitError": "value",
-            "DistToInitialSpeed": "value",
+            "DistToInitialSpeed": parse_editor_curve_data,
             "bBallisticModeForced": "value",
         }
 
