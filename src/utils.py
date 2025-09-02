@@ -217,7 +217,6 @@ def parse_editor_curve_data(data: dict):
         dist_data = dist_data["Keys"]
 
     parsed_curve = []
-    prev_interp_mode = None
     for elem in dist_data:
         for expected_key, expected_value in expected_curve_data.items():
             if expected_key not in elem:
@@ -225,19 +224,14 @@ def parse_editor_curve_data(data: dict):
             if elem[expected_key] != expected_value:
                 raise ValueError(f"Unexpected value for key '{expected_key}' in curve data element: {elem[expected_key]} (expected: {expected_value})")
         interp_mode = elem["InterpMode"]
-        if prev_interp_mode is not None and interp_mode != prev_interp_mode:
-            raise ValueError(f"Unexpected interpolation mode change from {prev_interp_mode} to {interp_mode}")
-        prev_interp_mode = interp_mode
         parsed_elem = {
             "Time": elem["Time"],
-            "Value": elem["Value"]
+            "Value": elem["Value"],
+            "InterpMode": interp_mode
         }
         parsed_curve.append(parsed_elem)
 
-    curve_data = {
-        "InterpMode": prev_interp_mode,
-        "CurveData": parsed_curve
-    }
+    curve_data = parsed_curve
 
     if 'DistToDamage' in data:
         data["DistToDamage"] = curve_data
