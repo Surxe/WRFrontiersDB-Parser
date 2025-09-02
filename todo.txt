@@ -1,4 +1,2 @@
 # everything in ctrl shift f "pass"
 dps calcs
-# ScoreDiff EditorCurveData from gamemode
-# BP_Ability_Atrophy missing projectile type info

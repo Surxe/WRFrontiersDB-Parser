@@ -50,7 +50,7 @@ class Ability(Object):
             "SocketName": None,
             "SystemTemplate": None,
             "ReactionOnRecharge": None, #voice line
-            "SpawnActorAction": {"parser": self._p_spawn_action, "action": ParseAction.DICT_ENTRY, "target": ParseTarget.MATCH_KEY_SNAKE},
+            "SpawnActorAction": {"parser": self._p_spawn_action, "action": ParseAction.DICT_ENTRY, "target": ParseTarget.MATCH_KEY},
             "ConfirmationAction": {"parser": self._p_confirmation_action, "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY},
             "ActorCDOShapeComponent": self._p_actor_class,
             "TargetingActionWithConfirmation": {"parser": self._p_confirmation_action, "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY},
@@ -712,7 +712,10 @@ def p_buff_area_component(data: dict):
         props,
         log_descriptor="BuffAreaComponent",
         tabs=6,
-        set_attrs=False
+        set_attrs=False,
+        default_configuration={
+            'target': ParseTarget.MATCH_KEY
+        }
     )
 
 def p_prevent_focus(data: dict):
