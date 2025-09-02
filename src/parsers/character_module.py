@@ -5,7 +5,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import Object, ParseTarget
 from parsers.ability import Ability, p_movement_component, p_collision_component, p_actor_class
-from utils import asset_path_to_data, parse_colon_colon, parse_editor_curve_data, merge_dicts
+from utils import log, asset_path_to_data, parse_colon_colon, parse_editor_curve_data, merge_dicts
 
 class CharacterModule(Object):
     objects = dict()  # Dictionary to hold all CharacterModule instances
@@ -293,10 +293,22 @@ class CharacterModule(Object):
             data = asset_path_to_data(data["ObjectPath"])
             props = data["Properties"]
 
+            def p_charge_modifiers(data: list):
+                parsed_modifiers = []
+                for charge_modifier in data:
+                    what = parse_colon_colon(charge_modifier["Key"])
+                    ecd = parse_editor_curve_data(charge_modifier["Value"])
+                    parsed_modifier = {
+                        "what": what,
+                        "CurveData": ecd,
+                    }
+                    parsed_modifiers.append(parsed_modifier)
+                return parsed_modifiers
+
             key_to_parser_function = {
                 "TimeToCharge": "value",
                 "ShootOnFullCharge": "value",
-                "ChargeModifiers": "value",#TODO
+                "ChargeModifiers": p_charge_modifiers,
                 "ChargedShotSound": None,
             }
 
@@ -343,7 +355,6 @@ class CharacterModule(Object):
                 "FireFX": None,
                 "FireSound": None,
             }
-
             parsed_mapping = self._process_key_to_parser_function(key_to_parser_function, projectile_mapping, log_descriptor="ProjectileMapping", set_attrs=False, tabs=2, default_configuration={
                 'target': ParseTarget.MATCH_KEY
             })
