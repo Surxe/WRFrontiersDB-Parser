@@ -1,2 +1,5 @@
 # everything in ctrl shift f "pass"
 dps calcs
+# projectileclass in projectilemappings
+# PreInfinityExtrap and PostInfinityExtrap in editorcurvedata
+# ScoreDiff EditorCurveData from gamemode

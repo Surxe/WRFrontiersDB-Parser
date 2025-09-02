@@ -4,8 +4,8 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import Object, ParseTarget
-from parsers.ability import Ability
-from utils import asset_path_to_data, parse_colon_colon, parse_editor_curve_data
+from parsers.ability import Ability, p_movement_component, p_collision_component, p_actor_class
+from utils import log, asset_path_to_data, parse_colon_colon, parse_editor_curve_data, merge_dicts
 
 class CharacterModule(Object):
     objects = dict()  # Dictionary to hold all CharacterModule instances
@@ -143,8 +143,12 @@ class CharacterModule(Object):
             "DefaultPrimaryArmor": "value",
         }
 
-        parsed_data = self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="ModuleScalar", set_attrs=False, tabs=2
-                                                           , default_configuration={
+        parsed_data = self._process_key_to_parser_function(key_to_parser_function, 
+                                                           props, 
+                                                           log_descriptor="ModuleScalar", 
+                                                           set_attrs=False, 
+                                                           tabs=2,
+                                                           default_configuration={
                                                                'target': ParseTarget.MATCH_KEY
                                                            })
         for key, value in parsed_data.items():
@@ -152,17 +156,21 @@ class CharacterModule(Object):
             parsed_module_scalers[key_to_store_value_in] = value
 
         return parsed_module_scalers
+    
+    def _p_obstacle_dmg_modifier(self, data):
+        return asset_path_to_data(data["ObjectPath"])["Properties"]["Value"]
 
     def _p_fire_modes(self, data):
         if len(data) != 1:
             raise ValueError(f"Structure changed for {self.__class__.__name__} {self.id}: expected 1 FireMode, got {len(data)}")
         fire_mode = data[0]
         fire_mode_data = asset_path_to_data(fire_mode["ObjectPath"])
-        firing_behavior_data = asset_path_to_data(fire_mode_data["Properties"]["FiringBehavior"]["ObjectPath"])
-        props = firing_behavior_data["Properties"]
-        # contains damage related data that is overlayed over the Default damage found in ModuleScalars
 
-        def _p_firing_behavior(data):
+        def p_firing_behavior(data):
+            data = asset_path_to_data(data["ObjectPath"])
+            data = data["Properties"]
+            # contains damage related data that is overlayed over the Default damage found in ModuleScalars
+
             key_to_parser_function = {
                 "JumpsCount": "value",
                 "JumpPowerQuotient": "value",
@@ -174,7 +182,7 @@ class CharacterModule(Object):
                 "bSingleShot": "value",
                 "ConsumeAllClipOnShot": "value",
                 "ProjectileMappings": self._p_projectile_mappings,
-                "ProjectileClass": None,
+                "ProjectileClass": None, #recursive called
                 "BallisticBehavior": self._p_ballistic_behavior,
                 "bEnableProximityFuse": "value",
                 "ProximityFuseRadius": "value",
@@ -203,41 +211,124 @@ class CharacterModule(Object):
                 "Weapon": None, # essentially empty. RetributionAutoAim uses it
                 "TimeBetweenShakes": "value", #Bayonet- generally no clue what it means but its 1s
                 "HalfConeAngle": "value", # tesla coil
+
+                # seen in template only
+                "ObstacleDamageModifier": self._p_obstacle_dmg_modifier,
+                "CollisionComponent": p_collision_component,
+                "MovementComponent": self._p_movement_component,
+                "DirectDamage": "value",
+                "AoeDamage": "value",
+                "CanBeTransfused": None,
+                "CollisionProfileName": "value",
+                "MeshComponent": None,
+                "GravityChangeFromDistance": parse_editor_curve_data,
+                "NumberOfMulticomponent": "value",
+                "TracerFX": None,
+                "WaveRadiusParam": None,
+                "bShowIncomingMissilesWarning": "value",
+                "ImportedDistanceSettings": (self._p_distance_settings, "DistanceSettings"),
+                "RootComponent": None, #scatter, points to same CollisionComponent
+                "ExpansionDistanceSettingsDefault": None,
+                "EffectiveDistanceSettingsDefault": None,
+                "MaxDistanceSettingsDefault": None,
+                "DeathDistanceSettingsDefault": None,
+                "DefaultDistanceSettings": None,
+                "UberGraphFrame": None,
+                "AliveComponentsMaskParam": None,
+                "CoordsParam": None,
+                "DirectionParam": None,
+                "ExplosionSoundEvent": None,
+                "ExplosionFX": None,
+                "DistanceSettingsCurve": parse_editor_curve_data,
+                "bUseTracerOnEachComponent": "value",
+                "bAlwaysRelevant": None,
+                "InitialLifeSpan": "value",
+                "BuffsOnHit": self._p_actor_class,
+                "CruiseRollSeconds": "value",
+                "HomingClimbTurnRate": "value",
+                "HomingCruiseTurnRate": "value",
+                "CruiseHeight": "value",
+                "CruiseRollAngle": "value",
+                "CruiseHeightMin": "value",
+                "MaxRicochets": "value", #jigsaw
+                "CorpseAttachOffset": None,
+                "DestroyTracerOnceDisabled": "value",
+                "CorpseTime": None,
+                "DelayTime": "value", #magneto
+                "VisualHitDamage": None,
+                "ExplosionHitSettings": None,
+                "StartOfDelaySoundEvent": None,
+                "bUseGravityChangeFromDistanceCurve": "value",
+                "VelocityByDistance": "value",
             }
 
-            return self._process_key_to_parser_function(key_to_parser_function, data, log_descriptor="FiringBehavior", set_attrs=False, tabs=2, default_configuration={
+            # Recursively parse template if present
+            if "ProjectileClass" in data:
+                base = p_firing_behavior(asset_path_to_data(data["ProjectileClass"]["ObjectPath"])["ClassDefaultObject"])
+            else:
+                base = {}
+            result = dict(base)
+
+            overlay = self._process_key_to_parser_function(key_to_parser_function, data, log_descriptor="FiringBehavior", set_attrs=False, tabs=2, default_configuration={
                 'target': ParseTarget.MATCH_KEY
             })
 
-        parsed_data = dict()
+            return merge_dicts(result, overlay)
 
-        firing_behavior_parsed_data = _p_firing_behavior(props)
-        for key, value in firing_behavior_parsed_data.items():
-            parsed_data[key] = value
+        def p_burst_behavior(data):
+            data = asset_path_to_data(data["ObjectPath"])
+            props = data["Properties"]
 
-        if "BurstBehavior" not in fire_mode_data["Properties"]:
-            return parsed_data
-        burst_behavior_data = asset_path_to_data(fire_mode_data["Properties"]["BurstBehavior"]["ObjectPath"])
-        props = burst_behavior_data["Properties"]
-
-        def _p_burst_behavior(data):
             key_to_parser_function = {
                 "BurstLength": "value",
                 "TimeBetweenBursts": "value",
                 "bOneShotEffectPerBurst": "value",
             }
             
-            return self._process_key_to_parser_function(key_to_parser_function, data, log_descriptor="BurstBehavior", set_attrs=False, tabs=2, default_configuration={
+            return self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="BurstBehavior", set_attrs=False, tabs=2, default_configuration={
                 'target': ParseTarget.MATCH_KEY
             })
         
-        burst_behavior_parsed_data = _p_burst_behavior(props)
-        for key, value in burst_behavior_parsed_data.items():
-            if key in parsed_data:
-                raise ValueError(f"Duplicate key found in FiringBehavior and BurstBehavior: {key}")
-            parsed_data[key] = value
+        def p_charging_behavior(data):
+            data = asset_path_to_data(data["ObjectPath"])
+            props = data["Properties"]
 
-        return parsed_data
+            def p_charge_modifiers(data: list):
+                parsed_modifiers = []
+                for charge_modifier in data:
+                    what = parse_colon_colon(charge_modifier["Key"])
+                    ecd = parse_editor_curve_data(charge_modifier["Value"])
+                    parsed_modifier = {
+                        "what": what,
+                        "CurveData": ecd,
+                    }
+                    parsed_modifiers.append(parsed_modifier)
+                return parsed_modifiers
+
+            key_to_parser_function = {
+                "TimeToCharge": "value",
+                "ShootOnFullCharge": "value",
+                "ChargeModifiers": p_charge_modifiers,
+                "ChargedShotSound": None,
+            }
+
+            return self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="ChargingBehavior", set_attrs=False, tabs=2, default_configuration={
+                'target': ParseTarget.MATCH_KEY
+            })
+
+        key_to_parser_function = {
+            "FiringBehavior": p_firing_behavior,
+            "BurstBehavior": p_burst_behavior,
+            "ChargingBehavior": p_charging_behavior,
+            "SwitchingType": parse_colon_colon
+        }
+        
+        return self._process_key_to_parser_function(key_to_parser_function, fire_mode_data["Properties"], log_descriptor="FireMode", set_attrs=False, tabs=1, default_configuration={
+            'target': ParseTarget.MATCH_KEY
+        })
+
+    def _p_movement_component(self, data):
+        return p_movement_component(data)
 
     def _p_abilities(self, list: list):
         parsed_abilities = []
@@ -250,6 +341,9 @@ class CharacterModule(Object):
     def _p_reload_type(self, data):
         self.reload_type = parse_colon_colon(data)  # ESWeaponReloadType::X -> X
 
+    def _p_actor_class(self, data):
+        return p_actor_class(self, data)
+
     def _p_projectile_mappings(self, data):
         parsed_mappings = []
         for projectile_mapping in data:
@@ -261,7 +355,6 @@ class CharacterModule(Object):
                 "FireFX": None,
                 "FireSound": None,
             }
-
             parsed_mapping = self._process_key_to_parser_function(key_to_parser_function, projectile_mapping, log_descriptor="ProjectileMapping", set_attrs=False, tabs=2, default_configuration={
                 'target': ParseTarget.MATCH_KEY
             })
@@ -307,7 +400,6 @@ class CharacterModule(Object):
             "InterpMode": prev_interp_mode,
             "CurveData": parsed_distance_settings
         }
-
 
     def _p_this_distance_setting(self, data):
         key_to_parser_function = {

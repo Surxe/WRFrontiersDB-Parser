@@ -280,6 +280,7 @@ class Ability(Object):
             "FriendlyEffectMaterial": None,
             "HostileEffectMaterial": None,
             "TransitionTime": "value",
+            "InputActionOccupationPriority": None, #orbital strike
         }
 
         my_ability_data = self._process_key_to_parser_function(
@@ -421,10 +422,10 @@ class Ability(Object):
                 "CorpseTime": "value",
                 "CorpseVisible": "value", #unsure what this and corpse time refer to. This is used only by napalm, so I would have guessed its napalm area duration, but there's a buff for the napalm area that is 5s which is what I feel like it is in game. CorpseTime is 3s here. worth checking in game if its 3s or 5s #TODO
                 "CollisionProfileName": "value",
-                "ExpansionDistanceSettingsDefault": "value",
-                "EffectiveDistanceSettingsDefault": "value",
-                "MaxDistanceSettingsDefault": "value",
-                "DeathDistanceSettingsDefault": "value",
+                "ExpansionDistanceSettingsDefault": (self._p_distance, "ExpansionDistanceSettings"),
+                "EffectiveDistanceSettingsDefault": (self._p_distance, "EffectiveDistanceSettings"),
+                "MaxDistanceSettingsDefault": (self._p_distance, "MaxDistanceSettings"),
+                "DeathDistanceSettingsDefault": (self._p_distance, "DeathDistanceSettings"),
                 "OwnerReactionOnHit": None, # voiceline
                 "VictimReactionOnHoming": None,
                 "VictimReactionOnHit": None, # voiceline
@@ -570,6 +571,9 @@ class Ability(Object):
     def _p_weapon_infos(self, data: dict):
         log(f"Parsing weapon infos for {self.id}", tabs=4)
         return p_weapon_infos(data)
+    
+    def _p_distance(self, data):
+        return data["Distance"]
 
 def p_armor_zones(list: list):
     armor_zone_names = []
@@ -643,15 +647,28 @@ def p_weapon_infos(list: list):
     weapon_module_id = CharacterModule.get_from_asset_path(last_weapon_module_asset_path)
     return weapon_module_id
 
-def p_capsule_component(data: dict):
+def p_collision_component(data):
     data = asset_path_to_data(data["ObjectPath"])
     if 'Properties' not in data:
         return
     props = data["Properties"]
-    return {
-        'CapsuleHalfHeight': props.get('CapsuleHalfHeight'),
-        'CapsuleRadius': props.get('CapsuleRadius')
+
+    key_to_parser_function = {
+        "SphereRadius": "value",
+        "AreaClassOverride": None,
+        "bUseSystemDefaultObstacleAreaClass": None,
+        "BodyInstance": None,
+        "CapsuleHalfHeight": "value",
+        "CapsuleRadius": "value",
+        "RelativeScale3D": "value",
+        "bTraceComplexOnMove": None,
+        "StaticMesh": None,
+        "bHiddenInGame": None,
     }
+
+    return Ability._process_key_to_parser_function(Ability(), key_to_parser_function, props, log_descriptor="CollisionComponent", set_attrs=False, tabs=2, default_configuration={
+        'target': ParseTarget.MATCH_KEY
+    })
 
 def p_transf_sphere_component(data: dict):
     data = asset_path_to_data(data["ObjectPath"])
@@ -919,14 +936,14 @@ def p_actor_class(obj, data: dict):
         "MineLocationEQ": None,
         "ExplosionStartSoundEvent": None, #smoke wall
         "BoxComponent": None,
-        "CapsuleComponent": p_capsule_component, #supressor
+        "CapsuleComponent": p_collision_component, #supressor
         "bShouldFall": "value",
         "FallingSpeed": "value",
         "MaxScanRadius": "value",
         "ScanLifetime": "value",
         "SpottingBuffClass": None,
         "DeactivationLoopSound": None, #singulators
-        "CollisionComponent": p_capsule_component,
+        "CollisionComponent": p_collision_component,
         "TransfusionSphereComponent": p_transf_sphere_component,
         "spawnDuration": "value",
         "TransfusionRadius": "value",
@@ -975,6 +992,9 @@ def p_actor_class(obj, data: dict):
         "ArmorRegenPercentPerSecond": "value",
         "AbilityClasses": p_ability_classes, #orbital strike powerup
         "MaxAbilitiesInvocationsCount": "value",
+        "ProjectileArmorDamageMult": "value",
+        "ProjectileShieldDamageMult": "value",
+        "bApplyMeshFxToAllModules": None,
     }
 
     parsed_data = obj._process_key_to_parser_function(
