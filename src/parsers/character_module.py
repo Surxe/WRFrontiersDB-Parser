@@ -4,7 +4,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import Object, ParseTarget
-from parsers.ability import Ability, p_movement_component, p_collision_component
+from parsers.ability import Ability, p_movement_component, p_collision_component, p_actor_class
 from utils import asset_path_to_data, parse_colon_colon, parse_editor_curve_data, merge_dicts
 
 class CharacterModule(Object):
@@ -170,7 +170,7 @@ class CharacterModule(Object):
             data = asset_path_to_data(data["ObjectPath"])
             data = data["Properties"]
             # contains damage related data that is overlayed over the Default damage found in ModuleScalars
-            
+
             key_to_parser_function = {
                 "JumpsCount": "value",
                 "JumpPowerQuotient": "value",
@@ -226,20 +226,40 @@ class CharacterModule(Object):
                 "TracerFX": None,
                 "WaveRadiusParam": None,
                 "bShowIncomingMissilesWarning": "value",
-                "ImportedDistanceSettings": self._p_distance_settings,
+                "ImportedDistanceSettings": (self._p_distance_settings, "DistanceSettings"),
                 "RootComponent": None, #scatter, points to same CollisionComponent
                 "ExpansionDistanceSettingsDefault": None,
                 "EffectiveDistanceSettingsDefault": None,
                 "MaxDistanceSettingsDefault": None,
                 "DeathDistanceSettingsDefault": None,
-                "DefaultDistanceSettings": (self._p_distance_settings, "DistanceSettings"),
+                "DefaultDistanceSettings": None,
                 "UberGraphFrame": None,
                 "AliveComponentsMaskParam": None,
                 "CoordsParam": None,
                 "DirectionParam": None,
                 "ExplosionSoundEvent": None,
                 "ExplosionFX": None,
-                "DistanceSettingsCurve": (parse_editor_curve_data, "DistanceSettings")
+                "DistanceSettingsCurve": parse_editor_curve_data,
+                "bUseTracerOnEachComponent": "value",
+                "bAlwaysRelevant": None,
+                "InitialLifeSpan": "value",
+                "BuffsOnHit": self._p_actor_class,
+                "CruiseRollSeconds": "value",
+                "HomingClimbTurnRate": "value",
+                "HomingCruiseTurnRate": "value",
+                "CruiseHeight": "value",
+                "CruiseRollAngle": "value",
+                "CruiseHeightMin": "value",
+                "MaxRicochets": "value", #jigsaw
+                "CorpseAttachOffset": None,
+                "DestroyTracerOnceDisabled": "value",
+                "CorpseTime": None,
+                "DelayTime": "value", #magneto
+                "VisualHitDamage": None,
+                "ExplosionHitSettings": None,
+                "StartOfDelaySoundEvent": None,
+                "bUseGravityChangeFromDistanceCurve": "value",
+                "VelocityByDistance": "value",
             }
 
             # Recursively parse template if present
@@ -277,6 +297,7 @@ class CharacterModule(Object):
                 "TimeToCharge": "value",
                 "ShootOnFullCharge": "value",
                 "ChargeModifiers": "value",#TODO
+                "ChargedShotSound": None,
             }
 
             return self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="ChargingBehavior", set_attrs=False, tabs=2, default_configuration={
@@ -286,7 +307,8 @@ class CharacterModule(Object):
         key_to_parser_function = {
             "FiringBehavior": p_firing_behavior,
             "BurstBehavior": p_burst_behavior,
-            "ChargingBehavior": p_charging_behavior
+            "ChargingBehavior": p_charging_behavior,
+            "SwitchingType": parse_colon_colon
         }
         
         return self._process_key_to_parser_function(key_to_parser_function, fire_mode_data["Properties"], log_descriptor="FireMode", set_attrs=False, tabs=1, default_configuration={
@@ -306,6 +328,9 @@ class CharacterModule(Object):
 
     def _p_reload_type(self, data):
         self.reload_type = parse_colon_colon(data)  # ESWeaponReloadType::X -> X
+
+    def _p_actor_class(self, data):
+        return p_actor_class(self, data)
 
     def _p_projectile_mappings(self, data):
         parsed_mappings = []

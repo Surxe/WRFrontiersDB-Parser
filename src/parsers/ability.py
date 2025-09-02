@@ -280,6 +280,7 @@ class Ability(Object):
             "FriendlyEffectMaterial": None,
             "HostileEffectMaterial": None,
             "TransitionTime": "value",
+            "InputActionOccupationPriority": None, #orbital strike
         }
 
         my_ability_data = self._process_key_to_parser_function(
@@ -661,6 +662,8 @@ def p_collision_component(data):
         "CapsuleRadius": "value",
         "RelativeScale3D": "value",
         "bTraceComplexOnMove": None,
+        "StaticMesh": None,
+        "bHiddenInGame": None,
     }
 
     return Ability._process_key_to_parser_function(Ability(), key_to_parser_function, props, log_descriptor="CollisionComponent", set_attrs=False, tabs=2, default_configuration={
@@ -989,6 +992,9 @@ def p_actor_class(obj, data: dict):
         "ArmorRegenPercentPerSecond": "value",
         "AbilityClasses": p_ability_classes, #orbital strike powerup
         "MaxAbilitiesInvocationsCount": "value",
+        "ProjectileArmorDamageMult": "value",
+        "ProjectileShieldDamageMult": "value",
+        "bApplyMeshFxToAllModules": None,
     }
 
     parsed_data = obj._process_key_to_parser_function(

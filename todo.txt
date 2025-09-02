@@ -4,3 +4,4 @@ dps calcs
 # shield damage missing from magneto
 # projectileclass in projectilemappings
 # PreInfinityExtrap and PostInfinityExtrap in editorcurvedata
+# ScoreDiff EditorCurveData from gamemode
