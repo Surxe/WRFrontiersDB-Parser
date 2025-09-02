@@ -66,7 +66,7 @@ class Analysis:
             "Cooldown": "DA_ModuleStat_Cooldown.0",
             "ShieldRegeneration": "DA_ModuleStat_ShieldRegeneration.0",
             "TimeToReload": "DA_ModuleStat_ReloadingTime.0",
-            "shot_damageArmor": "DA_ModuleStat_Armorshot_damage.0",
+            "DamageArmor": "DA_ModuleStat_ArmorDamage.0",
             "AoeArmor": True,
             "RoundsPerMinute": "DA_ModuleStat_FireRate.0",
             "FuelCapacity": "DA_ModuleStat_FuelCapacity.0",
@@ -74,8 +74,8 @@ class Analysis:
             "ShieldDelayReduction": "DA_ModuleStat_ShieldDelayReduction.0",
             "AoeNoArmor": True,
             "Armor": "DA_ModuleStat_Armor.0",
-            "time_between_shots": True,
-            "shot_damageNoArmor": "DA_ModuleStat_Shieldshot_damage.0",
+            "TimeBetweenShots": True,
+            "DamageNoArmor": "DA_ModuleStat_ShieldDamage.0",
         }
         stat_to_more_is_better_final = {}
         for stat_key in stat_keys_to_rank:
