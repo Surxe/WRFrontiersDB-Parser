@@ -53,7 +53,9 @@ class Analysis:
         def calc_diff(val1, val2, module_id):
             if not isinstance(val1, (int, float)) or not isinstance(val2, (int, float)):
                 raise TypeError(f"Invalid type for value in module {module_id}, val1 {val1} val2 {val2}")
-            if val1 != 0:
+            if val1 == 0 and val2 == 0:
+                diff_value = 0 #no div by 0 necessary to deem this true
+            elif val1 != 0:
                 diff_value = (val2 - val1) / val1
             else:
                 diff_value = f"+{val2:.1f}"
@@ -81,6 +83,10 @@ class Analysis:
         distinct_stat_keys = set()
         level_diffs = {}
 
+        def register_distinct_stat(stat):
+            if stat is not None and stat not in distinct_stat_keys:
+                distinct_stat_keys.add(stat)
+
         superficial_keys = {
             'Health', 'Level', 'Def', 'Atk', 'Mob', 'AbilityPower', 'Mobility',
             'ModuleClass_1', 'ModuleClass_2', 'ModuleTag_1', 'ModuleTag_2',
@@ -93,23 +99,28 @@ class Analysis:
             log(f"Analyzing level differences for module: {module_id}")
             level_base, level_max = extract_base_and_max(module)
             diff = {}
+
+            def add_diff(key, value):
+                if value is not None:
+                    diff[key] = value
+                    register_distinct_stat(key)
+
             for key in level_base.keys():
                 if key in superficial_keys or key in {'ScrapRewards', 'UpgradeCurrency'}:
                     continue
-                base_value = level_base[key]
-                max_value = level_max[key]
-                diff[key] = calc_diff(base_value, max_value, module_id)
-                if diff[key] is not None:
-                    distinct_stat_keys.add(key)
+                elif key in ['DPS_DamageArmor', 'DPS_DamageNoArmor', 'DPS_AoeArmor', 'DPS_AoeNoArmor']:
+                    dps_keys = level_base[key] #InstantDPS, ClipDPS, CycleDPS
+                    for dps_key in dps_keys:
+                        add_diff(f"{key}_{dps_key}", calc_diff(level_base[key][dps_key], level_max[key][dps_key], module_id))
+                else:
+                    add_diff(key, calc_diff(level_base[key], level_max[key], module_id))
+
             module_upgrade_costs = calculate_upgrade_costs(module, total_upgrade_costs)
-            module_name = getattr(module, 'name', None)
             level_diffs[module_id] = {
                 'stats_percent_increase': dict(sorted(diff.items()))
             }
             if module_upgrade_costs:
                 level_diffs[module_id]['total_upgrade_cost'] = module_upgrade_costs
-            if module_name is not None:
-                level_diffs[module_id]['name'] = module_name
 
         return {
             'level_diffs': level_diffs,
@@ -123,7 +134,9 @@ class Analysis:
         stat_keys_to_rank = [key for key in distinct_stat_keys if key not in stat_keys_to_not_rank]
 
         def get_more_is_better_map(stat_keys_to_rank, module_stat_objects):
-            # {stat_key: module_stat_id: str or True if stat_key is a module stat short key}. Statkey is not added if its not to be utilized.
+            # if stat_key is not in map.keys(); search by ModuleStat.short_key
+            # if stat_key is in map, use it as:
+            # {stat_key: module_stat_id: str or <more_is_better>: bool}
             stat_to_more_is_better = {
                 "ChargeDuration": "DA_ModuleStat_ChargeDrain.0",
                 "Cooldown": "DA_ModuleStat_Cooldown.0",
@@ -139,6 +152,18 @@ class Analysis:
                 "Armor": "DA_ModuleStat_Armor.0",
                 "TimeBetweenShots": True,
                 "DamageNoArmor": "DA_ModuleStat_ShieldDamage.0",
+                "DPS_DamageArmor_InstantDPS": True,
+                "DPS_DamageArmor_ClipDPS": True,
+                "DPS_DamageArmor_CycleDPS": True,
+                "DPS_DamageNoArmor_InstantDPS": True,
+                "DPS_DamageNoArmor_ClipDPS": True,
+                "DPS_DamageNoArmor_CycleDPS": True,
+                "DPS_AoeArmor_InstantDPS": True,
+                "DPS_AoeArmor_ClipDPS": True,
+                "DPS_AoeArmor_CycleDPS": True,
+                "DPS_AoeNoArmor_InstantDPS": True,
+                "DPS_AoeNoArmor_ClipDPS": True,
+                "DPS_AoeNoArmor_CycleDPS": True
             }
             stat_to_more_is_better_final = {}
             for stat_key in stat_keys_to_rank:
@@ -198,6 +223,10 @@ class Analysis:
 
     ##########################
     #           DPS          #
+    ##########################
+
+    ##########################
+    #          Other         #
     ##########################
 
     def to_json(self):

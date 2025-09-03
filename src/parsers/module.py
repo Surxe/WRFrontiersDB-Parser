@@ -145,47 +145,9 @@ class Module(Object):
 
         return parsed_scalars
     
-    def calculate_dps(time_between_shots, reload_time, clip_size, shot_damage):
-        """
-        Calculate InstantDPS, ClipDPS, and CycleDPS.
-        
-        Args:
-            time_between_shots (float): Time between consecutive shots in seconds.
-            reload_time (float): Time taken to reload after emptying the clip.
-            clip_size (int): Number of bullets in a clip.
-            shot_damage (float): shot_damage per trigger/left-click.
-        
-        Returns:
-            dict: {
-                "InstantDPS": float,
-                "ClipDPS": float,
-                "CycleDPS": float
-            }
-        """
-        # Total shot_damage per clip
-        total_shot_damage = clip_size * shot_damage
-        
-        # Time to fire entire clip (last shot doesn’t need extra delay)
-        time_to_empty_clip = (clip_size - 1) * time_between_shots
-        
-        # InstantDPS (instantaneous, first shot at t=0)
-        burst_dps = shot_damage / time_between_shots if time_between_shots > 0 else float("inf")
-        
-        # ClipDPS (shot_damage per time to empty clip)
-        clip_dps = total_shot_damage / time_to_empty_clip if time_to_empty_clip > 0 else float("inf")
-        
-        # CycleDPS (includes reload cycle)
-        sustained_dps = total_shot_damage / (time_to_empty_clip + reload_time)
-        
-        return {
-            "InstantDPS": burst_dps,
-            "ClipDPS": clip_dps,
-            "CycleDPS": sustained_dps
-        }
-    
     def _p_levels_data(self, data):
         parsed_levels = []
-        for level in data:
+        for i, level in enumerate(data):
             """
             level may contain:
             {
@@ -233,18 +195,29 @@ class Module(Object):
             # Include all other key data pairs in the level
             for key, value in level.items():
                 if key not in ["UpgradeCurrency", "UpgradeCost", "FirstScrapRewardAmount", "FirstScrapRewardCurrency", "SecondScrapRewardAmount", "SecondScrapRewardCurrency",
-                               "ArmorDPS", "ShieldDPS"]: #dps calcs are not correct by any standard
+                               "ArmorDPS", "ShieldDPS",#dps calcs are not correct by any standard
+                               "TimeBetweenShots" #time between shots is egregiously rounded, unlike RoundsPerMinute. scourge says 750 rpm but 0 tbs
+                               ]: 
                     parsed_level[key] = value
 
             # Calculate DPS
-            # shot_damage_keys = ['DamageArmor', 'DamageNoArmor', 'AoeArmor', 'AoeNoArmor']
-            # for shot_damage_key in shot_damage_keys:
-            #     dps_stats = {
-            #         'TimeBetweenShots': parsed_level.get('TimeBetweenShots'),
-            #         'ReloadTime': parsed_level.get('ReloadTime'),
-            #         'ClipSize': parsed_level.get('ClipSize'),
-            #         'ShotDamage': parsed_level.get(shot_damage_key) * parsed_level.get('ProjectilesPerShot')
-            #     }
+            shot_damage_keys = ['DamageArmor', 'DamageNoArmor', 'AoeArmor', 'AoeNoArmor']
+            for shot_damage_key in shot_damage_keys:
+                if not all(k in parsed_level for k in ['RoundsPerMinute', 'TimeToReload', 'ClipSize', shot_damage_key]):
+                    continue
+                dps_stats = {
+                    'RoundsPerMinute': parsed_level.get('RoundsPerMinute'),
+                    'TimeToReload': parsed_level.get('TimeToReload'),
+                    'ClipSize': parsed_level.get('ClipSize'),
+                    'ShotDamage': parsed_level.get(shot_damage_key)
+                }
+                parsed_level[f"DPS_{shot_damage_key}"] = self.calculate_dps(
+                    dps_stats['RoundsPerMinute'],
+                    dps_stats['TimeToReload'],
+                    dps_stats['ClipSize'],
+                    dps_stats['ShotDamage']
+                )
+                log(f"Calculated DPS for {shot_damage_key}: {parsed_level[f'DPS_{shot_damage_key}']}")
 
             parsed_levels.append(parsed_level)
 
@@ -316,6 +289,54 @@ class Module(Object):
             module_socket_type_id = ModuleSocketType.get_from_asset_path(asset_path)
             module_socket_type_ids.append(module_socket_type_id)
         return module_socket_type_ids
+    
+    @staticmethod
+    def calculate_dps(rounds_per_per_minute, reload_time, clip_size, shot_damage):
+        """
+        Calculate InstantDPS, ClipDPS, and CycleDPS.
+        
+        Args:
+            rounds_per_per_minute (float):
+            reload_time (float): Time taken to reload after emptying the clip.
+            clip_size (int): Number of bullets in a clip.
+            shot_damage (float): shot_damage per trigger/left-click.
+        
+        Returns:
+            dict: {
+                "InstantDPS": float,
+                "ClipDPS": float,
+                "CycleDPS": float
+            }
+        """
+        # Total shot_damage per clip
+        total_shot_damage = clip_size * shot_damage
+
+        time_between_shots = 60 / rounds_per_per_minute
+
+        # Time to fire entire clip (last shot doesn’t need extra delay)
+        time_to_empty_clip = (clip_size - 1) * time_between_shots
+        
+        # InstantDPS (instantaneous, first shot at t=0)
+        burst_dps = shot_damage / time_between_shots if time_between_shots > 0 else None
+        if burst_dps is None:
+            raise ValueError("Burst DPS calculation failed")
+
+        # ClipDPS (shot_damage per time to empty clip)
+        clip_dps = total_shot_damage / time_to_empty_clip if time_to_empty_clip > 0 else None
+        
+        # CycleDPS (includes reload cycle)
+        sustained_dps = total_shot_damage / (time_to_empty_clip + reload_time)
+
+        res = {
+            "InstantDPS": burst_dps,
+        }
+
+        if clip_dps is not None:
+            res["ClipDPS"] = clip_dps
+
+        res["CycleDPS"] = sustained_dps
+
+        return res
     
 
 def parse_modules(to_file=False):
