@@ -13,9 +13,25 @@ class Analysis:
     def __init__(self, module_class, module_stat_class):
         self.module_class = module_class
         self.module_stat_class = module_stat_class
-        self._analyze_level_differences()
 
-    def _analyze_level_differences(self):
+        res = self.get_level_diffs_per_module(self.module_class.objects)
+        self.level_diffs_by_module = res['level_diffs']
+        distinct_stat_keys = res['distinct_stat_keys']
+        self.total_upgrade_cost_for_all_modules = res['total_upgrade_costs']
+
+        stat_ranks = self.get_ranks_per_stat(self.level_diffs_by_module, self.module_stat_class.objects, distinct_stat_keys)
+
+        ranks_per_module = self.get_ranks_per_module(stat_ranks, module_ids=self.level_diffs_by_module.keys())
+        for module_id, rank in ranks_per_module.items():
+            self.level_diffs_by_module[module_id]['stats_percentile'] = rank
+
+        self.level_diffs_by_stat = self.get_level_diffs_per_stat(self.level_diffs_by_module, stat_ranks)
+
+    #################################
+    #     Level Diffs/Upgrade Costs #
+    #################################
+    @staticmethod
+    def get_level_diffs_per_module(module_class_objects):
         def extract_base_and_max(module):
             level_base = {}
             level_max = {}
@@ -71,7 +87,7 @@ class Analysis:
             'ModuleFaction', 'FirePower', 'bIsPerk'
         }
 
-        for module_id, module in self.module_class.objects.items():
+        for module_id, module in module_class_objects.items():
             if getattr(module, 'production_status', None) != 'Ready':
                 continue
             log(f"Analyzing level differences for module: {module_id}")
@@ -95,13 +111,18 @@ class Analysis:
             if module_name is not None:
                 level_diffs[module_id]['name'] = module_name
 
-        self.level_diffs_by_module = level_diffs
-        self.total_upgrade_cost_for_all_modules = total_upgrade_costs
+        return {
+            'level_diffs': level_diffs,
+            'distinct_stat_keys': distinct_stat_keys,
+            'total_upgrade_costs': total_upgrade_costs
+        }
 
+    @staticmethod
+    def get_ranks_per_stat(level_diffs_by_module, module_stat_objects, distinct_stat_keys):
         stat_keys_to_not_rank = {'PrimaryParameter', 'SecondaryParameter'}
         stat_keys_to_rank = [key for key in distinct_stat_keys if key not in stat_keys_to_not_rank]
 
-        def get_more_is_better_map(stat_keys_to_rank, module_stat_class):
+        def get_more_is_better_map(stat_keys_to_rank, module_stat_objects):
             # {stat_key: module_stat_id: str or True if stat_key is a module stat short key}. Statkey is not added if its not to be utilized.
             stat_to_more_is_better = {
                 "ChargeDuration": "DA_ModuleStat_ChargeDrain.0",
@@ -123,12 +144,12 @@ class Analysis:
             for stat_key in stat_keys_to_rank:
                 entry = stat_to_more_is_better.get(stat_key)
                 if entry is None:
-                    module_stat = next((stat for stat in module_stat_class.objects.values() if stat.short_key == stat_key), None)
+                    module_stat = next((stat for stat in module_stat_objects.values() if stat.short_key == stat_key), None)
                     if module_stat is None:
                         raise ValueError(f"Unknown module stat for short_key {stat_key}")
                     more_is_better = getattr(module_stat, 'more_is_better', True)
                 elif isinstance(entry, str):
-                    module_stat = module_stat_class.objects[entry]
+                    module_stat = module_stat_objects[entry]
                     more_is_better = getattr(module_stat, 'more_is_better', True)
                 elif isinstance(entry, bool):
                     more_is_better = entry
@@ -136,9 +157,9 @@ class Analysis:
                     raise ValueError(f"Unknown more_is_better entry for stat {stat_key}: {entry}")
                 stat_to_more_is_better_final[stat_key] = more_is_better
             return stat_to_more_is_better_final
-        stat_to_more_is_better = get_more_is_better_map(stat_keys_to_rank, self.module_stat_class)
+        stat_to_more_is_better = get_more_is_better_map(stat_keys_to_rank, module_stat_objects)
 
-        def rank_modules(level_diffs_by_module, stat_keys_to_rank, stat_to_more_is_better):
+        def rank_stats(level_diffs_by_module, stat_keys_to_rank, stat_to_more_is_better):
             stat_ranks = {key: {} for key in stat_keys_to_rank}
             for stat_key in stat_ranks:
                 module_increases = []
@@ -151,26 +172,33 @@ class Analysis:
                 for rank, (module_id, _) in enumerate(module_increases[::-1]):
                     stat_ranks[stat_key][module_id] = rank
             return stat_ranks
-        stat_ranks = rank_modules(self.level_diffs_by_module, stat_keys_to_rank, stat_to_more_is_better)
+        return rank_stats(level_diffs_by_module, stat_keys_to_rank, stat_to_more_is_better)
 
-        for module_id, module_diff_data in self.level_diffs_by_module.items():
-            module_stat_ranks = {
+    @staticmethod
+    def get_ranks_per_module(stat_ranks, module_ids: list):
+        per_module_ranks = {}
+        for module_id in module_ids:
+            my_module_ranks = {
                 stat: stat_ranks[stat].get(module_id, 0) / len(stat_ranks[stat]) if stat in stat_ranks and len(stat_ranks[stat]) > 0 else 0
                 for stat in stat_ranks if module_id in stat_ranks[stat]
             }
-            module_diff_data['stats_percentile'] = dict(sorted(module_stat_ranks.items()))
+            per_module_ranks[module_id] = dict(sorted(my_module_ranks.items()))
+        return per_module_ranks
 
-
-        def build_verbose_stat_ranks(level_diffs_by_module, stat_ranks):
-            verbose_stat_ranks = {
-                stat_key: {
-                    module_id: level_diffs_by_module[module_id]['stats_percent_increase'][stat_key]
-                    for module_id in stat_rank
-                }
-                for stat_key, stat_rank in stat_ranks.items()
+    @staticmethod
+    def get_level_diffs_per_stat(level_diffs_by_module, stat_ranks):
+        verbose_stat_ranks = {
+            stat_key: {
+                module_id: level_diffs_by_module[module_id]['stats_percent_increase'][stat_key]
+                for module_id in stat_rank
             }
-            return verbose_stat_ranks
-        self.level_diffs_by_stat = build_verbose_stat_ranks(self.level_diffs_by_module, stat_ranks)
+            for stat_key, stat_rank in stat_ranks.items()
+        }
+        return verbose_stat_ranks
+
+    ##########################
+    #           DPS          #
+    ##########################
 
     def to_json(self):
         """Return analysis data as pretty-printed JSON."""

@@ -237,14 +237,14 @@ class Module(Object):
                     parsed_level[key] = value
 
             # Calculate DPS
-            shot_damage_keys = ['DamageArmor', 'DamageNoArmor', 'AoeArmor', 'AoeNoArmor']
-            for shot_damage_key in shot_damage_keys:
-                dps_stats = {
-                    'TimeBetweenShots': parsed_level.get('TimeBetweenShots'),
-                    'ReloadTime': parsed_level.get('ReloadTime'),
-                    'ClipSize': parsed_level.get('ClipSize'),
-                    'ShotDamage': parsed_level.get(shot_damage_key) * parsed_level.get('ProjectilesPerShot')
-                }
+            # shot_damage_keys = ['DamageArmor', 'DamageNoArmor', 'AoeArmor', 'AoeNoArmor']
+            # for shot_damage_key in shot_damage_keys:
+            #     dps_stats = {
+            #         'TimeBetweenShots': parsed_level.get('TimeBetweenShots'),
+            #         'ReloadTime': parsed_level.get('ReloadTime'),
+            #         'ClipSize': parsed_level.get('ClipSize'),
+            #         'ShotDamage': parsed_level.get(shot_damage_key) * parsed_level.get('ProjectilesPerShot')
+            #     }
 
             parsed_levels.append(parsed_level)
 
