@@ -1,2 +1,3 @@
 # everything in ctrl shift f "pass"
 dps calcs
+# get charging multiplier for "ideal charge" which is t=NoShootingTime when it is specified

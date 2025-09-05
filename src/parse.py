@@ -41,7 +41,7 @@ parse_progression_table()
 parse_game_modes()
 parse_bot_presets()
 parse_powerups()
-analyze(Module, ModuleStat)
+analyze(Module, CharacterModule, ModuleStat)
 
 
 ProgressionTable.to_file()
