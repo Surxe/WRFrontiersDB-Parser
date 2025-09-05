@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import log, get_json_data, asset_path_to_data, PARAMS, merge_dicts, parse_hex
+from utils import log, get_json_data, asset_path_to_data, PARAMS, merge_dicts, parse_hex, path_to_id
 from parsers.ability import p_actor_class
 from parsers.image import parse_image_asset_path
 
@@ -61,6 +61,8 @@ class Powerup(Object):
         return p_actor_class(self, data)
 
 def parse_powerup_wrapper(full_path, id):
+    if 'Indicator' in full_path:
+        return
     log(f"Parsing {Powerup.__name__} {id} from {full_path}", tabs=0)
     powerup_data = asset_path_to_data(get_json_data(full_path)[0]["ClassDefaultObject"]["ObjectPath"])
     powerup = Powerup(id, powerup_data)
@@ -69,23 +71,35 @@ def parse_powerup_wrapper(full_path, id):
 def parse_powerups(to_file=False):
     powerups_source_path = os.path.join(PARAMS.export_path, r"WRFrontiers\Content\Sparrow\Mechanics\Powerups")
     
+    # Maybe in the future the map files can be parsed directly which contains paths to the powerups. For now this will do.
     subdirs = ['Personal', 'Teams']
-    for subdir in subdirs:
-        powerups_subdir_path = os.path.join(powerups_source_path, subdir)
+    # Check if Personal & Teams folders exist first
+    use_subdirs = all(os.path.exists(os.path.join(powerups_source_path, subdir)) for subdir in subdirs) #they don't exist
+    #pre 8-26-2025 there were only personal powerups which were stored here directly, not in subdirs
+        
+    if use_subdirs:
+        for subdir in subdirs:
+            powerups_subdir_path = os.path.join(powerups_source_path, subdir)
 
-        # Teams/DamageResist, Teams/RegenArmor, Teams/UltimateCharge, etc.
-        # Personal/DoubleDamage, Personal/RechargeAbilities, etc.
-        for dir in os.listdir(powerups_subdir_path):
-            # Skip if its a file and not a dir, like Powerups/Teams/BP_PowerUp_TeamBuffs (a template file)
-            if not os.path.isdir(os.path.join(powerups_subdir_path, dir)):
+            # Teams/DamageResist, Teams/RegenArmor, Teams/UltimateCharge, etc.
+            # Personal/DoubleDamage, Personal/RechargeAbilities, etc.
+            for dir in os.listdir(powerups_subdir_path):
+                # Skip if its a file and not a dir, like Powerups/Teams/BP_PowerUp_TeamBuffs (a template file)
+                if not os.path.isdir(os.path.join(powerups_subdir_path, dir)):
+                    continue
+                
+                for file in os.listdir(os.path.join(powerups_subdir_path, dir)):
+                    file_path = os.path.join(powerups_subdir_path, dir, file)
+                    id = file.split('.')[0]
+                    parse_powerup_wrapper(file_path, id)
+
+    else:
+        for file in os.listdir(powerups_source_path):
+            if not file.startswith("BP_PowerUp_"):
                 continue
-            
-            for file in os.listdir(os.path.join(powerups_subdir_path, dir)):
-                if 'Indicator' in file:
-                    continue #not actual powerups
-                id = file.split('.')[0]
-                file_path = os.path.join(powerups_subdir_path, dir, file)
-                parse_powerup_wrapper(file_path, id)
+            file_path = os.path.join(powerups_source_path, file)
+            id = file.split('.')[0]
+            parse_powerup_wrapper(file_path, id)
 
     if to_file: # Condition prevents needlessly saving the same data multiple times, as it will also be saved if ran thru parse.py
         Powerup.to_file()
