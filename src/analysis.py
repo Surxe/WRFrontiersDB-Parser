@@ -184,15 +184,15 @@ class Analysis:
                 "Uncharged_InstantDPS": float, (if charge_behavior is defined)
                 "Uncharged_ClipDPS": float, (if charge_behavior is defined)
                 "Uncharged_CycleDPS": float, (if charge_behavior is defined)
-                "Uncharged_InfiniteAmmo_CycleDPS": float, (if charge_behavior is defined) (if differs to Uncharged_CycleDPS)
+                "Uncharged_InfiniteAmmo_CycleDPS": float, (if charge_behavior is defined) (if differs to Uncharged_ClipDPS)
                 "FullyCharged_InstantDPS": float, (if charge_behavior is defined)
                 "FullyCharged_ClipDPS": float, (if charge_behavior is defined)
                 "FullyCharged_CycleDPS": float, (if charge_behavior is defined)
-                "FullyCharged_InfiniteAmmo_CycleDPS": float, (if charge_behavior is defined) (if differs to FullyCharged_CycleDPS)
+                "FullyCharged_InfiniteAmmo_CycleDPS": float, (if charge_behavior is defined) (if differs to FullyCharged_ClipDPS)
                 "IdeallyCharged_InstantDPS": float, (if charge_behavior is defined)
                 "IdeallyCharged_ClipDPS": float, (if charge_behavior is defined)
                 "IdeallyCharged_CycleDPS": float, (if charge_behavior is defined) (if charge_behavior is defined)
-                "IdeallyCharged_InfiniteAmmo_CycleDPS": float, (if charge_behavior is defined) (if differs to IdeallyCharged_CycleDPS)
+                "IdeallyCharged_InfiniteAmmo_CycleDPS": float, (if charge_behavior is defined) (if differs to IdeallyCharged_ClipDPS)
             }
 
         DPS Measurements:
@@ -200,7 +200,7 @@ class Analysis:
             InstantDPS: Damage per second assuming continuous fire with no reloads (t=0)
             ClipDPS: Damage per second assuming continuous fire until the clip is empty (t=TimeToEmptyClip).
             CycleDPS: Damage per second assuming continuous fire including reloads (t=TimeToEmptyClip + TimeToReload)
-            InfiniteAmmoCycleDPS: Damage per second assuming continuous fire including reloads but with infinite ammo (t=TimeToEmptyClip + TimeBetweenBursts). Only populated if it differs to CycleDPS. 
+            InfiniteAmmoCycleDPS: Damage per second assuming continuous fire including reloads but with infinite ammo (t=TimeToEmptyClip + TimeBetweenBursts). Only populated if it differs to ClipDPS. Can differ if TimeBetweenBursts would be removed by reloading for ClipDPS.
         Charge Measurements:
             Uncharged: No charge time, minimal damage modifier (if applicable, otherwise 1x)
             Fully Charged: Full charge time, full damage modifier (if applicable, otherwise 1x)
@@ -355,7 +355,7 @@ class Analysis:
                 
             """
 
-            log(f"Calculating bullets_before_empty for ReloadWhileFire with clip_size {clip_size}, Charge Duration {charge_duration}, time_to_reload {time_to_reload}, time_between_shots {time_between_shots}, burst_length {burst_length}, time_between_bursts {time_between_bursts}")
+            log(f"Calculating bullets_before_empty for {reload_type} with clip_size {clip_size}, Charge Duration {charge_duration}, time_to_reload {time_to_reload}, time_between_shots {time_between_shots}, burst_length {burst_length}, time_between_bursts {time_between_bursts}")
             
             if reload_type == 'Magazine':
                 if no_shooting_time > 0:
@@ -442,18 +442,21 @@ class Analysis:
                 raise ValueError(f"Unknown charge duration type: {charge_duration_type}")
             
         # Default all values / change to more interpretable units
+        shot_damage = core_dps_data['ShotDamage']
         time_between_shots = 60 / core_dps_data['RoundsPerMinute']
         reload_time = core_dps_data['TimeToReload']
         clip_size = core_dps_data['ClipSize']
         burst_length = burst_behavior.get('BurstLength', clip_size) if burst_behavior else clip_size #this default makes it not affect anything paired with time between bursts beings 0
         time_between_bursts = burst_behavior.get('TimeBetweenBursts', 0.0) if burst_behavior else 0.0
         no_shooting_time = no_shooting_time if no_shooting_time else 0.0
-            
+
         # Check if it has charging behavior
         if charge_behavior is not None: #if has charge behavior
             charge_duration_types = ['Uncharged', 'IdeallyCharged', 'FullyCharged']
         else:
             charge_duration_types = ['NoChargeMechanic']
+
+        dps = {}
 
         for charge_duration_type in charge_duration_types:
             charge_duration = calc_duration_charged(charge_duration_type, charge_behavior, no_shooting_time)
@@ -468,36 +471,23 @@ class Analysis:
                 )
 
             log(f"Bullets before empty calculation for reload type {reload_type}: {bullets_fired_before_empty} bullets, time to fire clip {time_to_fire_clip:.2f}s")
-        return
-
-        # Time to fire entire clip (last shot doesn’t need extra delay)
-        time_to_empty_clip = (bullets_before_empty - 1) * time_between_shots
-
-        shot_damage = core_dps_data['ShotDamage']
-
-        clip_damage = shot_damage * bullets_before_empty
         
-        # InstantDPS (instantaneous, first shot at t=0)
-        burst_dps = shot_damage / time_between_shots if time_between_shots > 0 else None
-        if burst_dps is None:
-            raise ValueError("Burst DPS calculation failed")
+            damage_of_clip = shot_damage * bullets_fired_before_empty
+            instant_dps = damage_of_clip / (time_to_fire_clip + time_between_shots) #only diff between clip dps and instant dps is clip dps shaves off time_between_shots on the last bullet in the mag
+            clip_dps = damage_of_clip / time_to_fire_clip if time_to_fire_clip > 0 else math.inf
+            if reload_type == 'Magazine':
+                cycle_dps = damage_of_clip / (time_to_fire_clip + reload_time)
+            elif reload_type == 'ReloadWhileFire':
+                cycle_dps = shot_damage / reload_time #cycle dps for ReloadWhileFire is limited by how fast you can reload bullets.
+                # if you have infinite sustain as a ReloadWhileFire, an error is raised elsewhere.
 
-        # ClipDPS (shot_damage per time to empty clip)
-        clip_dps = clip_damage / time_to_empty_clip if time_to_empty_clip > 0 else None
-        
-        # CycleDPS (includes reload cycle)
-        sustained_dps = clip_damage / (time_to_empty_clip + reload_time)
+            charge_str = "" if charge_duration_type == 'NoChargeMechanic' else f"{charge_duration_type}_"
 
-        res = {
-            "InstantDPS": burst_dps,
-        }
+            dps[f"{charge_str}InstantDPS"] = instant_dps
+            dps[f"{charge_str}ClipDPS"] = clip_dps
+            dps[f"{charge_str}CycleDPS"] = cycle_dps
 
-        if clip_dps is not None:
-            res["ClipDPS"] = clip_dps
-
-        res["CycleDPS"] = sustained_dps
-
-        return res      
+        return dps     
 
 
                     
