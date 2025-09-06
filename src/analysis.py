@@ -341,13 +341,39 @@ class Analysis:
             - There are currently no charge weapons with a NoShootingTime where damage is affected by how much it is charged
         """
 
-        def calc_bullets_before_empty(reload_type, 
+        def calc_time_and_num_bullets_till_clip_empty(reload_type, 
                                       clip_size, time_to_reload, time_between_shots, 
                                       burst_length, time_between_bursts, 
                                       charge_duration,
                                       max_loops=100):
+            """
+            Simulates (if necessary) the firing process to determine how many bullets are fired before the clip is empty,
+            in addition to how long it takes to empty the clip.
+
+            Returns:
+                tuple: (num_bullets_fired, time_to_empty_clip) or None if infinite sustain
+                
+            """
+
+            log(f"Calculating bullets_before_empty for ReloadWhileFire with clip_size {clip_size}, Charge Duration {charge_duration}, time_to_reload {time_to_reload}, time_between_shots {time_between_shots}, burst_length {burst_length}, time_between_bursts {time_between_bursts}")
+            
             if reload_type == 'Magazine':
-                return clip_size #if reload is only at the end of the mag, you always shoot the entire mag
+                if no_shooting_time > 0:
+                    raise NotImplementedError("DPS calculation for Magazine reload type with NoShootingTime might not be supported. Confirm it works as intended, there were no examples of this before.")
+
+                # Determine the total time to fire the clip
+                time = 0.0
+                bullets = clip_size
+                while bullets >= 1:
+                    # Fire a burst (or remaining bullets if less)
+                    fire_count = math.floor(min(burst_length, bullets))
+                    time += fire_count * (time_between_shots + charge_duration) + time_between_bursts
+                    bullets -= fire_count
+
+                time_to_empty_clip = time - time_between_shots # last shot does not have the time_between_shots after it
+
+                return (clip_size, time_to_empty_clip)  #if reload is only at the end of the mag, you always shoot the entire mag
+
             elif reload_type == 'ReloadWhileFire':
                 # Requires simulating the firing process in chunks of bursts
                 # because reload happens constantly while firing/charging, even during no_shooting_time
@@ -363,8 +389,6 @@ class Analysis:
                 time = 0.0                 # running clock
 
                 regen_rate = 1 / time_to_reload  # bullets reloaded per second
-
-                log(f"Calculating bullets_before_empty for ReloadWhileFire with clip_size {clip_size}, time_to_reload {time_to_reload}, time_between_shots {time_between_shots}, burst_length {burst_length}, time_between_bursts {time_between_bursts}")
 
                 for i in range(max_loops):
                     if bullets <= 1: #fraction of a bullet is not fireable; stop here
@@ -387,7 +411,7 @@ class Analysis:
                     # track time for the burst/charge. time between each shot in a burst is already included
                     time += fire_time + time_between_bursts + charge_duration
 
-                    log(f"After burst {i+1}: Charge Duration {charge_duration}, Fired {fire_count}, Fire Time: {fire_time:.2f}s, Bullets Regen: {bullets_regen:.2f}, Total Fired: {total_fired}, Bullets Left: {bullets:.2f}, Time: {time:.2f}s")
+                    log(f"After burst {i+1}: Fired {fire_count}, Fire Time: {fire_time:.2f}s, Bullets Regen: {bullets_regen:.2f}, Total Fired: {total_fired}, Bullets Left: {bullets:.2f}, Time: {time:.2f}s")
 
                     #cap to max clip size
                     if bullets > clip_size:
@@ -396,8 +420,10 @@ class Analysis:
                     if i == max_loops - 1:
                         log(f"Warning: Max loops reached in bullets_before_empty calculation for reload type {reload_type}. Result may be inaccurate.")
 
-                return total_fired
-            
+                # last shot does not have the time_between_shots after it
+                time_to_fire_clip = time - time_between_shots 
+                return total_fired, time_to_fire_clip
+
         def calc_duration_charged(charge_duration_type, charge_behavior, no_shooting_time):
             if charge_duration_type == 'NoChargeMechanic':
                 return 0.0
@@ -432,16 +458,16 @@ class Analysis:
         for charge_duration_type in charge_duration_types:
             charge_duration = calc_duration_charged(charge_duration_type, charge_behavior, no_shooting_time)
 
-
             # Determine how many bullets are fired before empty
             # duration each shot is charged does actually affect bullets_before_empty if reload_type is ReloadWhileFire
-            bullets_before_empty = calc_bullets_before_empty(reload_type, 
-                                                            clip_size, reload_time, time_between_shots,
-                                                            burst_length, time_between_bursts,
-                                                            charge_duration
-                                                            )
+            bullets_fired_before_empty, time_to_fire_clip = calc_time_and_num_bullets_till_clip_empty(
+                reload_type, 
+                clip_size, reload_time, time_between_shots,
+                burst_length, time_between_bursts,
+                charge_duration
+                )
 
-        log(f"Bullets before empty calculation for reload type {reload_type}: {bullets_before_empty} bullets")
+            log(f"Bullets before empty calculation for reload type {reload_type}: {bullets_fired_before_empty} bullets, time to fire clip {time_to_fire_clip:.2f}s")
         return
 
         # Time to fire entire clip (last shot doesn’t need extra delay)
