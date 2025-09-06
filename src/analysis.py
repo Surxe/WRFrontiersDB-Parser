@@ -142,6 +142,8 @@ class Analysis:
                     core_dps_with_shot_damage['ShotDamage'] = module._get_level_attr(level_index, shot_damage_key)
 
                     dps = self.calculate_dps(core_dps_with_shot_damage, charge_behavior, burst_behavior, reload_type, no_shooting_time)
+                    for k, v in dps.items():
+                        module.levels['module_scalars']['variables'][level_index][f"DPS_{shot_damage_key}_{k}"] = v
 
     @staticmethod
     def calculate_dps(core_dps_data, charge_behavior, burst_behavior, reload_type, no_shooting_time):
@@ -483,6 +485,7 @@ class Analysis:
 
             charge_str = "" if charge_duration_type == 'NoChargeMechanic' else f"{charge_duration_type}_"
 
+            dps[f"{charge_str}TimeToEmptyClip"] = time_to_fire_clip
             dps[f"{charge_str}InstantDPS"] = instant_dps
             dps[f"{charge_str}ClipDPS"] = clip_dps
             dps[f"{charge_str}CycleDPS"] = cycle_dps
@@ -640,18 +643,6 @@ class Analysis:
                 "Armor": "DA_ModuleStat_Armor.0",
                 "TimeBetweenShots": True,
                 "DamageNoArmor": "DA_ModuleStat_ShieldDamage.0",
-                "DPS_DamageArmor_InstantDPS": True,
-                "DPS_DamageArmor_ClipDPS": True,
-                "DPS_DamageArmor_CycleDPS": True,
-                "DPS_DamageNoArmor_InstantDPS": True,
-                "DPS_DamageNoArmor_ClipDPS": True,
-                "DPS_DamageNoArmor_CycleDPS": True,
-                "DPS_AoeArmor_InstantDPS": True,
-                "DPS_AoeArmor_ClipDPS": True,
-                "DPS_AoeArmor_CycleDPS": True,
-                "DPS_AoeNoArmor_InstantDPS": True,
-                "DPS_AoeNoArmor_ClipDPS": True,
-                "DPS_AoeNoArmor_CycleDPS": True
             }
             stat_to_more_is_better_final = {}
             for stat_key in stat_keys_to_rank:
@@ -659,7 +650,10 @@ class Analysis:
                 if entry is None:
                     module_stat = next((stat for stat in module_stat_objects.values() if stat.short_key == stat_key), None)
                     if module_stat is None:
-                        raise ValueError(f"Unknown module stat for short_key {stat_key}")
+                        if stat_key.startswith('DPS_'): #dps stats are all more is better
+                            more_is_better = True
+                        else:
+                            raise ValueError(f"stat_key: {stat_key}, Unknown module stat with this short_key")
                     more_is_better = getattr(module_stat, 'more_is_better', True)
                 elif isinstance(entry, str):
                     module_stat = module_stat_objects[entry]
@@ -680,7 +674,7 @@ class Analysis:
                     percent_increase = module_diff_data['stats_percent_increase'].get(stat_key)
                     if percent_increase is not None:
                         module_increases.append((module_id, percent_increase))
-                should_reverse = not stat_to_more_is_better[stat_key]
+                should_reverse = not stat_to_more_is_better.get(stat_key, None)
                 module_increases.sort(key=lambda x: (float('-inf') if isinstance(x[1], str) else x[1]), reverse=should_reverse)
                 for rank, (module_id, _) in enumerate(module_increases[::-1]):
                     stat_ranks[stat_key][module_id] = rank
