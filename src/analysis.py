@@ -361,7 +361,6 @@ class Analysis:
                 bullets = float(clip_size) # bullets currently in mag
                 total_fired = 0            # bullets fired so far
                 time = 0.0                 # running clock
-                reload_progress = 0.0      # how much of reload cycle is completed
 
                 regen_rate = 1 / time_to_reload  # bullets reloaded per second
 
@@ -375,34 +374,24 @@ class Analysis:
                     fire_count = math.floor((min(burst_length, bullets)))
                     total_fired += fire_count #only fire whole bullets. 
 
-                    # time for burst (doesn't include downtime yet)
-                    fire_time = fire_count * (time_between_shots + 0)#charge_duration) #charge each shot (if applicable)
-                    time += fire_time
+                    # total time_between_shots in a burst
+                    fire_time = fire_count * (time_between_shots + charge_duration) #charge each shot (if applicable)
 
                     # spend fired bullets
                     bullets -= fire_count
 
-                    # regenerate during burst
-                    bullets_regen = (fire_time * regen_rate)
+                    # regenerate ammo between shots/charging + between bursts
+                    bullets_regen = (fire_time + time_between_bursts) * regen_rate #burst delay after each burst
                     bullets += bullets_regen
+
+                    # track time for the burst/charge. time between each shot in a burst is already included
+                    time += fire_time + time_between_bursts + charge_duration
+
+                    log(f"After burst {i+1}: Charge Duration {charge_duration}, Fired {fire_count}, Fire Time: {fire_time:.2f}s, Bullets Regen: {bullets_regen:.2f}, Total Fired: {total_fired}, Bullets Left: {bullets:.2f}, Time: {time:.2f}s")
+
+                    #cap to max clip size
                     if bullets > clip_size:
-                        bullets = clip_size  # can't exceed mag size
-
-                    log(f"After burst {i+1}: Fired {fire_count}, Fire Time: {fire_time:.2f}s, Bullets Regen: {bullets_regen:.2f}, Total Fired: {total_fired}, Bullets Left: {bullets:.2f}, Time: {time:.2f}s, Reload Progress: {reload_progress:.2f}s")
-
-                    # regen during time between bursts
-                    downtime = time_between_bursts
-                    bullets += downtime * regen_rate
-                    if bullets > clip_size:
-                        bullets = clip_size
-                    time += downtime
-
-                    # regen during charging
-                    # if charge_duration > 0:
-                    #     bullets += charge_duration * regen_rate
-                    #     if bullets > clip_size:
-                    #         bullets = clip_size
-                    #     time += charge_duration
+                        bullets = clip_size 
 
                     if i == max_loops - 1:
                         log(f"Warning: Max loops reached in bullets_before_empty calculation for reload type {reload_type}. Result may be inaccurate.")
