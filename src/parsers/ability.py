@@ -602,7 +602,37 @@ def p_movement_component(data: dict):
     data = asset_path_to_data(data["ObjectPath"])
     if 'Properties' not in data:
         return
-    return data["Properties"]
+    key_to_parser_function = {
+        "InitialSpeed": "value",
+        "ExpansionTemplate": "value", #TODO
+        "TurnSpeed": "value",
+        "CruiseHeightMin": "value",
+        "CruiseHeightRange": "value",
+        "CruiseRollSeconds": "value",
+        "CruiseHeightObstacleTestStep": "value",
+        "HomingClimbSpeed": "value",
+        "HomingCruiseSpeed": "value",
+        "HomingAttackSpeed": "value",
+        "HomingClimbAcceleration": "value",
+        "HomingCruiseAcceleration": "value",
+        "HomingAttackAcceleration": "value",
+        "HomingClimbTurnRate": "value",
+        "HomingCruiseTurnRate": "value",
+        "HomingAttackTurnRate": "value",
+        "InitialSpeed": "value",
+        "ProjectileGravityScale": "value",
+        "MaxSpeed": "value",
+        "ProjectileGravityScale": "value",
+        "DistanceToDisableVelocityPrediction": "value",
+        "bSimplifiedMovementCalculation": "value",
+        "bShouldBounce": "value",
+        "Bounciness": "value",
+        "Friction": "value",
+        "PlaneConstraintNormal": "value",
+    }
+    return Ability._process_key_to_parser_function(Ability(), key_to_parser_function, data["Properties"], log_descriptor="MovementComponent", set_attrs=False, tabs=2, default_configuration={
+        'target': ParseTarget.MATCH_KEY
+    })
 
 def p_focus_component(data: dict):
     data = asset_path_to_data(data["ObjectPath"])
