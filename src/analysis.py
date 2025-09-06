@@ -6,7 +6,7 @@ import json
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils import log, PARAMS
-
+import math
 
 class Analysis:
     def __init__(self, module_class, character_module_class, module_stat_class):
@@ -77,7 +77,7 @@ class Analysis:
                                         'CurveData': charge_modifier['CurveData']
                                     }
                                     break
-                                elif what in ['VerticalSpread', 'HorizontalSpread']:
+                                elif what in ['VerticalSpread', 'HorizontalSpread', 'InitialSpeed']:
                                     pass #confirmed to not affect dps
                                 else:
                                     log(f"Warning: Unhandled charge modifier what {what} in module {module_id} character module {cm_id}. Unknown if it affects dps.")
@@ -340,14 +340,127 @@ class Analysis:
         - Misc notes:
             - There are currently no charge weapons with a NoShootingTime where damage is affected by how much it is charged
         """
-        return
-        # Total shot_damage per clip
-        total_shot_damage = clip_size * shot_damage
 
-        time_between_shots = 60 / rounds_per_per_minute
+        def calc_bullets_before_empty(reload_type, 
+                                      clip_size, time_to_reload, time_between_shots, 
+                                      burst_length, time_between_bursts, 
+                                      charge_duration,
+                                      max_loops=100):
+            if reload_type == 'Magazine':
+                return clip_size #if reload is only at the end of the mag, you always shoot the entire mag
+            elif reload_type == 'ReloadWhileFire':
+                # Requires simulating the firing process in chunks of bursts
+                # because reload happens constantly while firing/charging, even during no_shooting_time
+
+                if time_to_reload <= time_between_shots:
+                    return None  # Infinite sustain
+                
+                if time_between_bursts > 0 and charge_duration > 0:
+                    raise NotImplementedError("DPS calculation for ReloadWhileFire with both BurstBehavior and ChargeBehavior is not supported. Unknown mechanic.")
+
+                bullets = float(clip_size) # bullets currently in mag
+                total_fired = 0            # bullets fired so far
+                time = 0.0                 # running clock
+                reload_progress = 0.0      # how much of reload cycle is completed
+
+                regen_rate = 1 / time_to_reload  # bullets reloaded per second
+
+                log(f"Calculating bullets_before_empty for ReloadWhileFire with clip_size {clip_size}, time_to_reload {time_to_reload}, time_between_shots {time_between_shots}, burst_length {burst_length}, time_between_bursts {time_between_bursts}")
+
+                for i in range(max_loops):
+                    if bullets <= 1: #fraction of a bullet is not fireable; stop here
+                        break
+
+                    # fire one burst (or remaining bullets if less)
+                    fire_count = math.floor((min(burst_length, bullets)))
+                    total_fired += fire_count #only fire whole bullets. 
+
+                    # time for burst (doesn't include downtime yet)
+                    fire_time = fire_count * (time_between_shots + 0)#charge_duration) #charge each shot (if applicable)
+                    time += fire_time
+
+                    # spend fired bullets
+                    bullets -= fire_count
+
+                    # regenerate during burst
+                    bullets_regen = (fire_time * regen_rate)
+                    bullets += bullets_regen
+                    if bullets > clip_size:
+                        bullets = clip_size  # can't exceed mag size
+
+                    log(f"After burst {i+1}: Fired {fire_count}, Fire Time: {fire_time:.2f}s, Bullets Regen: {bullets_regen:.2f}, Total Fired: {total_fired}, Bullets Left: {bullets:.2f}, Time: {time:.2f}s, Reload Progress: {reload_progress:.2f}s")
+
+                    # regen during time between bursts
+                    downtime = time_between_bursts
+                    bullets += downtime * regen_rate
+                    if bullets > clip_size:
+                        bullets = clip_size
+                    time += downtime
+
+                    # regen during charging
+                    # if charge_duration > 0:
+                    #     bullets += charge_duration * regen_rate
+                    #     if bullets > clip_size:
+                    #         bullets = clip_size
+                    #     time += charge_duration
+
+                    if i == max_loops - 1:
+                        log(f"Warning: Max loops reached in bullets_before_empty calculation for reload type {reload_type}. Result may be inaccurate.")
+
+                return total_fired
+            
+        def calc_duration_charged(charge_duration_type, charge_behavior, no_shooting_time):
+            if charge_duration_type == 'NoChargeMechanic':
+                return 0.0
+            elif charge_duration_type == 'Uncharged':
+                return 0.0
+            elif charge_duration_type == 'FullyCharged':
+                return charge_behavior['TimeToCharge']
+            elif charge_duration_type == 'IdeallyCharged':
+                ideal_charge_time = time_between_shots - no_shooting_time
+                if ideal_charge_time < 0:
+                    ideal_charge_time = 0.0
+                if ideal_charge_time > charge_behavior['TimeToCharge']:
+                    ideal_charge_time = charge_behavior['TimeToCharge']
+                return ideal_charge_time
+            else:
+                raise ValueError(f"Unknown charge duration type: {charge_duration_type}")
+            
+        # Default all values / change to more interpretable units
+        time_between_shots = 60 / core_dps_data['RoundsPerMinute']
+        reload_time = core_dps_data['TimeToReload']
+        clip_size = core_dps_data['ClipSize']
+        burst_length = burst_behavior.get('BurstLength', clip_size) if burst_behavior else clip_size #this default makes it not affect anything paired with time between bursts beings 0
+        time_between_bursts = burst_behavior.get('TimeBetweenBursts', 0.0) if burst_behavior else 0.0
+        no_shooting_time = no_shooting_time if no_shooting_time else 0.0
+            
+        # Check if it has charging behavior
+        if charge_behavior is not None: #if has charge behavior
+            charge_duration_types = ['Uncharged', 'IdeallyCharged', 'FullyCharged']
+        else:
+            charge_duration_types = ['NoChargeMechanic']
+
+        for charge_duration_type in charge_duration_types:
+            charge_duration = calc_duration_charged(charge_duration_type, charge_behavior, no_shooting_time)
+
+
+            # Determine how many bullets are fired before empty
+            # duration each shot is charged does actually affect bullets_before_empty if reload_type is ReloadWhileFire
+            bullets_before_empty = calc_bullets_before_empty(reload_type, 
+                                                            clip_size, reload_time, time_between_shots,
+                                                            burst_length, time_between_bursts,
+                                                            charge_duration
+                                                            )
+
+        log(f"Bullets before empty calculation for reload type {reload_type}: {bullets_before_empty} bullets")
+        return
 
         # Time to fire entire clip (last shot doesn’t need extra delay)
-        time_to_empty_clip = (clip_size - 1) * time_between_shots
+        time_to_empty_clip = (bullets_before_empty - 1) * time_between_shots
+
+        shot_damage = core_dps_data['ShotDamage']
+
+        clip_damage = shot_damage * bullets_before_empty
         
         # InstantDPS (instantaneous, first shot at t=0)
         burst_dps = shot_damage / time_between_shots if time_between_shots > 0 else None
@@ -355,10 +468,10 @@ class Analysis:
             raise ValueError("Burst DPS calculation failed")
 
         # ClipDPS (shot_damage per time to empty clip)
-        clip_dps = total_shot_damage * clip_size / time_to_empty_clip if time_to_empty_clip > 0 else None
+        clip_dps = clip_damage / time_to_empty_clip if time_to_empty_clip > 0 else None
         
         # CycleDPS (includes reload cycle)
-        sustained_dps = total_shot_damage / (time_to_empty_clip + reload_time)
+        sustained_dps = clip_damage / (time_to_empty_clip + reload_time)
 
         res = {
             "InstantDPS": burst_dps,
