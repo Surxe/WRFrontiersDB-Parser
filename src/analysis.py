@@ -483,12 +483,24 @@ class Analysis:
                 cycle_dps = shot_damage / reload_time #cycle dps for ReloadWhileFire is limited by how fast you can reload bullets.
                 # if you have infinite sustain as a ReloadWhileFire, an error is raised elsewhere.
 
+            infinite_ammo_cycle_dps = None
+            if reload_type == 'Magazine' and time_between_bursts > 0:
+                # check if the last shot in a burst would be followed by a reload
+                # or in other words, is clip size divisible evenly by burst length
+                if clip_size % burst_length == 0:
+                    infinite_ammo_cycle_dps = damage_of_clip / (time_to_fire_clip + time_between_bursts)
+                    if infinite_ammo_cycle_dps == clip_dps:
+                        infinite_ammo_cycle_dps = None
+
             charge_str = "" if charge_duration_type == 'NoChargeMechanic' else f"{charge_duration_type}_"
 
             dps[f"{charge_str}TimeToEmptyClip"] = time_to_fire_clip
             dps[f"{charge_str}InstantDPS"] = instant_dps
-            dps[f"{charge_str}ClipDPS"] = clip_dps
+            if clip_dps != math.inf:
+                dps[f"{charge_str}ClipDPS"] = clip_dps
             dps[f"{charge_str}CycleDPS"] = cycle_dps
+            if infinite_ammo_cycle_dps is not None:
+                dps[f"{charge_str}InfiniteAmmo_CycleDPS"] = infinite_ammo_cycle_dps
 
         return dps     
 
