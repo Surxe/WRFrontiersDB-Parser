@@ -410,8 +410,8 @@ class Analysis:
                     bullets_regen = (fire_time + time_between_bursts) * regen_rate #burst delay after each burst
                     bullets += bullets_regen
 
-                    # track time for the burst/charge. time between each shot in a burst is already included
-                    time += fire_time + time_between_bursts + charge_duration
+                    # advance time. add time between bursts
+                    time += fire_time + time_between_bursts
 
                     log(f"After burst {i+1}: Fired {fire_count}, Fire Time: {fire_time:.2f}s, Bullets Regen: {bullets_regen:.2f}, Total Fired: {total_fired}, Bullets Left: {bullets:.2f}, Time: {time:.2f}s")
 

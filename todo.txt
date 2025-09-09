@@ -2,3 +2,4 @@
 dps calcs
 # get charging multiplier for "ideal charge" which is t=NoShootingTime when it is specified
 # add cumulative levelup cost to module scalars
+# use timebetweenshots thats defaulted in char module if its missing instead of using RoundsPerMinute

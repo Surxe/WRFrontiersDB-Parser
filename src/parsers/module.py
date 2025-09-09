@@ -208,7 +208,7 @@ class Module(Object):
             for key, value in level.items():
                 if key not in ["UpgradeCurrency", "UpgradeCost", "FirstScrapRewardAmount", "FirstScrapRewardCurrency", "SecondScrapRewardAmount", "SecondScrapRewardCurrency",
                                "ArmorDPS", "ShieldDPS",#dps calcs are not correct by any standard
-                               "TimeBetweenShots" #time between shots is egregiously rounded, unlike RoundsPerMinute. scourge says 750 rpm but 0 tbs
+                               #"TimeBetweenShots" #time between shots is egregiously rounded, unlike RoundsPerMinute. scourge says 750 rpm but 0 tbs
                                ]: 
                     parsed_level[key] = value
 
