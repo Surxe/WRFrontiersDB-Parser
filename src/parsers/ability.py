@@ -598,13 +598,43 @@ def p_modifiers(list: list):
         parsed_modifiers.append(parsed_modifier)
     return parsed_modifiers
 
+def p_expansion_settings(data: dict):
+    # #contains multiple float curves that utilize tangent curves. Unsure which curve is used. Harpy torso, gemini, quantum 
+    # curves = asset_path_to_data(data["ExternalCurve"]["ObjectPath"])["FloatCurves"]
+    # parsed_curves = []
+    # for curve in curves:
+    #     parsed_curve = parse_editor_curve_data(curve)
+    #     if parsed_curve:
+    #         parsed_curves.append(parsed_curve)
+    # return parsed_curves
+
+    return True # placeholder to indicate presence of expansion settings, which is enough for now
+
+def p_expansion_template(data: dict):
+    data = asset_path_to_data(data["ObjectPath"])
+    if 'Properties' not in data:
+        return
+    props = data["Properties"]
+    key_to_parser_function = {
+        "FinishLength": "value",
+        "Type": parse_colon_colon,
+        "ExpansionDistance": "value",
+        "bFactorGravityIntoExpansion": "value",
+        "ExpansionSettings": p_expansion_settings, 
+        "InitialRadius": "value",
+        "FinishRadius": "value",
+    }
+    return Ability._process_key_to_parser_function(Ability(), key_to_parser_function, props, log_descriptor="ExpansionTemplate", set_attrs=False, tabs=2, default_configuration={
+        'target': ParseTarget.MATCH_KEY
+    })
+
 def p_movement_component(data: dict):
     data = asset_path_to_data(data["ObjectPath"])
     if 'Properties' not in data:
         return
     key_to_parser_function = {
         "InitialSpeed": "value",
-        "ExpansionTemplate": "value", #TODO
+        "ExpansionTemplate": p_expansion_template,
         "TurnSpeed": "value",
         "CruiseHeightMin": "value",
         "CruiseHeightRange": "value",
@@ -629,6 +659,14 @@ def p_movement_component(data: dict):
         "Bounciness": "value",
         "Friction": "value",
         "PlaneConstraintNormal": "value",
+        "LaunchSpeed": "value",
+        "Velocity": "value",
+        "bCruiseRoll": "value",
+        "bIsHomingProjectile": "value",
+        "bCruiseAvoidObstacles": "value",
+        "bForceSubStepping": "value",
+        "bCruiseAvoidObstacles": "value",
+        "bEnableCruiseMode": "value",
     }
     return Ability._process_key_to_parser_function(Ability(), key_to_parser_function, data["Properties"], log_descriptor="MovementComponent", set_attrs=False, tabs=2, default_configuration={
         'target': ParseTarget.MATCH_KEY
