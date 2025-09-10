@@ -46,30 +46,10 @@ DATA_REPO_DIR="WRFrontiersDB-Data"
 OUTPUT_DIR="output"    # this should match PARAMS.output_path
 
 
-
-DEFAULT_NEW_GAME_VERSION=$(cat game_version.txt)
-# Only print if LOG_LEVEL is set and not DEBUG
-# Only print if LOG_LEVEL is DEBUG
-if [ -z "$NEW_GAME_VERSION" ]; then
-    NEW_GAME_VERSION="$DEFAULT_NEW_GAME_VERSION"
-    if [ "$LOG_LEVEL" = "DEBUG" ]; then
-        echo "Using default game version: $NEW_GAME_VERSION"
-    fi
-fi
 if [ -z "$TARGET_BRANCH" ]; then
     TARGET_BRANCH="testing-grounds"
     if [ "$LOG_LEVEL" = "DEBUG" ]; then
         echo "Using default branch: $TARGET_BRANCH"
-    fi
-fi
-
-# If NEW_GAME_VERSION is not empty and different from DEFAULT_NEW_GAME_VERSION, update game_version.txt
-# Only print if LOG_LEVEL is set and not DEBUG
-# Only print if LOG_LEVEL is DEBUG
-if [ "$NEW_GAME_VERSION" != "$DEFAULT_NEW_GAME_VERSION" ]; then
-    echo "$NEW_GAME_VERSION" > game_version.txt
-    if [ "$LOG_LEVEL" = "DEBUG" ]; then
-        echo "Updated game_version.txt with: $NEW_GAME_VERSION"
     fi
 fi
 
