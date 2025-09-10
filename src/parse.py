@@ -84,6 +84,7 @@ HonorReward.to_file()
 BotPreset.to_file()
 DropTeam.to_file()
 CharacterPreset.to_file()
+League.to_file()
 
 Powerup.to_file()
 
