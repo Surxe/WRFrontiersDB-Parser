@@ -96,6 +96,9 @@ class PilotTalent(Object):
                 'target_dict_path': 'default_properties',
                 'target': ParseTarget.MATCH_KEY,
             },
+
+            "EffectLoopStart": None, #voicelines for field repairs
+            "EffectLoopStop": None,
             
             # Regular attributes
             "Stats": self._p_stats,

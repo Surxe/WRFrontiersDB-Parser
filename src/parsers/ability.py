@@ -332,6 +332,7 @@ class Ability(Object):
             "bAttachedActor": None,
             "AttachSocketName": None,
             "OnActorSpawning": None, #matriarch shoulder L
+            "LaunchFXColorIdParam": None,
         }
 
         parsed_spawn_data = self._process_key_to_parser_function(
@@ -1062,6 +1063,7 @@ def p_actor_class(obj, data: dict):
         "ProjectileArmorDamageMult": "value",
         "ProjectileShieldDamageMult": "value",
         "bApplyMeshFxToAllModules": None,
+        "SocketToFX_ColorId": None,
     }
 
     parsed_data = obj._process_key_to_parser_function(
