@@ -3,11 +3,13 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import get_json_data, PARAMS
+from utils import get_json_data, PARAMS, log
 
 from parsers.object import Object
 from parsers.drop_team import DropTeam
 from parsers.character_preset import CharacterPreset
+from parsers.league import League
+from parsers.image import Image
 
 class BotPreset(Object):
     objects = dict()
@@ -33,15 +35,51 @@ class BotPreset(Object):
 def parse_bot_presets(to_file=False):
     root_path = os.path.join(PARAMS.export_path, r"WRFrontiers\Content\Sparrow\Mechanics\DA_Meta_Root.json")
     root_data = get_json_data(root_path)
-    bot_preset = root_data[0]["Properties"]["BotPresets"]
-    for bot_preset_entry in bot_preset:
+    props = root_data[0]["Properties"]
+
+    # Older version only has by-level in BotPresets
+    # Newer version (as of 2025-09-09) has both by-level and by-league
+    if "BotPresets" in props:
+        bot_presets_by_level = props["BotPresets"]
+        bot_presets_by_league = []
+    elif "DedicatedBotPresets" in props:
+        bot_presets_by_level = props["DedicatedBotPresets"]["BotPresetsByLevel"]
+        bot_presets_by_league = props["DedicatedBotPresets"]["BotPresetByLeague"]
+    else:
+        raise ValueError("Neither 'BotPresets' nor 'DedicatedBotPresets' found in root properties.")
+    
+    for bot_preset_entry in bot_presets_by_level:
+        level = bot_preset_entry["Key"]
         bot_preset_asset_path = bot_preset_entry["Value"]["ObjectPath"]
-        bot_preset = BotPreset.get_from_asset_path(bot_preset_asset_path)
+        bot_preset_id = BotPreset.get_from_asset_path(bot_preset_asset_path)
+        # Ensure it doesn't already have a level
+        bot_preset = BotPreset.objects[bot_preset_id]
+        if hasattr(bot_preset, "levels"):
+            bot_preset.levels.append(level)
+        else:
+            bot_preset.levels = [level]
+    
+    # parse the league-array
+    for bot_preset_entry in bot_presets_by_league:
+        league_asset_path = bot_preset_entry["Key"]
+        log(f"Found league path {league_asset_path}")
+        league_id = League.get_from_asset_path(league_asset_path) # Just to validate it exists
+        league_id = league_id #placeholder
+        bot_preset_asset_path = bot_preset_entry["Value"]["ObjectPath"]
+        bot_preset_id = BotPreset.get_from_asset_path(bot_preset_asset_path)
+        # Ensure it doesn't already have a league
+        bot_preset = BotPreset.objects[bot_preset_id]
+        if hasattr(bot_preset, "league_ids"):
+            bot_preset.league_ids.append(league_id)
+        else:
+            bot_preset.league_ids = [league_id]
 
     if to_file: # Condition prevents needlessly saving the same data multiple times, as it will also be saved if ran thru parse.py
         BotPreset.to_file()
         DropTeam.to_file()
         CharacterPreset.to_file()
+        League.to_file()
+        Image.to_file()
 
 if __name__ == "__main__":
     parse_bot_presets(to_file=True)

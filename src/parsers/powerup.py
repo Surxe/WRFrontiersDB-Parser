@@ -48,6 +48,7 @@ class Powerup(Object):
             "Score": "value",
             "VFXClass": None,
             "CorpseDuration": None,
+            "VFXLocation": None,
             "ID": None,
         }
 
