@@ -76,6 +76,7 @@ export GIT_CONFIG_NOSYSTEM=1
 export GIT_CONFIG_GLOBAL=/dev/null
 export HOME="${USERPROFILE:-$HOME}"
 
+# Clone data repo. Lazily delete and re-clone to ensure a clean state.
 # Only print git output if LOG_LEVEL is DEBUG or INFO
 if [ ! -d "$DATA_REPO_DIR" ]; then
     if [ "$LOG_LEVEL" = "DEBUG" ]; then
@@ -123,19 +124,18 @@ else
     git checkout "$TARGET_BRANCH" > /dev/null 2>&1 || git checkout -b "$TARGET_BRANCH" > /dev/null 2>&1
 fi
 
-cd ..
-
-# === GET LATEST COMMIT TITLE AND DATE ===
+# === GET LATEST COMMIT TITLE AND DATE (of parser repo) ===
 # Only print git log output if LOG_LEVEL is DEBUG or INFO
+cd .. # switch back to parser repo
 if [ "$LOG_LEVEL" = "DEBUG" ] || [ "$LOG_LEVEL" = "INFO" ]; then
     LATEST_COMMIT=$(git log -1 --format="%s - %ad" --date=short)
     echo "Latest commit: $LATEST_COMMIT"
 else
     LATEST_COMMIT=$(git log -1 --format="%s - %ad" --date=short 2>/dev/null)
 fi
-cd "$DATA_REPO_DIR"
 
 # Determine the game version to archive (in current/version.txt)
+cd "$DATA_REPO_DIR" # switch to data repo
 CURRENT_PATH="current"
 if [ -f "$CURRENT_PATH/version.txt" ]; then
     GAME_VERSION_TO_ARCHIVE=$(cat "$CURRENT_PATH/version.txt")
