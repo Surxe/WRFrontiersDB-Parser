@@ -260,6 +260,7 @@ class CharacterModule(Object):
                 "StartOfDelaySoundEvent": None,
                 "bUseGravityChangeFromDistanceCurve": "value",
                 "VelocityByDistance": "value",
+                "FireFX_ColorParam": None,
             }
 
             # Recursively parse template if present
