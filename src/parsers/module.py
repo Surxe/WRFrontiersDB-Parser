@@ -194,7 +194,11 @@ class Module(Object):
 
             # Include all other key data pairs in the level
             for key, value in level.items():
-                if key not in ["UpgradeCurrency", "UpgradeCost", "FirstScrapRewardAmount", "FirstScrapRewardCurrency", "SecondScrapRewardAmount", "SecondScrapRewardCurrency"]:
+                if key in ["UpgradeCurrency", "UpgradeCost", "FirstScrapRewardAmount", "FirstScrapRewardCurrency", "SecondScrapRewardAmount", "SecondScrapRewardCurrency"]: #already parsed above
+                    pass
+                elif key in ['Health', 'Level', 'Def', 'Atk', 'Mob', 'AbilityPower', 'Mobility', 'FirePower']: #flavor stats that are technically meaningless. Also not displayed anywhere as of 8-26 hangar UI changes.
+                    pass
+                else:
                     parsed_level[key] = value
 
             parsed_levels.append(parsed_level)

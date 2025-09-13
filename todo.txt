@@ -1,8 +1,6 @@
 # everything in ctrl shift f "pass"
 dps calcs
-# ScoreDiff EditorCurveData from gamemode
-# BP_Ability_Atrophy missing projectile type info
-# commit archive and current data changes separately
 # research what links primary/secondary stat to the modifier other than by name. Suppressor's Efficiency was not applying on the 08-26 update
 # create class for storing intel cost for an item, create an id for it, and store in separate file for diff-readability sake of Module.json
 # remove flavor variables like Atk, AbilityPower, Mob, etc.
+# sort analysis output for saving faulty diff-check

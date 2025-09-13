@@ -125,9 +125,8 @@ class Analysis:
         level_diffs = {}
 
         superficial_keys = {
-            'Health', 'Level', 'Def', 'Atk', 'Mob', 'AbilityPower', 'Mobility',
             'ModuleClass_1', 'ModuleClass_2', 'ModuleTag_1', 'ModuleTag_2',
-            'ModuleFaction', 'FirePower', 'bIsPerk'
+            'ModuleFaction', 'bIsPerk'
         }
 
         for module_id, module in self.module_class.objects.items():
