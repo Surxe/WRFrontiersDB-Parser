@@ -1,3 +1,18 @@
+# Parse game data and export to summarized JSON files.
+#
+# Usage:
+#   python src/parse.py [--EXPORTS_PATH path] [--GAME_NAME name] [--LOG_LEVEL level] [--OUTPUT_PATH path]
+# Command-line arguments override .env settings using the same name.
+#
+# Parameters:
+#   --EXPORTS_PATH  (required) Path to the directory containing game export data
+#   --GAME_NAME     (required) Name of the game to parse
+#   --LOG_LEVEL     (optional) Logging verbosity: DEBUG, INFO, or silent (default: DEBUG)
+#   --OUTPUT_PATH   (optional) Path to the directory where output files will be saved (TODO, requires /output subdir)
+#
+# Examples:
+#   python src/parse.py --EXPORTS_PATH "/path/to/exports" --GAME_NAME "MyGame"
+#   python src/parse.py --EXPORTS_PATH "/path/to/exports" --GAME_NAME "MyGame" --LOG_LEVEL "INFO" --OUTPUT_PATH "/path/to/output"
 
 import argparse
 from dotenv import load_dotenv

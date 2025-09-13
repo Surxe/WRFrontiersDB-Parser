@@ -1,6 +1,26 @@
 #!/bin/bash
 set -e
 
+# This script handles git operations to push parsed data from output/ directory
+# to the WRFrontiersDB-Data repository, with automatic archiving of previous versions.
+#
+# Usage:
+#   ./push_data.sh --GAME_VERSION <version> [--TARGET_BRANCH <branch>] [--LOG_LEVEL <level>]
+#
+# Parameters:
+#   --GAME_VERSION   (required) Game version identifier for the data being pushed
+#   --TARGET_BRANCH  (optional) Git branch to push to (default: testing-grounds)  
+#   --LOG_LEVEL      (optional) Logging verbosity: DEBUG, INFO, or silent (default: DEBUG)
+#
+# Examples:
+#   ./push_data.sh --GAME_VERSION "2025-09-09"
+#   ./push_data.sh --GAME_VERSION "2025-09-09" --TARGET_BRANCH main --LOG_LEVEL INFO
+#
+# Requirements:
+#   - GH_DATA_REPO_PAT environment variable or .env file with GitHub token
+#   - output/ directory with parsed data files
+#   - Git installed and configured
+
 # Parse named arguments, assumes --arg1 val1 --arg2 val2 format, not --arg1=val1
 while [[ $# -gt 0 ]]; do
     key="$1"

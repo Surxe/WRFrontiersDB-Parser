@@ -1,6 +1,21 @@
 #!/bin/bash
 set -e
 
+# Main script to run the parser and push data to WRFrontiersDB-Data repo
+# 
+# Usage:
+#   ./run.sh --EXPORTS_PATH <path> --GAME_VERSION <version> [--TARGET_BRANCH <branch>] [--LOG_LEVEL <level>]
+#
+# Parameters:
+#   --EXPORTS_PATH  (required) Path to the directory containing game export data
+#   --GAME_VERSION  (required) Game version identifier for the data being processed
+#   --TARGET_BRANCH (optional) Git branch to push to (default: testing-grounds)
+#   --LOG_LEVEL     (optional) Logging verbosity: DEBUG, INFO, or silent (default: DEBUG)
+#
+# Examples:
+#   ./run.sh --EXPORTS_PATH "F:/WarRobotsFrontiersDB/2025-09-09" --GAME_VERSION "2025-09-09"
+#   ./run.sh --EXPORTS_PATH "F:/WarRobotsFrontiersDB/2025-09-09" --GAME_VERSION "2025-09-09" --TARGET_BRANCH main --LOG_LEVEL INFO
+
 # Parse named arguments, assumes --arg1 val1 --arg2 val2 format, not --arg1=val1
 while [[ $# -gt 0 ]]; do
     key="$1"
