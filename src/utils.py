@@ -171,6 +171,8 @@ def asset_path_to_data(asset_path) -> dict: # "/Game/DungeonCrawler/Data/Generat
     return data[index] #json via asset path is technically an array with just one element
 
 def path_to_file_name(asset_path) -> str:
+    if asset_path in ['','.','/','//'] or asset_path is None:
+        raise ValueError("Empty asset_path provided.")
     return asset_path.split('/')[-1].split('.')[0]
 
 def path_to_id(asset_path) -> str: # "/Game/DungeonCrawler/Data/Generated/V2/LootDrop/LootDropGroup/Id_LootDropGroup_GhostKing.Id_LootDropGroup_GhostKing" -> "Id_LootDropGroup_GhostKing"
