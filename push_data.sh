@@ -158,6 +158,7 @@ else
     fi
 fi
 
+# === ARCHIVE OLD DATA (First Commit) ===
 # Only archive if the game version to archive is different to the new version
 if [ "$GAME_VERSION_TO_ARCHIVE" != "$NEW_GAME_VERSION" ]; then
     ARCHIVE_PATH="archive/$GAME_VERSION_TO_ARCHIVE"
@@ -167,9 +168,22 @@ if [ "$GAME_VERSION_TO_ARCHIVE" != "$NEW_GAME_VERSION" ]; then
         if [ "$LOG_LEVEL" = "DEBUG" ]; then
             echo "Archiving current data to $ARCHIVE_PATH..."
         fi
-    # Move all files and directories, handling non-empty dirs
-    cp -a "$CURRENT_PATH"/. "$ARCHIVE_PATH"/
-    rm -rf "$CURRENT_PATH"/*
+        # Move all files and directories, handling non-empty dirs
+        cp -a "$CURRENT_PATH"/. "$ARCHIVE_PATH"/
+        rm -rf "$CURRENT_PATH"/*
+        
+        # Commit the archival changes
+        if [ "$LOG_LEVEL" = "DEBUG" ] || [ "$LOG_LEVEL" = "INFO" ]; then
+            git add .
+            git commit -m "Archive version:$GAME_VERSION_TO_ARCHIVE data"
+        else
+            git add . > /dev/null 2>&1
+            git commit -m "Archive version:$GAME_VERSION_TO_ARCHIVE data" > /dev/null 2>&1
+        fi
+        
+        if [ "$LOG_LEVEL" = "DEBUG" ]; then
+            echo "✅ Archived version $GAME_VERSION_TO_ARCHIVE and committed changes."
+        fi
     else
         if [ "$LOG_LEVEL" = "DEBUG" ]; then
             echo "No current data to archive."
@@ -177,7 +191,8 @@ if [ "$GAME_VERSION_TO_ARCHIVE" != "$NEW_GAME_VERSION" ]; then
     fi
 fi
 
-# Delete all files from current/*
+# === UPDATE CURRENT DATA (Second Commit) ===
+# Delete all files from current/* (if not already done during archival)
 # This is to ensure that we start fresh for the new game version
 if [ -d "$CURRENT_PATH" ]; then
     if [ "$LOG_LEVEL" = "DEBUG" ]; then
@@ -200,19 +215,28 @@ cp -r "../$OUTPUT_DIR"/* "$CURRENT_PATH/"
 # Write version file
 echo "$NEW_GAME_VERSION" > "$CURRENT_PATH/version.txt"
 
-# === COMMIT AND PUSH ===
-# Only print git add/commit/push output if LOG_LEVEL is DEBUG or INFO
+# Commit the new current data
 if [ "$LOG_LEVEL" = "DEBUG" ] || [ "$LOG_LEVEL" = "INFO" ]; then
     git add .
-    git commit -m "Data for version:$NEW_GAME_VERSION from latest Parser commit:$LATEST_COMMIT"
-    git push origin "$TARGET_BRANCH"
+    git commit -m "Update current data to version:$NEW_GAME_VERSION from latest Parser commit:$LATEST_COMMIT"
 else
     git add . > /dev/null 2>&1
-    git commit -m "Data for version:$NEW_GAME_VERSION from latest Parser commit:$LATEST_COMMIT" > /dev/null 2>&1
+    git commit -m "Update current data to version:$NEW_GAME_VERSION from latest Parser commit:$LATEST_COMMIT" > /dev/null 2>&1
+fi
+
+if [ "$LOG_LEVEL" = "DEBUG" ]; then
+    echo "✅ Updated current data to version $NEW_GAME_VERSION and committed changes."
+fi
+
+# === PUSH ALL COMMITS ===
+# Only print git push output if LOG_LEVEL is DEBUG or INFO
+if [ "$LOG_LEVEL" = "DEBUG" ] || [ "$LOG_LEVEL" = "INFO" ]; then
+    git push origin "$TARGET_BRANCH"
+else
     git push origin "$TARGET_BRANCH" > /dev/null 2>&1
 fi
 
 cd ..
 if [ "$LOG_LEVEL" = "DEBUG" ]; then
-    echo "✅ Data updated successfully and pushed to branch '$TARGET_BRANCH'."
+    echo "✅ All changes committed and pushed successfully to branch '$TARGET_BRANCH'."
 fi
