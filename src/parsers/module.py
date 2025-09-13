@@ -20,7 +20,8 @@ from parsers.module_category import ModuleCategory
 from parsers.module_socket_type import ModuleSocketType
 from parsers.module_stat import ModuleStat
 from parsers.module_stats_table import ModuleStatsTable
-from parsers.currency import Currency, parse_currency
+from parsers.currency import Currency
+from parsers.upgrade_cost import UpgradeCost
 from parsers.image import parse_image_asset_path, Image
 
 class Module(Object):
@@ -163,16 +164,16 @@ class Module(Object):
 
             parsed_level = dict()
 
+            # Parse upgrade and scrap currencies
             if "UpgradeCurrency" in level and "UpgradeCost" in level:
                 upgrade_currency = level["UpgradeCurrency"]
                 upgrade_cost = level["UpgradeCost"]
-                if upgrade_currency is not None:
-                    parsed_level["UpgradeCurrency"] = {
-                        "currency_id": upgrade_currency,
-                        "amount": upgrade_cost
-                    }
+                level_num = level["Level"]
+                if upgrade_currency is not None and upgrade_currency != "None": #it may be None if its say a torso ability module, as the ability is not what costs currency to upgrade, rather the module its attached to (torso) will have the cost
+                    upgrade_cost = UpgradeCost(self.id, level_num, upgrade_currency, upgrade_cost)
+                    parsed_level["upgrade_currency_id"] = upgrade_cost.id
 
-            def _p_scrap_reward_amount(first_or_second):
+            def p_scrap_reward_amount(first_or_second):
                 """
                 first_or_second: "First" or "Second"
                 """
@@ -181,22 +182,65 @@ class Module(Object):
                 if scrap_reward_currency_key in level and scrap_reward_amount_key in level:
                     scrap_reward_currency = level[scrap_reward_currency_key]
                     scrap_reward_amount = level[scrap_reward_amount_key]
-                    if scrap_reward_currency is not None:
+                    if scrap_reward_currency is not None and scrap_reward_currency != "None":
                         parsed_level['ScrapRewards'].append({
                             "currency_id": scrap_reward_currency,
                             "amount": scrap_reward_amount
                         })
                 
-
             parsed_level["ScrapRewards"] = []
-            _p_scrap_reward_amount("First")
-            _p_scrap_reward_amount("Second")
+            p_scrap_reward_amount("First")
+            p_scrap_reward_amount("Second")
+
+
+            # Parse module class and tags
+            def p_module_class_tag_fac(class_or_tag, one_or_two):
+                """
+                class_or_tag: "Class" or "Tag" or "Faction"
+                one_or_two: "1" or "2" or "0" (0 indicates no underscore will be used too)
+                """
+                underscore_and_number = f"_{one_or_two}" if one_or_two in ["1", "2"] else ""
+                module_classtagfac_key = f"Module{class_or_tag}{underscore_and_number}"
+                if module_classtagfac_key in level:
+                    module_classtagfac_id = level[module_classtagfac_key]
+                else:
+                    log(f"Warning: Module {self.id} level {level['Level']} is missing {module_classtagfac_key}", tabs=2)
+
+                if module_classtagfac_id == 'None':
+                    return None
+
+                return module_classtagfac_id
+            
+            def add_to_parsed_level_if_not_none(key, value):
+                if value is not None:
+                    parsed_level[key] = value
+
+            add_to_parsed_level_if_not_none("module_class_id_1", p_module_class_tag_fac("Class", "1"))
+            add_to_parsed_level_if_not_none("module_class_id_2", p_module_class_tag_fac("Class", "2"))
+            add_to_parsed_level_if_not_none("module_tag_id_1", p_module_class_tag_fac("Tag", "1"))
+            add_to_parsed_level_if_not_none("module_tag_id_2", p_module_class_tag_fac("Tag", "2"))
+            add_to_parsed_level_if_not_none("module_faction_id", p_module_class_tag_fac("Faction", "0"))
+
+
+            # Parse load/energy capacity
+            def add_to_parsed_level_if_not_0(key, value):
+                if value is not None and value != 0:
+                    parsed_level[key] = value
+            add_to_parsed_level_if_not_0("LoadCapacity", level.get("LoadCapacity"))
+            add_to_parsed_level_if_not_0("EnergyCapacity", level.get("EnergyCapacity"))
+
 
             # Include all other key data pairs in the level
             for key, value in level.items():
-                if key in ["UpgradeCurrency", "UpgradeCost", "FirstScrapRewardAmount", "FirstScrapRewardCurrency", "SecondScrapRewardAmount", "SecondScrapRewardCurrency"]: #already parsed above
+                if key in ["Level", "UpgradeCurrency", "UpgradeCost", 
+                           "FirstScrapRewardAmount", "FirstScrapRewardCurrency", "SecondScrapRewardAmount", "SecondScrapRewardCurrency", 
+                           "ModuleClass_1", "ModuleClass_2", "ModuleTag_1", "ModuleTag_2", "ModuleFaction",
+                           "LoadCapacity", "EnergyCapacity"
+                           ]: #already parsed above
                     pass
-                elif key in ['Health', 'Level', 'Def', 'Atk', 'Mob', 'AbilityPower', 'Mobility', 'FirePower']: #flavor stats that are technically meaningless. Also not displayed anywhere as of 8-26 hangar UI changes.
+                elif key in ['Health', 'Def', 'Atk', 'Mob', 'AbilityPower', 'Mobility', 'FirePower']: #flavor stats that are technically meaningless. Also not displayed anywhere as of 8-26 hangar UI changes.
+                    pass
+                elif key in ['bIsPerk']: #no clue what this means; its bool but can vary per level, i.e. typhon chassis lvl5 true, lvl6 false
                     pass
                 else:
                     parsed_level[key] = value
@@ -299,6 +343,7 @@ def parse_modules(to_file=False):
         ModuleStatsTable.to_file()
         Currency.to_file()
         Ability.to_file()
+        UpgradeCost.to_file()
         Image.to_file()
 
 if __name__ == "__main__":

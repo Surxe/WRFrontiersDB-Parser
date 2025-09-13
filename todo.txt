@@ -1,4 +1,3 @@
 # everything in ctrl shift f "pass"
 dps calcs
 # research what links primary/secondary stat to the modifier other than by name. Suppressor's Efficiency was not applying on the 08-26 update
-# create class for storing intel cost for an item, create an id for it, and store in separate file for diff-readability sake of Module.json

@@ -56,7 +56,7 @@ parse_progression_table()
 parse_game_modes()
 parse_bot_presets()
 parse_powerups()
-analyze(Module, ModuleStat)
+analyze(Module, ModuleStat, UpgradeCost)
 
 
 ProgressionTable.to_file()
@@ -84,6 +84,7 @@ ModuleCategory.to_file()
 ModuleSocketType.to_file()
 ModuleStat.to_file()
 ModuleStatsTable.to_file()
+UpgradeCost.to_file()
 
 Pilot.to_file()
 PilotType.to_file()
