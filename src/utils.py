@@ -21,6 +21,7 @@ class Params:
         self.game_name = game_name if game_name is not None else os.getenv('GAME_NAME')
         self.log_level = (log_level if log_level is not None else os.getenv('LOG_LEVEL', 'DEBUG')).upper()
         self.output_path = output_path if output_path is not None else os.getenv('OUTPUT_PATH', None)
+        
         # Setup loguru logging to /logs dir
         logs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'logs')
         os.makedirs(logs_dir, exist_ok=True)
@@ -31,11 +32,13 @@ class Params:
             log_filename = 'default.log'
         log_path = os.path.join(logs_dir, log_filename)
         logger.remove()
+        
         # Clear the log file before adding the handler
         with open(log_path, 'w') as f:
             pass
         logger.add(log_path, level=self.log_level, rotation="10 MB", retention="10 days", enqueue=True)
         logger.add(sys.stdout, level=self.log_level)
+        
         self.validate()
         self.log()
 

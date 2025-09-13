@@ -801,7 +801,6 @@ def p_ability_classes(data: dict):
     ids = []
     for ability_class in data:
         ability_id = Ability.get_from_asset_path(ability_class["ObjectPath"])
-        print(Ability.objects[ability_id].source_data)
         ids.append(ability_id)
     return ids
 
