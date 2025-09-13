@@ -173,7 +173,7 @@ class Module(Object):
                     upgrade_cost = UpgradeCost(self.id, level_num, upgrade_currency, upgrade_cost)
                     parsed_level["upgrade_currency_id"] = upgrade_cost.id
 
-            def _p_scrap_reward_amount(first_or_second):
+            def p_scrap_reward_amount(first_or_second):
                 """
                 first_or_second: "First" or "Second"
                 """
@@ -189,12 +189,12 @@ class Module(Object):
                         })
                 
             parsed_level["ScrapRewards"] = []
-            _p_scrap_reward_amount("First")
-            _p_scrap_reward_amount("Second")
+            p_scrap_reward_amount("First")
+            p_scrap_reward_amount("Second")
 
 
             # Parse module class and tags
-            def _p_module_class_tag_fac(class_or_tag, one_or_two):
+            def p_module_class_tag_fac(class_or_tag, one_or_two):
                 """
                 class_or_tag: "Class" or "Tag" or "Faction"
                 one_or_two: "1" or "2" or "0" (0 indicates no underscore will be used too)
@@ -211,15 +211,15 @@ class Module(Object):
 
                 return module_classtagfac_id
             
-            def _add_to_parsed_level_if_not_none(key, value):
+            def add_to_parsed_level_if_not_none(key, value):
                 if value is not None:
                     parsed_level[key] = value
 
-            _add_to_parsed_level_if_not_none("module_class_id_1", _p_module_class_tag_fac("Class", "1"))
-            _add_to_parsed_level_if_not_none("module_class_id_2", _p_module_class_tag_fac("Class", "2"))
-            _add_to_parsed_level_if_not_none("module_tag_id_1", _p_module_class_tag_fac("Tag", "1"))
-            _add_to_parsed_level_if_not_none("module_tag_id_2", _p_module_class_tag_fac("Tag", "2"))
-            _add_to_parsed_level_if_not_none("module_faction_id", _p_module_class_tag_fac("Faction", "0"))
+            add_to_parsed_level_if_not_none("module_class_id_1", p_module_class_tag_fac("Class", "1"))
+            add_to_parsed_level_if_not_none("module_class_id_2", p_module_class_tag_fac("Class", "2"))
+            add_to_parsed_level_if_not_none("module_tag_id_1", p_module_class_tag_fac("Tag", "1"))
+            add_to_parsed_level_if_not_none("module_tag_id_2", p_module_class_tag_fac("Tag", "2"))
+            add_to_parsed_level_if_not_none("module_faction_id", p_module_class_tag_fac("Faction", "0"))
 
 
             # Parse load/energy capacity
