@@ -20,7 +20,8 @@ from parsers.module_category import ModuleCategory
 from parsers.module_socket_type import ModuleSocketType
 from parsers.module_stat import ModuleStat
 from parsers.module_stats_table import ModuleStatsTable
-from parsers.currency import Currency, parse_currency
+from parsers.currency import Currency
+from parsers.upgrade_cost import UpgradeCost
 from parsers.image import parse_image_asset_path, Image
 
 class Module(Object):
@@ -166,11 +167,10 @@ class Module(Object):
             if "UpgradeCurrency" in level and "UpgradeCost" in level:
                 upgrade_currency = level["UpgradeCurrency"]
                 upgrade_cost = level["UpgradeCost"]
+                level_num = level["Level"]
                 if upgrade_currency is not None:
-                    parsed_level["UpgradeCurrency"] = {
-                        "currency_id": upgrade_currency,
-                        "amount": upgrade_cost
-                    }
+                    upgrade_cost = UpgradeCost(self.id, level_num, upgrade_currency, upgrade_cost)
+                    parsed_level["upgrade_currency_id"] = upgrade_cost.id
 
             def _p_scrap_reward_amount(first_or_second):
                 """
@@ -299,6 +299,7 @@ def parse_modules(to_file=False):
         ModuleStatsTable.to_file()
         Currency.to_file()
         Ability.to_file()
+        UpgradeCost.to_file()
         Image.to_file()
 
 if __name__ == "__main__":
