@@ -259,6 +259,19 @@ def to_snake_case(text):
 #        Dictionary          #
 ###############################
 
+def sort_dict(d: dict, num_levels: int = -1) -> dict:
+    """Recursively sort the first num_levels levels of a dictionary by keys."""
+    # num_levels=-1 means sort all levels
+    if not isinstance(d, dict):
+        return d
+    if num_levels == 0:
+        return d
+    num_levels = num_levels if num_levels > 0 else float('inf')
+    sorted_dict = {}
+    for key in sorted(d.keys()):
+        sorted_dict[key] = sort_dict(d[key], num_levels - 1)
+    return sorted_dict
+
 def remove_blank_values(d: dict) -> dict:
     """Remove keys with blank values from a dictionary- recursively."""
     if not isinstance(d, dict):
