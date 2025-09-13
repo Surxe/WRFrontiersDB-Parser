@@ -206,10 +206,15 @@ class Module(Object):
 
             # Include all other key data pairs in the level
             for key, value in level.items():
-                if key not in ["UpgradeCurrency", "UpgradeCost", "FirstScrapRewardAmount", "FirstScrapRewardCurrency", "SecondScrapRewardAmount", "SecondScrapRewardCurrency",
-                               "ArmorDPS", "ShieldDPS",#dps calcs are not correct by any standard
+                if key in ["UpgradeCurrency", "UpgradeCost", "FirstScrapRewardAmount", "FirstScrapRewardCurrency", "SecondScrapRewardAmount", "SecondScrapRewardCurrency"]: #already parsed above
+                    pass
+                elif key in ['Health', 'Level', 'Def', 'Atk', 'Mob', 'AbilityPower', 'Mobility', 'FirePower']: #flavor stats that are technically meaningless. Also not displayed anywhere as of 8-26 hangar UI changes.
+                    pass
+                elif key in ["ArmorDPS", "ShieldDPS",#dps calcs are not correct by any standard
                                #"TimeBetweenShots" #time between shots is egregiously rounded, unlike RoundsPerMinute. scourge says 750 rpm but 0 tbs
-                               ]: 
+                               ]:
+                    pass
+                else:
                     parsed_level[key] = value
 
             parsed_levels.append(parsed_level)

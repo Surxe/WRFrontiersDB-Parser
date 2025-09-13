@@ -3,8 +3,5 @@ dps calcs
 # get charging multiplier for "ideal charge" which is t=NoShootingTime when it is specified
 # add cumulative levelup cost to module scalars
 # use timebetweenshots thats defaulted in char module if its missing instead of using RoundsPerMinute
-# ScoreDiff EditorCurveData from gamemode
-# BP_Ability_Atrophy missing projectile type info
 # research what links primary/secondary stat to the modifier other than by name. Suppressor's Efficiency was not applying on the 08-26 update
 # create class for storing intel cost for an item, create an id for it, and store in separate file for diff-readability sake of Module.json
-# remove flavor variables like Atk, AbilityPower, Mob, etc.
