@@ -24,6 +24,18 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# === VALIDATION ===
+# Verify that GAME_VERSION is set
+if [ -z "$NEW_GAME_VERSION" ]; then
+    echo "❌ Error: --GAME_VERSION is required"
+    exit 1
+fi
+
+# Set default LOG_LEVEL if not provided
+if [ -z "$LOG_LEVEL" ]; then
+    LOG_LEVEL="DEBUG"
+fi
+
 # === RUN PARSER ===
 if [ "$LOG_LEVEL" = "DEBUG" ]; then
     echo "Running parser with args: ${PARSE_ARGS[@]}"
