@@ -5,7 +5,7 @@ import json
 # Add parent dirs to sys path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import log, PARAMS
+from utils import log, PARAMS, sort_dict
 
 
 class Analysis:
@@ -173,9 +173,9 @@ class Analysis:
     def to_json(self):
         """Return analysis data as pretty-printed JSON."""
         data = {
-            'level_diffs_by_module': self.level_diffs_by_module,
-            'level_diffs_by_stat': self.level_diffs_by_stat,
-            'total_upgrade_cost_for_all_modules': self.total_upgrade_cost_for_all_modules
+            'level_diffs_by_module': sort_dict(self.level_diffs_by_module, 1),
+            'level_diffs_by_stat': sort_dict(self.level_diffs_by_stat, 1),
+            'total_upgrade_cost_for_all_modules': sort_dict(self.total_upgrade_cost_for_all_modules, 1)
         }
         return json.dumps(data, ensure_ascii=False, indent=4)
 
