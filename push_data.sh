@@ -158,41 +158,8 @@ else
     fi
 fi
 
-# === ARCHIVE OLD DATA (First Commit) ===
-# Only archive if the game version to archive is different to the new version
-if [ "$GAME_VERSION_TO_ARCHIVE" != "$NEW_GAME_VERSION" ]; then
-    ARCHIVE_PATH="archive/$GAME_VERSION_TO_ARCHIVE"
-    # Move all files from current/*.ext to archive/<version>/*.ext
-    mkdir -p "$ARCHIVE_PATH"
-    if [ -d "$CURRENT_PATH" ]; then
-        if [ "$LOG_LEVEL" = "DEBUG" ]; then
-            echo "Archiving current data to $ARCHIVE_PATH..."
-        fi
-        # Move all files and directories, handling non-empty dirs
-        cp -a "$CURRENT_PATH"/. "$ARCHIVE_PATH"/
-        rm -rf "$CURRENT_PATH"/*
-        
-        # Commit the archival changes
-        if [ "$LOG_LEVEL" = "DEBUG" ] || [ "$LOG_LEVEL" = "INFO" ]; then
-            git add .
-            git commit -m "Archive version:$GAME_VERSION_TO_ARCHIVE data"
-        else
-            git add . > /dev/null 2>&1
-            git commit -m "Archive version:$GAME_VERSION_TO_ARCHIVE data" > /dev/null 2>&1
-        fi
-        
-        if [ "$LOG_LEVEL" = "DEBUG" ]; then
-            echo "✅ Archived version $GAME_VERSION_TO_ARCHIVE and committed changes."
-        fi
-    else
-        if [ "$LOG_LEVEL" = "DEBUG" ]; then
-            echo "No current data to archive."
-        fi
-    fi
-fi
-
-# === UPDATE CURRENT DATA (Second Commit) ===
-# Delete all files from current/* (if not already done during archival)
+# === UPDATE CURRENT DATA (First Commit) ===
+# Delete all files from current/*
 # This is to ensure that we start fresh for the new game version
 if [ -d "$CURRENT_PATH" ]; then
     if [ "$LOG_LEVEL" = "DEBUG" ]; then
@@ -226,6 +193,58 @@ fi
 
 if [ "$LOG_LEVEL" = "DEBUG" ]; then
     echo "✅ Updated current data to version $NEW_GAME_VERSION and committed changes."
+fi
+
+# === ARCHIVE OLD DATA (Second Commit) ===
+# Only archive if the game version to archive is different to the new version
+if [ "$GAME_VERSION_TO_ARCHIVE" != "$NEW_GAME_VERSION" ]; then
+    ARCHIVE_PATH="archive/$GAME_VERSION_TO_ARCHIVE"
+    # Move the previously current data to archive (it was already copied before being overwritten)
+    mkdir -p "$ARCHIVE_PATH"
+    
+    # We need to get the old data from git history since we already overwrote current/
+    # Reset current/ to the previous commit to get the old data, then archive it
+    if [ "$LOG_LEVEL" = "DEBUG" ]; then
+        echo "Retrieving previous data for archival to $ARCHIVE_PATH..."
+    fi
+    
+    # Create a temporary directory to store old data from git
+    TEMP_OLD_DATA="temp_old_data"
+    mkdir -p "$TEMP_OLD_DATA"
+    
+    # Get the old data from the previous commit (HEAD~1)
+    if [ "$LOG_LEVEL" = "DEBUG" ] || [ "$LOG_LEVEL" = "INFO" ]; then
+        git show HEAD~1:current/ > /dev/null 2>&1 || echo "No previous current data found in git history"
+        # Extract files from previous commit
+        git archive HEAD~1 current/ | tar -x -C "$TEMP_OLD_DATA" 2>/dev/null || echo "No previous current data to archive"
+    else
+        git show HEAD~1:current/ > /dev/null 2>&1 || true
+        git archive HEAD~1 current/ | tar -x -C "$TEMP_OLD_DATA" 2>/dev/null || true
+    fi
+    
+    # If we successfully extracted old data, move it to archive
+    if [ -d "$TEMP_OLD_DATA/current" ] && [ "$(ls -A "$TEMP_OLD_DATA/current" 2>/dev/null)" ]; then
+        cp -a "$TEMP_OLD_DATA/current"/. "$ARCHIVE_PATH"/
+        rm -rf "$TEMP_OLD_DATA"
+        
+        # Commit the archival changes
+        if [ "$LOG_LEVEL" = "DEBUG" ] || [ "$LOG_LEVEL" = "INFO" ]; then
+            git add .
+            git commit -m "Archive version:$GAME_VERSION_TO_ARCHIVE data"
+        else
+            git add . > /dev/null 2>&1
+            git commit -m "Archive version:$GAME_VERSION_TO_ARCHIVE data" > /dev/null 2>&1
+        fi
+        
+        if [ "$LOG_LEVEL" = "DEBUG" ]; then
+            echo "✅ Archived version $GAME_VERSION_TO_ARCHIVE and committed changes."
+        fi
+    else
+        rm -rf "$TEMP_OLD_DATA"
+        if [ "$LOG_LEVEL" = "DEBUG" ]; then
+            echo "No previous data found to archive."
+        fi
+    fi
 fi
 
 # === PUSH ALL COMMITS ===
