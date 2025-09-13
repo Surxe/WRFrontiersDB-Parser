@@ -149,6 +149,8 @@ def asset_path_to_file_path(asset_path):
     return file_path
 
 def path_to_index(path: str) -> int:
+    if '.' not in path:
+        raise Exception("No index found in asset_path: "+path)
     index_str = path.split('.')[-1]
     if index_str == "" or index_str is None: # ../Armor/Armor_A.5 -> 5
         raise Exception("No index found in asset_path: "+path)
