@@ -192,7 +192,12 @@ def parse_hex(data: dict):
     return data["Hex"]
 
 def parse_colon_colon(data: str):
-    return data.split("::")[-1] # i.e. "ESWeaponReloadType::X" -> "X"
+    split = data.split("::")
+    if len(split) < 2:
+        raise ValueError(f"Data '{data}' does not contain '::' to split.")
+    if len(split) > 2:
+        raise ValueError(f"Data '{data}' contains more than one '::'.")
+    return split[-1] # i.e. "ESWeaponReloadType::X" -> "X"
 
 expected_curve_data = {
     "TangentMode": "RCTM_Auto",
