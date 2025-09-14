@@ -284,11 +284,20 @@ def sort_dict(d: dict, num_levels: int = -1) -> dict:
         sorted_dict[key] = sort_dict(d[key], num_levels - 1)
     return sorted_dict
 
+EMPTY_VALUES = [None, "", [], {}]
 def remove_blank_values(d: dict) -> dict:
     """Remove keys with blank values from a dictionary- recursively."""
+    if d in EMPTY_VALUES:
+        return d
     if not isinstance(d, dict):
         return d
-    return {k: remove_blank_values(v) for k, v in d.items() if v not in [None, "", [], {}]}
+    res = {}
+    for k, v in d.items():
+        if v not in EMPTY_VALUES:
+            res_v = remove_blank_values(v)
+            if res_v not in EMPTY_VALUES:
+                res[k] = res_v
+    return res
 
 def merge_dicts(base: dict, overlay: dict) -> dict:
     """Recursively merge two dictionaries."""
