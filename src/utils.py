@@ -256,12 +256,15 @@ def parse_editor_curve_data(data: dict):
 
 def to_snake_case(text):
     """Convert text to snake_case"""
+    # Remove pre-existing underscores to avoid double underscores
+    s0 = text.replace('_', '')
     # Insert underscore before uppercase letters that follow lowercase letters
-    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', text)
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', s0)
     # Insert underscore before uppercase letters that follow lowercase letters or numbers
     s2 = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1)
     # Replace spaces with underscores and convert to lowercase
-    return s2.replace(' ', '_').lower()
+    s3 = s2.replace(' ', '_').lower()
+    return s3.strip('_')
 
 
 ###############################
