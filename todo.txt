@@ -1,3 +1,4 @@
 # everything in ctrl shift f "pass"
 dps calcs
-# research what links primary/secondary stat to the modifier other than by name. Suppressor's Efficiency was not applying on the 08-26 update
+
+# bash run.sh --EXPORTS_PATH D:/WRFrontiersDB/ExportData/2025-09-23 --GAME_VERSION 2025-09-23 --TARGET_BRANCH testing-grounds --LOG_LEVEL DEBUG
