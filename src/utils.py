@@ -477,9 +477,16 @@ def process_key_to_parser_function(key_to_parser_function_map, data, obj=None, l
                     current = obj
                     # Navigate/create the nested structure
                     for part in path_parts:
-                        if not hasattr(current, part):
-                            setattr(current, part, {})
-                        current = getattr(current, part)
+                        if isinstance(current, dict):
+                            # Current is a dictionary, use dictionary access
+                            if part not in current:
+                                current[part] = {}
+                            current = current[part]
+                        else:
+                            # Current is an object, use attribute access
+                            if not hasattr(current, part):
+                                setattr(current, part, {})
+                            current = getattr(current, part)
                     current[target_name] = parsed_value
                 else:
                     # For non-attribute setting, store in nested structure
