@@ -129,8 +129,9 @@ def clear_dir(dir: str) -> None:
             os.rmdir(file_path)
 
 def normalize_path(path: str) -> str:
-    """Normalize a file path to use the correct separators."""
-    return os.path.normpath(path) #this is stupid, and cba to figure out exactly which combination is actually necessary here
+    """Normalize a file path to use forward slashes for cross-platform consistency."""
+    # Convert all backslashes to forward slashes for consistent cross-platform behavior
+    return os.path.normpath(path).replace('\\', '/')
 
 ###############################
 #    Unreal Engine Parsing    #

@@ -118,10 +118,9 @@ class TestAssetPathToFilePath(unittest.TestCase):
         asset_path = "/Game/Data/Test.0"
         result = asset_path_to_file_path(asset_path)
         
-        # Result should be properly normalized
+        # Result should be properly normalized for the OS
         self.assertIn("Test.json", result)
-        # Check that it starts with the drive letter (cross-platform check)
-        self.assertTrue(result.startswith("F:") or result.startswith("F/"))
+        self.assertTrue(os.path.isabs(result))
     
     def test_no_quotes_in_path(self):
         """Test paths without quotes (should not be affected by quote processing)."""
