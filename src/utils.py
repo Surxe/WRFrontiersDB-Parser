@@ -352,7 +352,7 @@ def process_key_to_parser_function(key_to_parser_function_map, data, obj=None, l
         log_descriptor = f" in {log_descriptor}"
 
     # Get class name for logging
-    class_name = obj.__class__.__name__ if obj else 'NoClass'
+    class_name = obj.__class__.__name__ if obj else None
 
     # Determine the default configuration
     default_config_to_use = {
@@ -462,8 +462,9 @@ def process_key_to_parser_function(key_to_parser_function_map, data, obj=None, l
                     current[path_parts[-1]][target_name] = parsed_value
         
         else:
-            obj_id = getattr(obj, 'id', 'unknown') if obj else 'unknown'
-            log(f"Warning: {class_name} {obj_id} has unknown property '{key}'{log_descriptor}", tabs=tabs)
+            obj_id = getattr(obj, 'id', 'Error, no id found for obj') if obj else None
+            obj_class_ref_str = f"{class_name} {obj_id} has unknown property" if class_name and obj_id else "Unknown property"
+            log(f"Warning process_key_to_parser_function(): {obj_class_ref_str} '{key}'{log_descriptor}", tabs=tabs)
 
     if not set_attrs:
         return parsed_data
