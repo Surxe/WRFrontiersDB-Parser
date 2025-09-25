@@ -112,7 +112,7 @@ class GameMode(Object):
         return parsed_data
         
     def _p_actor_class(self, data):
-        return p_actor_class(self, data) #calls global p_actor_class and passes the object to use
+        return p_actor_class(data)
 
     def _p_titan_settings(self, data):
         data = asset_path_to_data(data["ObjectPath"])["Properties"]

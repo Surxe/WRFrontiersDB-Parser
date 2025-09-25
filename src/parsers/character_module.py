@@ -343,7 +343,7 @@ class CharacterModule(Object):
         self.reload_type = parse_colon_colon(data)  # ESWeaponReloadType::X -> X
 
     def _p_actor_class(self, data):
-        return p_actor_class(self, data)
+        return p_actor_class(data)
 
     def _p_projectile_mappings(self, data):
         parsed_mappings = []
