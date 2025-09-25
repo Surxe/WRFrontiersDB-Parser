@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import asset_path_to_file_path, PARAMS
+from utils import asset_path_to_file_path, PARAMS, normalize_path
 
 import json
 
@@ -36,7 +36,7 @@ def parse_image_asset_path(data: dict) -> str:
     export_plus_file_path = asset_path_to_file_path(asset_path)
     image_path_generic = export_plus_file_path.split(PARAMS.export_path)[1].split(".")[0] # #<export_path>\\<file_path>\\<image_name>.json -> <file_path>/<image_name>
     Image(image_path_generic)  # Register the image path
-    return image_path_generic
+    return normalize_path(image_path_generic)
 
 def parse_badge_visual_info(data: dict):
     """
