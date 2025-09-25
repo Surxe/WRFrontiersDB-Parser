@@ -46,27 +46,27 @@ class TestAssetPathToFilePath(unittest.TestCase):
         
         # Test complex Game path
         asset_path = "/Game/DungeonCrawler/Maps/Dungeon/Modules/Crypt/Edge/Armory/Armory_A.Armory_A"
-        expected = os.path.normpath("F:\\TestExports\\DungeonCrawler\\Content\\DungeonCrawler\\Maps\\Dungeon\\Modules\\Crypt\\Edge\\Armory\\Armory_A.json")
+        expected = normalize_path("F:\\TestExports\\DungeonCrawler\\Content\\DungeonCrawler\\Maps\\Dungeon\\Modules\\Crypt\\Edge\\Armory\\Armory_A.json")
         result = asset_path_to_file_path(asset_path)
         self.assertEqual(result, expected)
     
     def test_direct_content_path(self):
         """Test paths that already start with DungeonCrawler/Content."""
         asset_path = "DungeonCrawler/Content/DungeonCrawler/ActorStatus/Buff/AbyssalFlame/GE_AbyssalFlame.0"
-        expected = os.path.normpath("F:\\TestExports\\DungeonCrawler\\Content\\DungeonCrawler\\ActorStatus\\Buff\\AbyssalFlame\\GE_AbyssalFlame.json")
+        expected = normalize_path("F:\\TestExports\\DungeonCrawler\\Content\\DungeonCrawler\\ActorStatus\\Buff\\AbyssalFlame\\GE_AbyssalFlame.json")
         result = asset_path_to_file_path(asset_path)
         self.assertEqual(result, expected)
     
     def test_blueprint_generated_class_format(self):
         """Test BlueprintGeneratedClass format with single quotes."""
         asset_path = "BlueprintGeneratedClass'/Game/Sparrow/Weapons/BP_Buff_A.BP_Buff_A_C'"
-        expected = os.path.normpath("F:\\TestExports\\DungeonCrawler\\Content\\Sparrow\\Weapons\\BP_Buff_A.json")
+        expected = normalize_path("F:\\TestExports\\DungeonCrawler\\Content\\Sparrow\\Weapons\\BP_Buff_A.json")
         result = asset_path_to_file_path(asset_path)
         self.assertEqual(result, expected)
         
         # Test with different quote content
         asset_path = "SomeClass'/Game/Items/Weapon.Weapon_Data'"
-        expected = os.path.normpath("F:\\TestExports\\DungeonCrawler\\Content\\Items\\Weapon.json")
+        expected = normalize_path("F:\\TestExports\\DungeonCrawler\\Content\\Items\\Weapon.json")
         result = asset_path_to_file_path(asset_path)
         self.assertEqual(result, expected)
     
@@ -74,19 +74,19 @@ class TestAssetPathToFilePath(unittest.TestCase):
         """Test that indices are properly removed from file paths."""
         # Numeric index
         asset_path = "/Game/Items/Weapon.123"
-        expected = os.path.normpath("F:\\TestExports\\DungeonCrawler\\Content\\Items\\Weapon.json")
+        expected = normalize_path("F:\\TestExports\\DungeonCrawler\\Content\\Items\\Weapon.json")
         result = asset_path_to_file_path(asset_path)
         self.assertEqual(result, expected)
         
         # Named index
         asset_path = "/Game/Items/Armor.Armor_Heavy"
-        expected = os.path.normpath("F:\\TestExports\\DungeonCrawler\\Content\\Items\\Armor.json")
+        expected = normalize_path("F:\\TestExports\\DungeonCrawler\\Content\\Items\\Armor.json")
         result = asset_path_to_file_path(asset_path)
         self.assertEqual(result, expected)
         
         # Multiple dots
         asset_path = "/Game/Items/Complex.Name.With.Dots.5"
-        expected = os.path.normpath("F:\\TestExports\\DungeonCrawler\\Content\\Items\\Complex.json")
+        expected = normalize_path("F:\\TestExports\\DungeonCrawler\\Content\\Items\\Complex.json")
         result = asset_path_to_file_path(asset_path)
         self.assertEqual(result, expected)
     
@@ -96,7 +96,7 @@ class TestAssetPathToFilePath(unittest.TestCase):
         self.mock_params.game_name = "TestGame"
         
         asset_path = "/Game/TestContent/Data/Item.0"
-        expected = os.path.normpath("F:\\TestExports\\TestGame\\Content\\TestContent\\Data\\Item.json")
+        expected = normalize_path("F:\\TestExports\\TestGame\\Content\\TestContent\\Data\\Item.json")
         result = asset_path_to_file_path(asset_path)
         self.assertEqual(result, expected)
     
@@ -106,7 +106,7 @@ class TestAssetPathToFilePath(unittest.TestCase):
         self.mock_params.export_path = "C:\\GameExports"
         
         asset_path = "/Game/Data/Test.0"
-        expected = os.path.normpath("C:\\GameExports\\DungeonCrawler\\Content\\Data\\Test.json")
+        expected = normalize_path("C:\\GameExports\\DungeonCrawler\\Content\\Data\\Test.json")
         result = asset_path_to_file_path(asset_path)
         self.assertEqual(result, expected)
     
@@ -125,14 +125,14 @@ class TestAssetPathToFilePath(unittest.TestCase):
     def test_no_quotes_in_path(self):
         """Test paths without quotes (should not be affected by quote processing)."""
         asset_path = "/Game/Regular/Path.0"
-        expected = os.path.normpath("F:\\TestExports\\DungeonCrawler\\Content\\Regular\\Path.json")
+        expected = normalize_path("F:\\TestExports\\DungeonCrawler\\Content\\Regular\\Path.json")
         result = asset_path_to_file_path(asset_path)
         self.assertEqual(result, expected)
     
     def test_single_quote_in_path(self):
         """Test paths with only one quote (should not trigger quote processing)."""
         asset_path = "/Game/Path'With/Single/Quote.0"
-        expected = os.path.normpath("F:\\TestExports\\DungeonCrawler\\Content\\Path'With\\Single\\Quote.json")
+        expected = normalize_path("F:\\TestExports\\DungeonCrawler\\Content\\Path'With\\Single\\Quote.json")
         result = asset_path_to_file_path(asset_path)
         self.assertEqual(result, expected)
     
@@ -140,7 +140,7 @@ class TestAssetPathToFilePath(unittest.TestCase):
         """Test paths with 3+ quotes (should not trigger quote processing)."""
         asset_path = "Class'Path'With'Multiple'Quotes.0"
         # Should not process quotes since count != 2, but still processes /Game/ replacement
-        expected = os.path.normpath("F:\\TestExports\\Class'Path'With'Multiple'Quotes.json")
+        expected = normalize_path("F:\\TestExports\\Class'Path'With'Multiple'Quotes.json")
         result = asset_path_to_file_path(asset_path)
         self.assertEqual(result, expected)
     
@@ -148,13 +148,13 @@ class TestAssetPathToFilePath(unittest.TestCase):
         """Test with the specific examples mentioned in the function comments."""
         # ObjectPath example
         asset_path = "DungeonCrawler/Content/DungeonCrawler/ActorStatus/Buff/AbyssalFlame/GE_AbyssalFlame.0"
-        expected = os.path.normpath("F:\\TestExports\\DungeonCrawler\\Content\\DungeonCrawler\\ActorStatus\\Buff\\AbyssalFlame\\GE_AbyssalFlame.json")
+        expected = normalize_path("F:\\TestExports\\DungeonCrawler\\Content\\DungeonCrawler\\ActorStatus\\Buff\\AbyssalFlame\\GE_AbyssalFlame.json")
         result = asset_path_to_file_path(asset_path)
         self.assertEqual(result, expected)
         
         # asset_path_name (V2) example
         asset_path = "/Game/DungeonCrawler/Maps/Dungeon/Modules/Crypt/Edge/Armory/Armory_A.Armory_A"
-        expected = os.path.normpath("F:\\TestExports\\DungeonCrawler\\Content\\DungeonCrawler\\Maps\\Dungeon\\Modules\\Crypt\\Edge\\Armory\\Armory_A.json")
+        expected = normalize_path("F:\\TestExports\\DungeonCrawler\\Content\\DungeonCrawler\\Maps\\Dungeon\\Modules\\Crypt\\Edge\\Armory\\Armory_A.json")
         result = asset_path_to_file_path(asset_path)
         self.assertEqual(result, expected)
     
@@ -162,13 +162,13 @@ class TestAssetPathToFilePath(unittest.TestCase):
         """Test various edge cases."""
         # Empty path after /Game/
         asset_path = "/Game/.0"
-        expected = os.path.normpath("F:\\TestExports\\DungeonCrawler\\Content\\.json")
+        expected = normalize_path("F:\\TestExports\\DungeonCrawler\\Content\\.json")
         result = asset_path_to_file_path(asset_path)
         self.assertEqual(result, expected)
         
         # Path without extension
         asset_path = "/Game/NoExtension"
-        expected = os.path.normpath("F:\\TestExports\\DungeonCrawler\\Content\\NoExtension.json")
+        expected = normalize_path("F:\\TestExports\\DungeonCrawler\\Content\\NoExtension.json")
         result = asset_path_to_file_path(asset_path)
         self.assertEqual(result, expected)
 
