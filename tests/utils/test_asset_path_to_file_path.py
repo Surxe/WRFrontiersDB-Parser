@@ -7,6 +7,8 @@ from unittest.mock import Mock, patch
 src_path = os.path.join(os.path.dirname(__file__), '..', '..', 'src')
 sys.path.insert(0, src_path)
 
+from utils import normalize_path
+
 # Import directly from the src.utils module to avoid conflicts with tests.utils
 import importlib.util
 spec = importlib.util.spec_from_file_location("src_utils", os.path.join(src_path, "utils.py"))
@@ -39,7 +41,7 @@ class TestAssetPathToFilePath(unittest.TestCase):
         """Test conversion of /Game/ paths to file paths."""
         # Test basic Game path
         asset_path = "/Game/DungeonCrawler/Data/Item.0"
-        expected = os.path.normpath("F:\\TestExports\\DungeonCrawler\\Content\\DungeonCrawler\\Data\\Item.json")
+        expected = normalize_path("F:\\TestExports\\DungeonCrawler\\Content\\DungeonCrawler\\Data\\Item.json")
         result = asset_path_to_file_path(asset_path)
         self.assertEqual(result, expected)
         

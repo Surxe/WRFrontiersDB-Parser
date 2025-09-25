@@ -18,7 +18,7 @@ class Params:
     def __init__(self, export_path=None, game_name=None, log_level=None, output_path=None):
         # Use provided args if not None, else fallback to environment
         raw_export_path = export_path if export_path is not None else os.getenv('EXPORTS_PATH')
-        self.export_path = os.path.normpath(raw_export_path) if raw_export_path else None
+        self.export_path = normalize_path(raw_export_path) if raw_export_path else None
         self.game_name = game_name if game_name is not None else os.getenv('GAME_NAME')
         self.log_level = (log_level if log_level is not None else os.getenv('LOG_LEVEL', 'DEBUG')).upper()
         self.output_path = output_path if output_path is not None else os.getenv('OUTPUT_PATH', None)
@@ -128,6 +128,10 @@ def clear_dir(dir: str) -> None:
             clear_dir(file_path)
             os.rmdir(file_path)
 
+def normalize_path(path: str) -> str:
+    """Normalize a file path to use the correct separators but not OS-specific as they need to be consistent for testing purposes."""
+    return path.replace('\\\\', '/').replace('\\', '/').replace('//', '/').replace('///', '/') #this is stupid
+
 ###############################
 #    Unreal Engine Parsing    #
 ###############################
@@ -151,11 +155,11 @@ def asset_path_to_file_path(asset_path):
     relative_path_parts = relative_path.split('/')
     
     # Normalize the export path first to ensure consistent separators
-    normalized_export_path = os.path.normpath(PARAMS.export_path)
+    normalized_export_path = normalize_path(PARAMS.export_path)
     # Build the full file path using os.path.join for cross-platform compatibility
     file_path = os.path.join(normalized_export_path, *relative_path_parts) + ".json"
-    # Normalize the final path for the current OS
-    file_path = os.path.normpath(file_path)
+    # Normalize the final path using our custom normalize_path function
+    file_path = normalize_path(file_path)
     return file_path
 
 def path_to_index(path: str) -> int:
