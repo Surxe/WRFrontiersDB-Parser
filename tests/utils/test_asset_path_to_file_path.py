@@ -120,7 +120,9 @@ class TestAssetPathToFilePath(unittest.TestCase):
         
         # Result should be properly normalized for the OS
         self.assertIn("Test.json", result)
-        self.assertTrue(os.path.isabs(result))
+        # Cross-platform check for absolute path (handles both Windows drive letters and Unix paths)
+        is_absolute = result.startswith('/') or (len(result) >= 2 and result[1] == ':')
+        self.assertTrue(is_absolute)
     
     def test_no_quotes_in_path(self):
         """Test paths without quotes (should not be affected by quote processing)."""
