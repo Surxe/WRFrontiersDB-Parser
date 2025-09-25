@@ -55,7 +55,7 @@ fi
 if [ "$LOG_LEVEL" = "DEBUG" ]; then
     echo "Running parser with args: ${PARSE_ARGS[@]}"
 fi
-python3 src/parse.py "${PARSE_ARGS[@]}"
+python src/parse.py "${PARSE_ARGS[@]}"
 
 # === PUSH DATA ===
 # Call the push_data.sh script to handle git operations

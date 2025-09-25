@@ -59,7 +59,7 @@ class Powerup(Object):
         return overlayed_data
 
     def _p_actor_class(self, data: dict):
-        return p_actor_class(self, data)
+        return p_actor_class(data)
 
 def parse_powerup_wrapper(full_path, id):
     if 'Indicator' in full_path:

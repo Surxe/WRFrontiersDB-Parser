@@ -1,3 +1,5 @@
 # everything in ctrl shift f "pass"
 dps calcs
 tests
+
+# bash run.sh --EXPORTS_PATH D:/WRFrontiersDB/ExportData/2025-09-23 --GAME_VERSION 2025-09-23 --TARGET_BRANCH testing-grounds --LOG_LEVEL DEBUG
