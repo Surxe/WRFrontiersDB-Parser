@@ -150,9 +150,11 @@ def asset_path_to_file_path(asset_path):
     # Convert forward slashes to the correct path separator for the current OS
     relative_path_parts = relative_path.split('/')
     
+    # Normalize the export path first to ensure consistent separators
+    normalized_export_path = os.path.normpath(PARAMS.export_path)
     # Build the full file path using os.path.join for cross-platform compatibility
-    file_path = os.path.join(PARAMS.export_path, *relative_path_parts) + ".json"
-    # Normalize the path for the current OS
+    file_path = os.path.join(normalized_export_path, *relative_path_parts) + ".json"
+    # Normalize the final path for the current OS
     file_path = os.path.normpath(file_path)
     return file_path
 
