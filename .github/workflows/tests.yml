@@ -5,6 +5,11 @@ on:
     branches:
       - main
       - develop    # Add any branches you want PRs checked against
+  push:           # Also run tests on direct pushes to these branches
+    branches:
+      - main
+      - develop
+      - tests     # Include tests branch for testing the workflow itself
 
 jobs:
   test:
@@ -24,6 +29,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Discover tests
+        run: |
+          echo "Discovering test files..."
+          find tests -name "test_*.py" -type f | sort
+
       - name: Run tests
         run: |
-          pytest --maxfail=1 --disable-warnings -q
+          python -m unittest discover -s tests -p "test_*.py" -v
