@@ -371,7 +371,17 @@ def process_key_to_parser_function(key_to_parser_function_map, data, obj=None, l
     parsed_data = dict()
 
     for key, value in data.items():
-        if key in key_to_parser_function_map:
+        # Remove trailing indexing from key if present
+        # i.e. 'Id_ColorParam[2]' -> 'Id_ColorParam'
+        if isinstance(key, str) and re.match(r'.+\[\d+\]$', key):
+            key = re.sub(r'\[\d+\]$', '', key)
+
+        if not key in key_to_parser_function_map:
+            obj_id = getattr(obj, 'id', 'Error, no id found for obj') if obj else None
+            obj_class_ref_str = f"{class_name} {obj_id} has unknown property" if class_name and obj_id else "Unknown property"
+            log(f"Warning process_key_to_parser_function(): {obj_class_ref_str} '{key}'{log_descriptor}", tabs=tabs)
+        
+        else:
             config = key_to_parser_function_map[key]
             
             # Handle None (skip processing)
@@ -460,11 +470,6 @@ def process_key_to_parser_function(key_to_parser_function_map, data, obj=None, l
                     if path_parts[-1] not in current:
                         current[path_parts[-1]] = {}
                     current[path_parts[-1]][target_name] = parsed_value
-        
-        else:
-            obj_id = getattr(obj, 'id', 'Error, no id found for obj') if obj else None
-            obj_class_ref_str = f"{class_name} {obj_id} has unknown property" if class_name and obj_id else "Unknown property"
-            log(f"Warning process_key_to_parser_function(): {obj_class_ref_str} '{key}'{log_descriptor}", tabs=tabs)
 
     if not set_attrs:
         return parsed_data
