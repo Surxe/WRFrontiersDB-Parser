@@ -17,7 +17,8 @@ class Params:
     """
     def __init__(self, export_path=None, game_name=None, log_level=None, output_path=None):
         # Use provided args if not None, else fallback to environment
-        self.export_path = os.path.normpath(export_path if export_path is not None else os.getenv('EXPORTS_PATH'))
+        raw_export_path = export_path if export_path is not None else os.getenv('EXPORTS_PATH')
+        self.export_path = os.path.normpath(raw_export_path) if raw_export_path else None
         self.game_name = game_name if game_name is not None else os.getenv('GAME_NAME')
         self.log_level = (log_level if log_level is not None else os.getenv('LOG_LEVEL', 'DEBUG')).upper()
         self.output_path = output_path if output_path is not None else os.getenv('OUTPUT_PATH', None)
@@ -143,8 +144,15 @@ def asset_path_to_file_path(asset_path):
     # if ' in asset path twice
     if "\'" in asset_path and asset_path.count("\'") == 2:
         asset_path = asset_path.split("\'")[1]
-    file_path = PARAMS.export_path + "\\" + asset_path.split('.')[0].replace("/Game/",f"\\{game_name}\\Content\\") + ".json"
-    # Normalize slashes and redundant separators
+    
+    # Convert the asset path to a relative path, replacing /Game/ with the appropriate game content path
+    relative_path = asset_path.split('.')[0].replace("/Game/", f"{game_name}/Content/")
+    # Convert forward slashes to the correct path separator for the current OS
+    relative_path_parts = relative_path.split('/')
+    
+    # Build the full file path using os.path.join for cross-platform compatibility
+    file_path = os.path.join(PARAMS.export_path, *relative_path_parts) + ".json"
+    # Normalize the path for the current OS
     file_path = os.path.normpath(file_path)
     return file_path
 
