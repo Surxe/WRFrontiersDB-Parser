@@ -4,7 +4,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import Object
-from utils import ParseTarget, ParseAction, asset_path_to_data, log, parse_colon_colon, parse_editor_curve_data, merge_dicts, remove_blank_values
+from utils import ParseTarget, ParseAction, process_key_to_parser_function, asset_path_to_data, log, parse_colon_colon, parse_editor_curve_data, merge_dicts, remove_blank_values
 from parsers.image import parse_image_asset_path
 from parsers.localization_table import parse_localization
 from parsers.module_stat import ModuleStat
@@ -625,7 +625,7 @@ def p_expansion_template(data: dict):
         "InitialRadius": "value",
         "FinishRadius": "value",
     }
-    return Ability._process_key_to_parser_function(Ability(), key_to_parser_function, props, log_descriptor="ExpansionTemplate", set_attrs=False, tabs=2, default_configuration={
+    return process_key_to_parser_function(key_to_parser_function, props, log_descriptor="ExpansionTemplate", set_attrs=False, tabs=2, default_configuration={
         'target': ParseTarget.MATCH_KEY
     })
 
@@ -669,7 +669,7 @@ def p_movement_component(data: dict):
         "bCruiseAvoidObstacles": "value",
         "bEnableCruiseMode": "value",
     }
-    return Ability._process_key_to_parser_function(Ability(), key_to_parser_function, data["Properties"], log_descriptor="MovementComponent", set_attrs=False, tabs=2, default_configuration={
+    return process_key_to_parser_function(key_to_parser_function, data["Properties"], log_descriptor="MovementComponent", set_attrs=False, tabs=2, default_configuration={
         'target': ParseTarget.MATCH_KEY
     })
 
@@ -690,8 +690,7 @@ def p_damage_applier(data: dict):
         "DamageMeshFXClass": None,
     }
 
-    parsed_data = Ability._process_key_to_parser_function(
-            Ability(), #TODO this is awful bandaid lol
+    parsed_data = process_key_to_parser_function(
             key_to_parser_function, data, log_descriptor="ActorClass", tabs=6, set_attrs=False, default_configuration={
                 'target': ParseTarget.MATCH_KEY
             }
@@ -735,7 +734,7 @@ def p_collision_component(data):
         "bHiddenInGame": None,
     }
 
-    return Ability._process_key_to_parser_function(Ability(), key_to_parser_function, props, log_descriptor="CollisionComponent", set_attrs=False, tabs=2, default_configuration={
+    return process_key_to_parser_function(key_to_parser_function, props, log_descriptor="CollisionComponent", set_attrs=False, tabs=2, default_configuration={
         'target': ParseTarget.MATCH_KEY
     })
 
@@ -775,8 +774,7 @@ def p_buff_area_component(data: dict):
         "Buffs": p_buffs,
     }
 
-    return Ability._process_key_to_parser_function(
-        Ability(),
+    return process_key_to_parser_function(
         key_to_parser_function,
         props,
         log_descriptor="BuffAreaComponent",
