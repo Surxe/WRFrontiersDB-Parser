@@ -129,8 +129,8 @@ def clear_dir(dir: str) -> None:
             os.rmdir(file_path)
 
 def normalize_path(path: str) -> str:
-    """Normalize a file path to use the correct separators but not OS-specific as they need to be consistent for testing purposes."""
-    return path.replace('\\\\', '/').replace('\\', '/').replace('//', '/').replace('///', '/') #this is stupid
+    """Normalize a file path to use the correct separators."""
+    return os.path.normpath(path.replace('\\\\', '/').replace('\\', '/').replace('//', '/').replace('///', '/').replace('\\', '/')) #this is stupid, and cba to figure out exactly which combination is actually necessary here
 
 ###############################
 #    Unreal Engine Parsing    #

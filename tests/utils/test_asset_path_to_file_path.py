@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch
 src_path = os.path.join(os.path.dirname(__file__), '..', '..', 'src')
 sys.path.insert(0, src_path)
 
-from utils import normalize_path
+from src.utils import normalize_path
 
 # Import directly from the src.utils module to avoid conflicts with tests.utils
 import importlib.util
