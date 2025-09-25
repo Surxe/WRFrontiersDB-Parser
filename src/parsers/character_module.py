@@ -3,9 +3,9 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from parsers.object import Object, ParseTarget
+from parsers.object import Object
 from parsers.ability import Ability, p_movement_component, p_collision_component, p_actor_class
-from utils import log, asset_path_to_data, parse_colon_colon, parse_editor_curve_data, merge_dicts
+from utils import ParseTarget, asset_path_to_data, parse_colon_colon, parse_editor_curve_data, merge_dicts
 
 class CharacterModule(Object):
     objects = dict()  # Dictionary to hold all CharacterModule instances

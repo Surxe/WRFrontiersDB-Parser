@@ -297,3 +297,173 @@ def merge_dicts(base: dict, overlay: dict) -> dict:
                 # use overlay's value
                 result[key] = value
     return remove_blank_values(result)
+
+class ParseAction:
+    ATTRIBUTE = "attribute"
+    DICT_ENTRY = "dict_entry"
+
+class ParseTarget:
+    MATCH_KEY = "match_key"           # Use the original key as-is
+    MATCH_KEY_SNAKE = "match_key_snake"  # Convert key to snake_case
+
+def process_key_to_parser_function(key_to_parser_function_map, data, obj=None, log_descriptor="", set_attrs=True, tabs=0, default_configuration={}):
+    """
+    Enhanced version that supports flexible target destinations.
+    
+    Configuration format:
+    {
+        "PropertyKey": {
+            'parser': function_or_value,     # Optional: Parser function or "value" (default: "value")
+            'action': ParseAction.ATTRIBUTE, # Optional: How to store the result (default: ParseAction.ATTRIBUTE)
+            'target_dict_path': 'dict.nested', # Dict path with dot notation (only for DICT_ENTRY action)
+            'target': ParseTarget.MATCH_KEY or "custom_name", # How to determine the key/attribute name
+        }
+
+        OR any of the following shortcuts:
+        "PropertyKey": function or "value" # Will default to ParseAction.ATTRIBUTE and ParseTarget.MATCH_KEY_SNAKE
+
+        "PropertyKey": (function, "key")  # Use function to parse and store as "key" - legacy format. Only needed over the above shortcut if key needs to be different to snake case.
+    }
+    
+    Examples:
+    "Regen amount": {
+        'action': ParseAction.DICT_ENTRY,
+        'target_dict_path': 'default_properties',
+        'target': ParseTarget.MATCH_KEY,  # saves to obj.default_properties["Regen amount"]
+    },
+    "DamageBoost": {
+        'action': ParseAction.DICT_ENTRY,
+        'target_dict_path': 'default_properties',
+        'target': "damage_boost",  # saves to obj.default_properties["damage_boost"]
+    },
+    "Stats": {
+        'parser': some_parser_function,
+        'target': "parsed_stats",  # saves to obj.parsed_stats
+    }
+    """
+    
+    if not isinstance(key_to_parser_function_map, dict):
+        raise TypeError("key_to_parser_function must be a dictionary.")
+    
+    if set_attrs and obj is None:
+        raise ValueError("obj must be provided when set_attrs=True")
+    
+    if log_descriptor != "":
+        log_descriptor = f" in {log_descriptor}"
+
+    # Get class name for logging
+    class_name = obj.__class__.__name__ if obj else 'NoClass'
+
+    # Determine the default configuration
+    default_config_to_use = {
+        'parser': "value",  # Default parser is "value"
+        'action': ParseAction.ATTRIBUTE,  # Default action is to set an attribute
+        'target_dict_path': None,  # Default is no nested dict path
+        'target': ParseTarget.MATCH_KEY_SNAKE  # Default target is to match key in snake_case
+    }
+    # Update with any provided default configuration
+    for key, value in default_configuration.items():
+        if key in default_config_to_use:
+            default_config_to_use[key] = value
+        else:
+            raise ValueError(f"Unknown default configuration key: {key}")
+        
+    parsed_data = dict()
+
+    for key, value in data.items():
+        if key in key_to_parser_function_map:
+            config = key_to_parser_function_map[key]
+            
+            # Handle None (skip processing)
+            if config is None:
+                continue
+            
+            # Handle function directly - use as parser with defaults
+            if callable(config) or config == "value":
+                config = {
+                    'parser': config,
+                }
+            
+            # Handle legacy tuple format for backwards compatibility
+            elif isinstance(config, tuple):
+                config = {
+                    'parser': config[0],
+                    'target': config[1]
+                }
+            
+            # Handle new dictionary format
+            if not isinstance(config, dict):
+                raise TypeError(f"{class_name} Value for key '{key}' must be a dict, tuple, callable, or None, got {type(config)}")
+
+            parser = config.get('parser', default_config_to_use['parser'])
+            action = config.get('action', default_config_to_use['action'])
+            target_dict_path = config.get('target_dict_path', default_config_to_use['target_dict_path'])
+            target = config.get('target', default_config_to_use['target'])
+            
+            # Validate configuration
+            if action == ParseAction.DICT_ENTRY and not target_dict_path:
+                raise ValueError(f"{class_name} target_dict_path required for DICT_ENTRY action on key '{key}'")
+            elif action == ParseAction.ATTRIBUTE and target_dict_path:
+                #raise ValueError(f"{class_name} target_dict_path should not be provided for ATTRIBUTE action on key '{key}'")
+                # this is now allowed for defaulting it in configuration. Its simply ignored if not DICT_ENTRY
+                pass
+            
+            # Parse the value
+            if parser == "value":
+                parsed_value = value
+            elif callable(parser):
+                parsed_value = parser(value)
+            else:
+                raise TypeError(f"{class_name} Parser for key '{key}' must be callable or 'value', got {type(parser)}")
+            
+            if parsed_value is None:
+                continue
+            
+            # Determine target name
+            if target == ParseTarget.MATCH_KEY:
+                target_name = key
+            elif target == ParseTarget.MATCH_KEY_SNAKE:
+                target_name = to_snake_case(key)
+            elif isinstance(target, str):
+                # Custom string target
+                target_name = target
+            else:
+                raise ValueError(f"{class_name} Target must be ParseTarget.MATCH_KEY, ParseTarget.MATCH_KEY_SNAKE, or a string for key '{key}', got {type(target)}")
+            
+            # Store the parsed value
+            if action == ParseAction.ATTRIBUTE:
+                # Direct attribute assignment
+                if set_attrs:
+                    setattr(obj, target_name, parsed_value)
+                else:
+                    parsed_data[target_name] = parsed_value
+                    
+            elif action == ParseAction.DICT_ENTRY:
+                # Handle dot notation for nested dictionaries
+                path_parts = target_dict_path.split('.')
+                
+                if set_attrs:
+                    current = obj
+                    # Navigate/create the nested structure
+                    for part in path_parts:
+                        if not hasattr(current, part):
+                            setattr(current, part, {})
+                        current = getattr(current, part)
+                    current[target_name] = parsed_value
+                else:
+                    # For non-attribute setting, store in nested structure
+                    current = parsed_data
+                    for part in path_parts[:-1]:
+                        if part not in current:
+                            current[part] = {}
+                        current = current[part]
+                    if path_parts[-1] not in current:
+                        current[path_parts[-1]] = {}
+                    current[path_parts[-1]][target_name] = parsed_value
+        
+        else:
+            obj_id = getattr(obj, 'id', 'unknown') if obj else 'unknown'
+            log(f"Warning: {class_name} {obj_id} has unknown property '{key}'{log_descriptor}", tabs=tabs)
+
+    if not set_attrs:
+        return parsed_data

@@ -3,8 +3,8 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from parsers.object import Object, ParseTarget, ParseAction
-from utils import asset_path_to_data, log, parse_colon_colon, parse_editor_curve_data, merge_dicts, remove_blank_values
+from parsers.object import Object
+from utils import ParseTarget, ParseAction, asset_path_to_data, log, parse_colon_colon, parse_editor_curve_data, merge_dicts, remove_blank_values
 from parsers.image import parse_image_asset_path
 from parsers.localization_table import parse_localization
 from parsers.module_stat import ModuleStat
