@@ -3,10 +3,10 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import parse_colon_colon, log, get_json_data, asset_path_to_file_path_and_index, asset_path_to_data, path_to_id, asset_path_to_file_path, PARAMS, parse_editor_curve_data
+from utils import ParseTarget, parse_colon_colon, log, get_json_data, asset_path_to_file_path_and_index, asset_path_to_data, path_to_id, asset_path_to_file_path, PARAMS, parse_editor_curve_data
 from parsers.localization_table import parse_localization
 
-from parsers.object import Object, ParseTarget
+from parsers.object import Object
 from parsers.ability import p_actor_class
 from parsers.bot_names import BotNames
 from parsers.honor_reward import HonorReward
@@ -112,7 +112,7 @@ class GameMode(Object):
         return parsed_data
         
     def _p_actor_class(self, data):
-        return p_actor_class(self, data) #calls global p_actor_class and passes the object to use
+        return p_actor_class(data)
 
     def _p_titan_settings(self, data):
         data = asset_path_to_data(data["ObjectPath"])["Properties"]
