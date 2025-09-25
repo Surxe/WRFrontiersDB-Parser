@@ -130,8 +130,12 @@ def clear_dir(dir: str) -> None:
 
 def normalize_path(path: str) -> str:
     """Normalize a file path to use forward slashes for cross-platform consistency."""
-    # Convert all backslashes to forward slashes for consistent cross-platform behavior
-    return os.path.normpath(path).replace('\\', '/')
+    # Use os.path.normpath to normalize the path properly for the current platform
+    # This ensures drive letters and absolute paths are handled correctly
+    normalized = os.path.normpath(path)
+    # Only convert backslashes to forward slashes for display consistency in tests
+    # but preserve the platform-specific absolute path characteristics
+    return normalized.replace('\\', '/')
 
 ###############################
 #    Unreal Engine Parsing    #

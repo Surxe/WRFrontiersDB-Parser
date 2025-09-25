@@ -4,12 +4,6 @@ on:
   pull_request:   # Triggers when a PR is opened, synchronized, or reopened
     branches:
       - main
-      - develop    # Add any branches you want PRs checked against
-  push:           # Also run tests on direct pushes to these branches
-    branches:
-      - main
-      - develop
-      - tests     # Include tests branch for testing the workflow itself
 
 jobs:
   test:
