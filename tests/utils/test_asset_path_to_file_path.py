@@ -7,8 +7,6 @@ from unittest.mock import Mock, patch
 src_path = os.path.join(os.path.dirname(__file__), '..', '..', 'src')
 sys.path.insert(0, src_path)
 
-from src.utils import normalize_path
-
 # Import directly from the src.utils module to avoid conflicts with tests.utils
 import importlib.util
 spec = importlib.util.spec_from_file_location("src_utils", os.path.join(src_path, "utils.py"))
@@ -16,6 +14,7 @@ src_utils = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(src_utils)
 
 asset_path_to_file_path = src_utils.asset_path_to_file_path
+normalize_path = src_utils.normalize_path
 
 
 class TestAssetPathToFilePath(unittest.TestCase):
