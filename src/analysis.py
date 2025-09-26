@@ -9,14 +9,15 @@ from utils import log, PARAMS, sort_dict
 import math
 
 class Analysis:
-    def __init__(self, module_class, character_module_class, module_stat_class):
+    def __init__(self, module_class, character_module_class, module_stat_class, upgrade_cost_class):
         self.module_class = module_class
         self.character_module_class = character_module_class
         self.module_stat_class = module_stat_class
+        self.upgrade_cost_class = upgrade_cost_class
 
         self.calc_modules_dps(self.module_class, self.character_module_class)
 
-        res = self.get_level_diffs_per_module(self.module_class.objects)
+        res = self.get_level_diffs_per_module(self.module_class.objects, self.upgrade_cost_class.objects)
         self.level_diffs_by_module = res['level_diffs']
         distinct_stat_keys = res['distinct_stat_keys']
         self.total_upgrade_cost_for_all_modules = res['total_upgrade_costs']
@@ -534,7 +535,7 @@ class Analysis:
     #     Level Diffs/Upgrade Costs #
     #################################
     @staticmethod
-    def get_level_diffs_per_module(module_class_objects):
+    def get_level_diffs_per_module(module_class_objects, upgrade_cost_class_objects):
         def extract_base_and_max(module):
             level_base = {}
             level_max = {}
@@ -566,16 +567,17 @@ class Analysis:
                 return None
             return diff_value
         
-        def calculate_upgrade_costs(module, total_upgrade_costs):
+        def calculate_upgrade_costs(module, upgrade_cost_class_objects, total_upgrade_costs):
             module_upgrade_costs = {}
             module_scalars = module.levels.get('module_scalars')
             if module_scalars is None:
                 return None
             for level_index, level_data in enumerate(module_scalars['variables']):
-                upgrade_cost = level_data.get('UpgradeCurrency')
-                if not upgrade_cost:
-                    log(f"Warning: No upgrade cost found for module {getattr(module, 'id', None)} at level {level_index+1}")
+                upgrade_cost_id = level_data.get('upgrade_currency_id')
+                if upgrade_cost_id is None:
+                    log(f"Warning: No upgrade cost ID found for module {getattr(module, 'id', None)} at level {level_index+1}")
                     continue
+                upgrade_cost = upgrade_cost_class_objects[upgrade_cost_id]
                 currency_id = upgrade_cost['currency_id']
                 currency_amount = upgrade_cost['amount']
                 module_upgrade_costs[currency_id] = module_upgrade_costs.get(currency_id, 0) + currency_amount
@@ -618,7 +620,7 @@ class Analysis:
                 else:
                     add_diff(key, calc_diff(level_base[key], level_max[key], module_id))
 
-            module_upgrade_costs = calculate_upgrade_costs(module, total_upgrade_costs)
+            module_upgrade_costs = calculate_upgrade_costs(module, upgrade_cost_class_objects, total_upgrade_costs)
             level_diffs[module_id] = {
                 'stats_percent_increase': dict(sorted(diff.items()))
             }
@@ -734,6 +736,6 @@ class Analysis:
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(self.to_json())
 
-def analyze(module_class, character_module_class, module_stat_class):
-    analysis = Analysis(module_class, character_module_class, module_stat_class)
+def analyze(module_class, character_module_class, module_stat_class, upgrade_cost_class):
+    analysis = Analysis(module_class, character_module_class, module_stat_class, upgrade_cost_class)
     analysis.to_file()
