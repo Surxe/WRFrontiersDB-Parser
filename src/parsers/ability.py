@@ -3,8 +3,8 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from parsers.object import Object, ParseTarget, ParseAction
-from utils import asset_path_to_data, log, parse_colon_colon, parse_editor_curve_data, merge_dicts, remove_blank_values
+from parsers.object import Object
+from utils import ParseTarget, ParseAction, process_key_to_parser_function, asset_path_to_data, log, parse_colon_colon, parse_editor_curve_data, merge_dicts, remove_blank_values
 from parsers.image import parse_image_asset_path
 from parsers.localization_table import parse_localization
 from parsers.module_stat import ModuleStat
@@ -21,6 +21,10 @@ class Ability(Object):
         overlayed_data = self._parse_from_data(data)
         for key, value in overlayed_data.items():
             setattr(self, key, value)
+
+        # Locate WeaponInfos under the misc attribute and move it to the weapon_id attribute
+        if hasattr(self, 'misc') and 'spawn_actor_action' in self.misc and 'ActorClass' in self.misc['spawn_actor_action'] and 'WeaponInfos' in self.misc['spawn_actor_action']['ActorClass']:
+            self.weapon_id = self.misc['spawn_actor_action']['ActorClass'].pop('WeaponInfos')
 
     def _parse_from_data(self, source_data: dict):
         props = source_data.get("Properties")
@@ -154,8 +158,8 @@ class Ability(Object):
             "TargetingMarkerClass": None,
             "AssistanceRadius": None,
             "RetributionAnimTime": None,
-            "WeaponInfos": {"parser": self._p_weapon_infos, "action": ParseAction.ATTRIBUTE, "target": "weapon"}, # ares retribution and volta tesla coil
-            "ActivateWeaponsAction": {"parser": self._p_activate_weapons_action, "action": ParseAction.ATTRIBUTE, "target": "weapon"},
+            "WeaponInfos": {"parser": self._p_weapon_infos, "action": ParseAction.ATTRIBUTE, "target": "weapon_id"}, # ares retribution and volta tesla coil
+            "ActivateWeaponsAction": {"parser": self._p_activate_weapons_action, "action": ParseAction.ATTRIBUTE, "target": "weapon_id"},
             "TurnSpeed": None, #homign pack
             "CruiseHeightRange": None,
             "CruiseRollSeconds": None,
@@ -564,7 +568,7 @@ class Ability(Object):
         return data["Properties"]
     
     def _p_actor_class(self, data):
-        return p_actor_class(self, data) #wrapper that makes it use Ability class
+        return p_actor_class(data)
     
     def _p_movement_component(self, data):
         return p_movement_component(data)
@@ -625,7 +629,7 @@ def p_expansion_template(data: dict):
         "InitialRadius": "value",
         "FinishRadius": "value",
     }
-    return Ability._process_key_to_parser_function(Ability(), key_to_parser_function, props, log_descriptor="ExpansionTemplate", set_attrs=False, tabs=2, default_configuration={
+    return process_key_to_parser_function(key_to_parser_function, props, log_descriptor="ExpansionTemplate", set_attrs=False, tabs=2, default_configuration={
         'target': ParseTarget.MATCH_KEY
     })
 
@@ -669,7 +673,7 @@ def p_movement_component(data: dict):
         "bCruiseAvoidObstacles": "value",
         "bEnableCruiseMode": "value",
     }
-    return Ability._process_key_to_parser_function(Ability(), key_to_parser_function, data["Properties"], log_descriptor="MovementComponent", set_attrs=False, tabs=2, default_configuration={
+    return process_key_to_parser_function(key_to_parser_function, data["Properties"], log_descriptor="MovementComponent", set_attrs=False, tabs=2, default_configuration={
         'target': ParseTarget.MATCH_KEY
     })
 
@@ -690,8 +694,7 @@ def p_damage_applier(data: dict):
         "DamageMeshFXClass": None,
     }
 
-    parsed_data = Ability._process_key_to_parser_function(
-            Ability(), #TODO this is awful bandaid lol
+    parsed_data = process_key_to_parser_function(
             key_to_parser_function, data, log_descriptor="ActorClass", tabs=6, set_attrs=False, default_configuration={
                 'target': ParseTarget.MATCH_KEY
             }
@@ -735,7 +738,7 @@ def p_collision_component(data):
         "bHiddenInGame": None,
     }
 
-    return Ability._process_key_to_parser_function(Ability(), key_to_parser_function, props, log_descriptor="CollisionComponent", set_attrs=False, tabs=2, default_configuration={
+    return process_key_to_parser_function(key_to_parser_function, props, log_descriptor="CollisionComponent", set_attrs=False, tabs=2, default_configuration={
         'target': ParseTarget.MATCH_KEY
     })
 
@@ -757,7 +760,7 @@ def p_buffs(data: dict):
         }
 
         buff_asset_path = buff["Key"]
-        buff_data = p_actor_class(Ability(), buff_asset_path)
+        buff_data = p_actor_class(buff_asset_path)
         if buff_data:
             parsed_buff.update(buff_data)
 
@@ -775,8 +778,7 @@ def p_buff_area_component(data: dict):
         "Buffs": p_buffs,
     }
 
-    return Ability._process_key_to_parser_function(
-        Ability(),
+    return process_key_to_parser_function(
         key_to_parser_function,
         props,
         log_descriptor="BuffAreaComponent",
@@ -804,10 +806,10 @@ def p_ability_classes(data: dict):
         ids.append(ability_id)
     return ids
 
-def p_actor_class(obj, data: dict):
+def p_actor_class(data: dict):
     if type(data) is list:
         for elem in data:
-            return p_actor_class(obj, elem)
+            return p_actor_class(elem)
     elif type(data) is dict:
         data = asset_path_to_data(data["ObjectPath"])
     elif type(data) is str:
@@ -993,12 +995,12 @@ def p_actor_class(obj, data: dict):
         "FocusComponent": p_focus_component,
         "PassiveWeaponComponent": None, #contains no data
         "SoundSystemComponent": None,
-        "WeaponInfos": {"parser": p_weapon_infos, "action": ParseAction.ATTRIBUTE, "target": "weapon"},
+        "WeaponInfos": p_weapon_infos,
         "EnemyMaterialInstance": None,
         "FriendMaterialInstance": None,
         "bCanBeDamaged": "value",
         "ActiveRadius": "value", #minefield
-        "BuffsOnHit": obj._p_actor_class,
+        "BuffsOnHit": p_actor_class,
         "SingleExplosionSoundEvent": None,
         "FinalExplosionSoundEvent": None,
         "MineNiagaraEffect": None,
@@ -1024,7 +1026,7 @@ def p_actor_class(obj, data: dict):
         "TransfusionRayFx": None,
         "SpawnSoundEvent": None,
         "Harpoon Shot Delay": "value", #snare
-        "Snare Debuff": obj._p_actor_class,
+        "Snare Debuff": p_actor_class,
         "Harpoon Direct Damage": "value",
         "Snap Object Types": None,
         "Death VFX": None,
@@ -1047,7 +1049,7 @@ def p_actor_class(obj, data: dict):
         "StartHealingSoundEvent": None,
         "StopHealingSoundEvent": None,
         "FriendlyColor": None,
-        "Buff": obj._p_actor_class,
+        "Buff": p_actor_class,
         "WasSpottedSoundEvent": None, #echo burst
         "SpottedSoundEvent": None,
         "bIndestructible": "value", #ares torso
@@ -1069,7 +1071,7 @@ def p_actor_class(obj, data: dict):
         "SocketToFX_ColorId": None,
     }
 
-    parsed_data = obj._process_key_to_parser_function(
+    parsed_data = process_key_to_parser_function(
         key_to_parser_function, props, log_descriptor="ActorClass", tabs=5, set_attrs=False, default_configuration={
             'target': ParseTarget.MATCH_KEY
         }
