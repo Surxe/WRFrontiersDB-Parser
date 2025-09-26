@@ -1,7 +1,6 @@
 # everything in ctrl shift f "pass"
 dps calcs
 # get charging multiplier for "ideal charge" which is t=NoShootingTime when it is specified
-# add cumulative levelup cost to module scalars
 # use timebetweenshots thats defaulted in char module if its missing instead of using RoundsPerMinute
 
 # bash run.sh --EXPORTS_PATH D:/WRFrontiersDB/ExportData/2025-09-23 --GAME_VERSION 2025-09-23 --TARGET_BRANCH testing-grounds --LOG_LEVEL DEBUG
