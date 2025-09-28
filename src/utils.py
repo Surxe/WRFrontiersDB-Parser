@@ -17,13 +17,17 @@ class Params:
     """
     A class to hold parameters for the application.
     """
-    def __init__(self, export_path=None, game_name=None, log_level=None, output_path=None):
+    def __init__(self, export_path=None, game_name=None, log_level=None, output_path=None, steam_username=None, steam_password=None, depot_download_cmd_path=None, force_download=None):
         # Use provided args if not None, else fallback to environment
         raw_export_path = export_path if export_path is not None else os.getenv('EXPORTS_PATH')
         self.export_path = normalize_path(raw_export_path) if raw_export_path else None
         self.game_name = game_name if game_name is not None else os.getenv('GAME_NAME')
         self.log_level = (log_level if log_level is not None else os.getenv('LOG_LEVEL', 'DEBUG')).upper()
         self.output_path = output_path if output_path is not None else os.getenv('OUTPUT_PATH', None)
+        self.steam_username = steam_username if steam_username is not None else os.getenv('STEAM_USERNAME')
+        self.steam_password = steam_password if steam_password is not None else os.getenv('STEAM_PASSWORD')
+        self.depot_downloader_cmd_path = depot_download_cmd_path if depot_download_cmd_path is not None else os.getenv('DEPOT_DOWNLOADER_CMD_PATH')
+        self.force_download = is_truthy(force_download if force_download is not None else (os.getenv('FORCE_DOWNLOAD', 'False').lower() == 'true'))
         
         # Setup loguru logging to /logs dir
         logs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'logs')
@@ -66,17 +70,31 @@ class Params:
             os.makedirs(self.output_path, exist_ok=True)
         if not os.path.exists(self.output_path):
             raise ValueError(f"OUTPUT_PATH '{self.output_path}' does not exist.")
-        
+
+        if not self.steam_username:
+            raise ValueError("STEAM_USERNAME environment variable is not set.")
+
+        if not self.steam_password:
+            raise ValueError("STEAM_PASSWORD environment variable is not set.")
+
+        if not self.depot_downloader_cmd_path:
+            raise ValueError("DEPOT_DOWNLOADER_CMD_PATH environment variable is not set.")
+        if not os.path.exists(self.depot_downloader_cmd_path):
+            raise ValueError(f"DEPOT_DOWNLOADER_CMD_PATH '{self.depot_downloader_cmd_path}' does not exist.")
     def log(self):
         """
         Logs the parameters.
         """
         logger.info(
             f"Params initialized with:\n"
-            f"EXPORTS_PATH: {self.export_path}\n"
+            f"EXPORT_PATH: {self.export_path}\n"
             f"GAME_NAME: {self.game_name}\n"
             f"LOG_LEVEL: {self.log_level}\n"
-            f"OUTPUT_PATH: {self.output_path}"
+            f"OUTPUT_PATH: {self.output_path}\n"
+            #f"STEAM_USERNAME: {self.steam_username}\n"
+            #f"STEAM_PASSWORD: {self.steam_password}\n"
+            f"DEPOT_DOWNLOADER_CMD_PATH: {self.depot_downloader_cmd_path}\n"
+            f"FORCE_DOWNLOAD: {self.force_download}\n"
         )
 
     def __str__(self):
@@ -87,6 +105,19 @@ class Params:
 def init_params(export_path=None, game_name=None, log_level=None, output_path=None):
     global PARAMS
     PARAMS = Params(export_path, game_name, log_level, output_path)
+    return PARAMS
+
+def is_truthy(string):
+    TRUE_THO = [
+        True,
+        'true',
+        'True',
+        'TRUE',
+        't',
+        'T',
+        1,
+    ]
+    return string in TRUE_THO
 
 ###############################
 #             LOG             #
@@ -528,7 +559,7 @@ def process_key_to_parser_function(key_to_parser_function_map, data, obj=None, l
 #           Process           #
 ###############################
 
-def run_process(params, name='', timeout=300):
+def run_process(params, name='', timeout=60*60): #times out after 1hr
     """Runs a subprocess with the given parameters and logs its output line by line
 
     Args:
@@ -562,7 +593,7 @@ def run_process(params, name='', timeout=300):
                     remaining_output = process.stdout.read()
                     if remaining_output:
                         for line in remaining_output.splitlines():
-                            logger.trace(f'[process: {name}] {line.strip()}')
+                            logger.debug(f'[process: {name}] {line.strip()}')
                     break
                 
                 # Check timeout
@@ -580,7 +611,7 @@ def run_process(params, name='', timeout=300):
                     if ready:
                         line = process.stdout.readline()
                         if line:
-                            logger.trace(f'[process: {name}] {line.strip()}')
+                            logger.debug(f'[process: {name}] {line.strip()}')
                         elif process.poll() is not None:
                             # Process finished and no more output
                             break
@@ -589,7 +620,7 @@ def run_process(params, name='', timeout=300):
                     try:
                         line = process.stdout.readline()
                         if line:
-                            logger.trace(f'[process: {name}] {line.strip()}')
+                            logger.debug(f'[process: {name}] {line.strip()}')
                         elif process.poll() is not None:
                             # Process finished and no more output
                             break
