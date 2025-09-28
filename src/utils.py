@@ -528,13 +528,18 @@ def process_key_to_parser_function(key_to_parser_function_map, data, obj=None, l
 #           Process           #
 ###############################
 
-def run_process(params, name=''):
+def run_process(params, name='', timeout=300):
     """Runs a subprocess with the given parameters and logs its output line by line
 
     Args:
         params (list[str] | str): The command and arguments to execute
         name (str, optional): An optional name to identify the process in logs. Defaults to ''
+        timeout (int, optional): Maximum time to wait for process completion in seconds. Defaults to 300 (5 minutes)
     """
+    import select
+    import time
+    
+    process = None
     try:
         # Handle shell scripts on Windows by explicitly using bash
         if isinstance(params, str) and params.endswith('.sh') and os.name == 'nt':
@@ -546,13 +551,68 @@ def run_process(params, name=''):
             params, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
         )
 
+        start_time = time.time()
+        
+        # Read output line by line with timeout protection
         with process.stdout:
-            for line in iter(process.stdout.readline, ''):
-                logger.trace(f'[process: {name}] {line.strip()}')
+            while True:
+                # Check if process has finished
+                if process.poll() is not None:
+                    # Process finished, read any remaining output
+                    remaining_output = process.stdout.read()
+                    if remaining_output:
+                        for line in remaining_output.splitlines():
+                            logger.trace(f'[process: {name}] {line.strip()}')
+                    break
+                
+                # Check timeout
+                if time.time() - start_time > timeout:
+                    process.terminate()
+                    try:
+                        process.wait(timeout=5)  # Give it 5 seconds to terminate gracefully
+                    except subprocess.TimeoutExpired:
+                        process.kill()  # Force kill if it doesn't terminate
+                    raise Exception(f'Process {name} timed out after {timeout} seconds')
+                
+                # Use select on Unix-like systems for non-blocking read
+                if hasattr(select, 'select') and os.name != 'nt':
+                    ready, _, _ = select.select([process.stdout], [], [], 0.1)
+                    if ready:
+                        line = process.stdout.readline()
+                        if line:
+                            logger.trace(f'[process: {name}] {line.strip()}')
+                        elif process.poll() is not None:
+                            # Process finished and no more output
+                            break
+                else:
+                    # Windows fallback - read with short timeout simulation
+                    try:
+                        line = process.stdout.readline()
+                        if line:
+                            logger.trace(f'[process: {name}] {line.strip()}')
+                        elif process.poll() is not None:
+                            # Process finished and no more output
+                            break
+                    except Exception:
+                        # If readline fails, check if process is still running
+                        if process.poll() is not None:
+                            break
+                        time.sleep(0.1)  # Brief pause to prevent tight loop
 
     except Exception as e:
+        # Clean up process if it's still running
+        if process and process.poll() is None:
+            try:
+                process.terminate()
+                process.wait(timeout=5)
+            except:
+                try:
+                    process.kill()
+                except:
+                    pass
         raise Exception(f'Failed to run {name} process', e)
 
+    # Wait for process to complete and get exit code
     exit_code = process.wait()
     if exit_code != 0:
         raise Exception(f'Process {name} exited with code {exit_code}')
