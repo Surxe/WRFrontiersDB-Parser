@@ -1,10 +1,10 @@
 import os
 import shutil
 from loguru import logger
-from utils.process import run_process
+from utils import run_process
 
-APP_ID = '1422450'  # deadlock's app_id
-DEPOT_ID = '1422456'  # the big depot
+APP_ID = '1491000'  # war robots: frontier's app_id
+DEPOT_ID = '1491005'  # the big depot
 
 
 class DepotDownloader:
@@ -67,9 +67,7 @@ class DepotDownloader:
         ]
         run_process(subprocess_params, name='download-game-files')
 
-        steam_inf_path = os.path.join(self.deadlock_dir, 'game', 'citadel', 'steam.inf')
-        if not os.path.exists(steam_inf_path):
-            raise Exception(f'Fatal error: {steam_inf_path} not found')
+        # todo, verify files are downloaded
 
     def _read_downloaded_manifest_id(self):
         if not os.path.exists(self.manifest_path):
