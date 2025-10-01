@@ -55,14 +55,14 @@ clear_dir("output")  # Clear the data directory before parsing
 
 
 
-# parse_localizations()
-# parse_modules() #module relies on english localization being added to each key just as a helpful Ctrl+F reference
-# parse_pilots()  # Pilot parser relies on module data being parsed first
-# parse_progression_table()
-# parse_game_modes()
-# parse_bot_presets()
-# parse_powerups()
-# analyze(Module, ModuleStat, UpgradeCost)
+parse_localizations()
+parse_modules() #module relies on english localization being added to each key just as a helpful Ctrl+F reference
+parse_pilots()  # Pilot parser relies on module data being parsed first
+parse_progression_table()
+parse_game_modes()
+parse_bot_presets()
+parse_powerups()
+analyze(Module, ModuleStat, UpgradeCost)
 
 
 ProgressionTable.to_file()
