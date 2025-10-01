@@ -4,7 +4,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from steam.depot_downloader import DepotDownloader
-from utils import init_params, run_process, Params
+from utils import init_params, Params
 
 def main(params=None):
     if params is None:
