@@ -83,6 +83,7 @@ class CharacterModule(Object):
             "Muzzles": None, # list of sockets for tesla coil
             "bUseCharacterWideMuzzleSearch": "value",
             "Socket_Muzzle": None, #old tesla coil
+            "bShotMuzzleSwitch": None, #vfx horde
         }
 
         parsed_data = self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="CharacterModule", set_attrs=False, tabs=1, default_configuration={
@@ -261,6 +262,10 @@ class CharacterModule(Object):
                 "bUseGravityChangeFromDistanceCurve": "value",
                 "VelocityByDistance": "value",
                 "FireFX_ColorParam": None,
+
+                # dont know where its at but it dont really matter
+                "MuzzleLaserInfos": None, #vfx of horde
+                "SpreadAngle": "value", #horde
             }
 
             # Recursively parse template if present
