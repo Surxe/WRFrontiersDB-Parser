@@ -590,37 +590,6 @@ def process_key_to_parser_function(key_to_parser_function_map, data, obj=None, l
 #           Process           #
 ###############################
 
-def wait_for_process(process_name, timeout=60, check_interval=1):
-    """Wait for a process with the given name to be found
-    
-    Args:
-        process_name (str): The name of the process to wait for
-        timeout (int, optional): Maximum time to wait in seconds. Defaults to 60
-        check_interval (int, optional): Time between checks in seconds. Defaults to 1
-    
-    Returns:
-        bool: True if process was found, False if timeout occurred
-    """
-    import psutil
-    import time
-    
-    start_time = time.time()
-    
-    while time.time() - start_time < timeout:
-        # Check if process is running
-        for proc in psutil.process_iter(['pid', 'name']):
-            try:
-                if proc.info['name'] == process_name:
-                    logger.info(f"Process '{process_name}' found with PID {proc.info['pid']}")
-                    return True
-            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-                pass
-        
-        time.sleep(check_interval)
-    
-    logger.warning(f"Process '{process_name}' not found within {timeout} seconds")
-    return False
-
 def run_process(params, name='', timeout=60*60, background=False): #times out after 1hr
     """Runs a subprocess with the given parameters and logs its output line by line
 
@@ -843,17 +812,6 @@ def terminate_process_by_name(process_name):
             logger.warning(f"Error terminating {process_name}: {e}")
             return False
 
-def is_process_running(process):
-    """Check if a subprocess.Popen process is still running
-    
-    Args:
-        process (subprocess.Popen): The process object to check
-    
-    Returns:
-        bool: True if process is running, False otherwise
-    """
-    return process and process.poll() is None
-
 def is_admin():
     """Check if the current process is running with administrator privileges"""
     try:
@@ -862,21 +820,21 @@ def is_admin():
     except:
         return False
 
-def wait_for_process_ready_for_injection(process_name, initialization_time=30, timeout=120):
+def wait_for_process_ready_for_injection(process_name, initialization_time=30):
     """Wait for a process to be ready for DLL injection
     
     This function waits for the process to not only exist, but also be in a state
     where DLL injection is likely to succeed (fully loaded, not just starting up).
     
     Args:
-        process_name (str): The name of the process to wait for
-        timeout (int, optional): Maximum time to wait in seconds. Defaults to 120.
+        process_name (str): The name of the process to wait for (e.g., "notepad.exe")
+        initialization_time (int, optional): Time in seconds to wait after process is found. Defaults to 30.
     
     Returns:
         int: The PID of the ready process
     
     Raises:
-        Exception: If process not ready within timeout
+        Exception: If process not ready within timeout or died during initialization
     """
     import time
     
