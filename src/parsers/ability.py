@@ -285,6 +285,8 @@ class Ability(Object):
             "HostileEffectMaterial": None,
             "TransitionTime": "value",
             "InputActionOccupationPriority": None, #orbital strike
+            "CompensationPower": "value", #kumo chassis
+            "BuffAreaDistance": "value", #kumo torso
         }
 
         my_ability_data = self._process_key_to_parser_function(
