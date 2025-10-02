@@ -30,13 +30,17 @@ load_dotenv(override=True)
 
 from utils import clear_dir, init_params
 
+from steam.download_latest import main as download_latest
+
 # Initialize parameters with command-line args
-init_params(
+params = init_params(
     export_path=args.EXPORTS_PATH,
     game_name=args.GAME_NAME,
     log_level=args.LOG_LEVEL,
     output_path=args.OUTPUT_PATH
 )
+
+#download_latest(params)
 
 from parsers.module import *
 from parsers.localization import *
@@ -48,6 +52,8 @@ from parsers.powerup import *
 from analysis import *
 
 clear_dir("output")  # Clear the data directory before parsing
+
+
 
 parse_localizations()
 parse_modules() #module relies on english localization being added to each key just as a helpful Ctrl+F reference
