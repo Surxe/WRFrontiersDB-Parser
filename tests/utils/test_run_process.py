@@ -57,11 +57,11 @@ class TestRunProcess(unittest.TestCase):
         
         # Verify logger calls
         expected_calls = [
-            call.trace('[process: test_process] line1'),
-            call.trace('[process: test_process] line2'),
-            call.trace('[process: test_process] line3')
+            call.debug('[process: test_process] line1'),
+            call.debug('[process: test_process] line2'),
+            call.debug('[process: test_process] line3')
         ]
-        self.mock_logger.trace.assert_has_calls(expected_calls)
+        self.mock_logger.debug.assert_has_calls(expected_calls)
         
         # Verify wait was called
         mock_process.wait.assert_called_once()
@@ -91,7 +91,7 @@ class TestRunProcess(unittest.TestCase):
         )
         
         # Verify logger was called
-        self.mock_logger.trace.assert_called_with('[process: list_files] output line')
+        self.mock_logger.debug.assert_called_with('[process: list_files] output line')
     
     @patch('subprocess.Popen')
     def test_process_without_name(self, mock_popen):
@@ -110,7 +110,7 @@ class TestRunProcess(unittest.TestCase):
         run_process("echo test")
         
         # Verify logger was called with empty name
-        self.mock_logger.trace.assert_called_with('[process: ] test output')
+        self.mock_logger.debug.assert_called_with('[process: ] test output')
     
     @patch('subprocess.Popen')
     def test_process_with_empty_output(self, mock_popen):
@@ -124,8 +124,8 @@ class TestRunProcess(unittest.TestCase):
         # Execute
         run_process("true", name="silent_process")
         
-        # Verify no trace calls were made
-        self.mock_logger.trace.assert_not_called()
+        # Verify no debug calls were made
+        self.mock_logger.debug.assert_not_called()
     
     @patch('subprocess.Popen')
     def test_process_with_multiline_output(self, mock_popen):
@@ -141,13 +141,13 @@ class TestRunProcess(unittest.TestCase):
         
         # Verify all lines were logged (including empty line)
         expected_calls = [
-            call.trace('[process: multi] Line 1'),
-            call.trace('[process: multi] Line 2 with spaces'),
-            call.trace('[process: multi] Line 3'),
-            call.trace('[process: multi] '),  # Empty line
-            call.trace('[process: multi] Line 5')
+            call.debug('[process: multi] Line 1'),
+            call.debug('[process: multi] Line 2 with spaces'),
+            call.debug('[process: multi] Line 3'),
+            call.debug('[process: multi] '),  # Empty line
+            call.debug('[process: multi] Line 5')
         ]
-        self.mock_logger.trace.assert_has_calls(expected_calls)
+        self.mock_logger.debug.assert_has_calls(expected_calls)
     
     @patch('subprocess.Popen')
     def test_process_failure_non_zero_exit_code(self, mock_popen):
@@ -166,7 +166,7 @@ class TestRunProcess(unittest.TestCase):
         self.assertEqual(str(cm.exception), "Process fail_test exited with code 1")
         
         # Verify output was still logged
-        self.mock_logger.trace.assert_called_with('[process: fail_test] error output')
+        self.mock_logger.debug.assert_called_with('[process: fail_test] error output')
     
     @patch('subprocess.Popen')
     def test_process_failure_different_exit_codes(self, mock_popen):
@@ -260,10 +260,10 @@ class TestRunProcess(unittest.TestCase):
         
         # Verify final output was logged
         expected_calls = [
-            call.trace('[process: final_output_test] Final output line 1'),
-            call.trace('[process: final_output_test] Final output line 2')
+            call.debug('[process: final_output_test] Final output line 1'),
+            call.debug('[process: final_output_test] Final output line 2')
         ]
-        self.mock_logger.trace.assert_has_calls(expected_calls)
+        self.mock_logger.debug.assert_has_calls(expected_calls)
     
     @patch('subprocess.Popen')  
     def test_custom_timeout_parameter(self, mock_popen):
@@ -424,12 +424,12 @@ class TestRunProcess(unittest.TestCase):
         
         # Verify lines were stripped
         expected_calls = [
-            call.trace('[process: strip_test] line with spaces'),
-            call.trace('[process: strip_test] tabbed line'),
-            call.trace('[process: strip_test] '),  # Empty line after stripping
-            call.trace('[process: strip_test] ')   # Line with only whitespace, stripped to empty
+            call.debug('[process: strip_test] line with spaces'),
+            call.debug('[process: strip_test] tabbed line'),
+            call.debug('[process: strip_test] '),  # Empty line after stripping
+            call.debug('[process: strip_test] ')   # Line with only whitespace, stripped to empty
         ]
-        self.mock_logger.trace.assert_has_calls(expected_calls)
+        self.mock_logger.debug.assert_has_calls(expected_calls)
     
     def test_edge_case_inputs(self):
         """Test edge cases with various input types."""
@@ -442,7 +442,7 @@ class TestRunProcess(unittest.TestCase):
             
             # This should work with None name
             run_process("echo test", name=None)
-            self.mock_logger.trace.assert_called_with('[process: None] test')
+            self.mock_logger.debug.assert_called_with('[process: None] test')
 
 
 if __name__ == '__main__':
