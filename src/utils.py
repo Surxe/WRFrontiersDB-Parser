@@ -17,7 +17,7 @@ class Params:
     """
     A class to hold parameters for the application.
     """
-    def __init__(self, export_path=None, game_name=None, log_level=None, output_path=None, steam_username=None, steam_password=None, steam_game_download_path=None, depot_download_cmd_path=None, force_download=None):
+    def __init__(self, export_path=None, game_name=None, log_level=None, output_path=None, steam_username=None, steam_password=None, steam_game_download_path=None, depot_download_cmd_path=None, force_download=None, shipping_cmd_path=None, dumper7_output_path=None, dll_injector_cmd_path=None):
         # Use provided args if not None, else fallback to environment
         raw_export_path = export_path if export_path is not None else os.getenv('EXPORTS_PATH')
         self.export_path = normalize_path(raw_export_path) if raw_export_path else None
@@ -29,7 +29,10 @@ class Params:
         self.steam_game_download_path = steam_game_download_path if steam_game_download_path is not None else os.getenv('STEAM_GAME_DOWNLOAD_PATH')
         self.depot_downloader_cmd_path = depot_download_cmd_path if depot_download_cmd_path is not None else os.getenv('DEPOT_DOWNLOADER_CMD_PATH')
         self.force_download = is_truthy(force_download if force_download is not None else (os.getenv('FORCE_DOWNLOAD', 'False').lower() == 'true'))
-        
+        self.shipping_cmd_path = shipping_cmd_path if shipping_cmd_path is not None else os.getenv('SHIPPING_CMD_PATH')
+        self.dumper7_output_path = dumper7_output_path if dumper7_output_path is not None else os.getenv('DUMPER7_OUTPUT_PATH')
+        self.dll_injector_cmd_path = dll_injector_cmd_path if dll_injector_cmd_path is not None else os.getenv('DLL_INJECTOR_CMD_PATH')
+
         # Setup loguru logging to /logs dir
         logs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'logs')
         os.makedirs(logs_dir, exist_ok=True)
@@ -87,6 +90,24 @@ class Params:
             raise ValueError("DEPOT_DOWNLOADER_CMD_PATH environment variable is not set.")
         if not os.path.exists(self.depot_downloader_cmd_path):
             raise ValueError(f"DEPOT_DOWNLOADER_CMD_PATH '{self.depot_downloader_cmd_path}' does not exist.")
+        
+        if not isinstance(self.force_download, bool):
+            raise ValueError("FORCE_DOWNLOAD must be a boolean value (True or False).")
+        
+        if not self.shipping_cmd_path:
+            raise ValueError("SHIPPING_CMD_PATH environment variable is not set.")
+        if not os.path.exists(self.shipping_cmd_path):
+            raise ValueError(f"SHIPPING_CMD_PATH '{self.shipping_cmd_path}' does not exist.")
+        
+        if not self.dumper7_output_path:
+            raise ValueError("DUMPER7_OUTPUT_PATH environment variable is not set.")
+        if not os.path.exists(self.dumper7_output_path):
+            raise ValueError(f"DUMPER7_OUTPUT_PATH '{self.dumper7_output_path}' does not exist.")
+        
+        if not self.dll_injector_cmd_path:
+            raise ValueError("DLL_INJECTOR_CMD_PATH environment variable is not set.")
+        if not os.path.exists(self.dll_injector_cmd_path):
+            raise ValueError(f"DLL_INJECTOR_CMD_PATH '{self.dll_injector_cmd_path}' does not exist.")
     def log(self):
         """
         Logs the parameters.
@@ -97,11 +118,14 @@ class Params:
             f"GAME_NAME: {self.game_name}\n"
             f"LOG_LEVEL: {self.log_level}\n"
             f"OUTPUT_PATH: {self.output_path}\n"
-            #f"STEAM_USERNAME: {self.steam_username}\n"
+            f"STEAM_USERNAME: {self.steam_username}\n"
             #f"STEAM_PASSWORD: {self.steam_password}\n"
             f"STEAM_GAME_DOWNLOAD_PATH: {self.steam_game_download_path}\n"
             f"DEPOT_DOWNLOADER_CMD_PATH: {self.depot_downloader_cmd_path}\n"
             f"FORCE_DOWNLOAD: {self.force_download}\n"
+            f"SHIPPING_CMD_PATH: {self.shipping_cmd_path}\n"
+            f"DUMPER7_OUTPUT_PATH: {self.dumper7_output_path}\n"
+            f"DLL_INJECTOR_CMD_PATH: {self.dll_injector_cmd_path}\n"
         )
 
     def __str__(self):
@@ -838,7 +862,7 @@ def is_admin():
     except:
         return False
 
-def wait_for_process_ready_for_injection(process_name, timeout=120):
+def wait_for_process_ready_for_injection(process_name, initialization_time=30, timeout=120):
     """Wait for a process to be ready for DLL injection
     
     This function waits for the process to not only exist, but also be in a state
@@ -864,7 +888,6 @@ def wait_for_process_ready_for_injection(process_name, timeout=120):
     logger.info(f"Process {process_name} found (PID: {pid}), waiting for full initialization...")
     
     # Wait in chunks, checking if process is still alive
-    initialization_time = 30  # seconds to wait for initialization
     check_interval = 5  # check every 5 seconds
     
     for i in range(0, initialization_time, check_interval):
