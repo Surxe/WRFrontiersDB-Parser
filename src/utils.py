@@ -17,7 +17,7 @@ class Params:
     """
     A class to hold parameters for the application.
     """
-    def __init__(self, export_path=None, game_name=None, log_level=None, output_path=None, steam_username=None, steam_password=None, depot_download_cmd_path=None, force_download=None):
+    def __init__(self, export_path=None, game_name=None, log_level=None, output_path=None, steam_username=None, steam_password=None, steam_game_download_path=None, depot_download_cmd_path=None, force_download=None):
         # Use provided args if not None, else fallback to environment
         raw_export_path = export_path if export_path is not None else os.getenv('EXPORTS_PATH')
         self.export_path = normalize_path(raw_export_path) if raw_export_path else None
@@ -26,6 +26,7 @@ class Params:
         self.output_path = output_path if output_path is not None else os.getenv('OUTPUT_PATH', None)
         self.steam_username = steam_username if steam_username is not None else os.getenv('STEAM_USERNAME')
         self.steam_password = steam_password if steam_password is not None else os.getenv('STEAM_PASSWORD')
+        self.steam_game_download_path = steam_game_download_path if steam_game_download_path is not None else os.getenv('STEAM_GAME_DOWNLOAD_PATH')
         self.depot_downloader_cmd_path = depot_download_cmd_path if depot_download_cmd_path is not None else os.getenv('DEPOT_DOWNLOADER_CMD_PATH')
         self.force_download = is_truthy(force_download if force_download is not None else (os.getenv('FORCE_DOWNLOAD', 'False').lower() == 'true'))
         
@@ -76,6 +77,11 @@ class Params:
 
         if not self.steam_password:
             raise ValueError("STEAM_PASSWORD environment variable is not set.")
+        
+        if not self.steam_game_download_path:
+            raise ValueError("STEAM_GAME_DOWNLOAD_PATH environment variable is not set.")
+        if not os.path.exists(self.steam_game_download_path):
+            raise ValueError(f"STEAM_GAME_DOWNLOAD_PATH '{self.steam_game_download_path}' does not exist.")
 
         if not self.depot_downloader_cmd_path:
             raise ValueError("DEPOT_DOWNLOADER_CMD_PATH environment variable is not set.")
@@ -93,6 +99,7 @@ class Params:
             f"OUTPUT_PATH: {self.output_path}\n"
             #f"STEAM_USERNAME: {self.steam_username}\n"
             #f"STEAM_PASSWORD: {self.steam_password}\n"
+            f"STEAM_GAME_DOWNLOAD_PATH: {self.steam_game_download_path}\n"
             f"DEPOT_DOWNLOADER_CMD_PATH: {self.depot_downloader_cmd_path}\n"
             f"FORCE_DOWNLOAD: {self.force_download}\n"
         )
@@ -590,13 +597,18 @@ def wait_for_process(process_name, timeout=60, check_interval=1):
     logger.warning(f"Process '{process_name}' not found within {timeout} seconds")
     return False
 
-def run_process(params, name='', timeout=60*60): #times out after 1hr
+def run_process(params, name='', timeout=60*60, background=False): #times out after 1hr
     """Runs a subprocess with the given parameters and logs its output line by line
 
     Args:
         params (list[str] | str): The command and arguments to execute
         name (str, optional): An optional name to identify the process in logs. Defaults to ''
         timeout (int, optional): Maximum time to wait for process completion in seconds. Defaults to 3600 (1 hour)
+        background (bool, optional): If True, starts the process in background and returns the process object. Defaults to False.
+    
+    Returns:
+        subprocess.Popen: If background=True, returns the process object for later management
+        None: If background=False (default), waits for completion and returns None
     """
     import select
     import time
@@ -612,6 +624,11 @@ def run_process(params, name='', timeout=60*60): #times out after 1hr
         process = subprocess.Popen(  # noqa: F821
             params, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
         )
+
+        # If background mode, return the process object immediately
+        if background:
+            logger.info(f'Started background process {name} with PID {process.pid}')
+            return process
 
         start_time = time.time()
         
@@ -678,3 +695,220 @@ def run_process(params, name='', timeout=60*60): #times out after 1hr
     exit_code = process.wait()
     if exit_code != 0:
         raise Exception(f'Process {name} exited with code {exit_code}')
+
+def wait_for_process_by_name(process_name, timeout=60):
+    """Wait for a process with the given name to start
+    
+    Args:
+        process_name (str): The name of the process to wait for (e.g., "notepad.exe")
+        timeout (int, optional): Maximum time to wait in seconds. Defaults to 60.
+    
+    Returns:
+        int: The PID of the found process
+    
+    Raises:
+        Exception: If process not found within timeout
+    """
+    import time
+    
+    start_time = time.time()
+    attempt_count = 0
+    
+    while time.time() - start_time < timeout:
+        attempt_count += 1
+        
+        # Use tasklist on Windows to check for running processes
+        if os.name == 'nt':
+            try:
+                result = subprocess.run(['tasklist', '/FI', f'IMAGENAME eq {process_name}'], 
+                                      capture_output=True, text=True, check=True)
+                
+                # Debug logging every 2 attempts (10 seconds)
+                if attempt_count % 2 == 1:
+                    logger.debug(f"Attempt {attempt_count}: Looking for {process_name}")
+                    logger.debug(f"Tasklist output: {result.stdout[:200]}...")  # First 200 chars
+                
+                # Check if the process name appears in output (handle truncated names)
+                # For "WRFrontiers-Win64-Shipping.exe", look for "wrfrontiers-win64-ship" (truncated version)
+                process_base_name = process_name.replace('.exe', '').lower()
+                process_short_name = process_base_name[:20].lower()  # First 20 chars, typical truncation length
+                
+                lines = result.stdout.strip().split('\n')
+                for line in lines:
+                    line_lower = line.lower()
+                    # Skip header lines
+                    if 'image name' in line_lower or '=====' in line_lower:
+                        continue
+                        
+                    # Check for process name match (full, base, or truncated)
+                    if (process_name.lower() in line_lower or 
+                        process_base_name in line_lower or 
+                        process_short_name in line_lower):
+                        
+                        parts = line.split()
+                        if len(parts) >= 2 and parts[1].isdigit():
+                            pid = parts[1]
+                            logger.info(f"Process {process_name} detected (PID: {pid}) - matched in line: {line.strip()}")
+                            return int(pid)
+                
+                # Also try without the filter to see all processes (for debugging)
+                if attempt_count % 6 == 1:  # Every 30 seconds
+                    logger.debug("Checking all running processes for debugging...")
+                    all_result = subprocess.run(['tasklist'], capture_output=True, text=True, check=True)
+                    matching_lines = [line for line in all_result.stdout.split('\n') 
+                                    if 'wrfrontiers' in line.lower() or 'shipping' in line.lower()]
+                    if matching_lines:
+                        logger.debug(f"Found WRFrontiers-related processes: {matching_lines}")
+                    else:
+                        logger.debug("No WRFrontiers-related processes found in full tasklist")
+                        
+            except (subprocess.CalledProcessError, ValueError) as e:
+                if attempt_count % 2 == 1:
+                    logger.debug(f"Tasklist error: {e}")
+        else:
+            # Unix-like systems
+            try:
+                result = subprocess.run(['pgrep', '-f', process_name], 
+                                      capture_output=True, text=True)
+                if result.returncode == 0 and result.stdout.strip():
+                    pid = int(result.stdout.strip().split('\n')[0])
+                    logger.info(f"Process {process_name} detected (PID: {pid})")
+                    return pid
+            except (subprocess.CalledProcessError, ValueError):
+                pass
+        
+        time.sleep(5)  # Wait 5 seconds between attempts (1/5th as often)
+    
+    raise Exception(f"Process {process_name} not found within {timeout} seconds")
+
+def terminate_process_by_name(process_name):
+    """Terminate a process by name
+    
+    Args:
+        process_name (str): The name of the process to terminate
+    
+    Returns:
+        bool: True if process was found and terminated, False otherwise
+    """
+    if os.name == 'nt':
+        # Windows
+        try:
+            result = subprocess.run(['taskkill', '/F', '/IM', process_name], 
+                                  capture_output=True, text=True)
+            if result.returncode == 0:
+                logger.info(f"Terminated process {process_name}")
+                return True
+            else:
+                logger.warning(f"Failed to terminate {process_name}: {result.stderr}")
+                return False
+        except subprocess.CalledProcessError as e:
+            logger.warning(f"Error terminating {process_name}: {e}")
+            return False
+    else:
+        # Unix-like systems
+        try:
+            result = subprocess.run(['pkill', '-f', process_name], 
+                                  capture_output=True, text=True)
+            if result.returncode == 0:
+                logger.info(f"Terminated process {process_name}")
+                return True
+            else:
+                logger.warning(f"Failed to terminate {process_name}")
+                return False
+        except subprocess.CalledProcessError as e:
+            logger.warning(f"Error terminating {process_name}: {e}")
+            return False
+
+def is_process_running(process):
+    """Check if a subprocess.Popen process is still running
+    
+    Args:
+        process (subprocess.Popen): The process object to check
+    
+    Returns:
+        bool: True if process is running, False otherwise
+    """
+    return process and process.poll() is None
+
+def is_admin():
+    """Check if the current process is running with administrator privileges"""
+    try:
+        import ctypes
+        return ctypes.windll.shell32.IsUserAnAdmin()
+    except:
+        return False
+
+def wait_for_process_ready_for_injection(process_name, timeout=120):
+    """Wait for a process to be ready for DLL injection
+    
+    This function waits for the process to not only exist, but also be in a state
+    where DLL injection is likely to succeed (fully loaded, not just starting up).
+    
+    Args:
+        process_name (str): The name of the process to wait for
+        timeout (int, optional): Maximum time to wait in seconds. Defaults to 120.
+    
+    Returns:
+        int: The PID of the ready process
+    
+    Raises:
+        Exception: If process not ready within timeout
+    """
+    import time
+    
+    # First wait for the process to exist
+    logger.info(f"Waiting for {process_name} to start...")
+    pid = wait_for_process_by_name(process_name, timeout=60)
+    
+    # Then wait additional time for it to fully initialize
+    logger.info(f"Process {process_name} found (PID: {pid}), waiting for full initialization...")
+    
+    # Wait in chunks, checking if process is still alive
+    initialization_time = 30  # seconds to wait for initialization
+    check_interval = 5  # check every 5 seconds
+    
+    for i in range(0, initialization_time, check_interval):
+        time.sleep(check_interval)
+        
+        # Verify process is still running
+        if os.name == 'nt':
+            try:
+                result = subprocess.run(['tasklist', '/FI', f'PID eq {pid}'], 
+                                      capture_output=True, text=True, check=True)
+                if str(pid) not in result.stdout:
+                    raise Exception(f"Process {process_name} (PID: {pid}) died during initialization")
+            except subprocess.CalledProcessError:
+                raise Exception(f"Failed to check if process {process_name} is still running")
+        
+        elapsed = i + check_interval
+        logger.info(f"Initialization progress: {elapsed}/{initialization_time} seconds...")
+    
+    logger.info(f"Process {process_name} should now be ready for injection")
+    return pid
+
+def terminate_process_object(process, name=''):
+    """Terminate a subprocess.Popen process object
+    
+    Args:
+        process (subprocess.Popen): The process object to terminate
+        name (str, optional): Name for logging purposes
+    
+    Returns:
+        bool: True if successfully terminated, False otherwise
+    """
+    if process and process.poll() is None:
+        try:
+            process.terminate()
+            try:
+                process.wait(timeout=10)
+                logger.info(f"Terminated process {name} (PID: {process.pid})")
+                return True
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
+                logger.info(f"Force killed process {name} (PID: {process.pid})")
+                return True
+        except Exception as e:
+            logger.error(f"Failed to terminate process {name}: {e}")
+            return False
+    return False

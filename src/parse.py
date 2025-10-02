@@ -40,7 +40,7 @@ params = init_params(
     output_path=args.OUTPUT_PATH
 )
 
-download_latest(params)
+#download_latest(params)
 
 from parsers.module import *
 from parsers.localization import *
