@@ -31,15 +31,23 @@ class TestRunProcess(unittest.TestCase):
         """Clean up after tests."""
         self.logger_patcher.stop()
     
+    @patch('builtins.hasattr', side_effect=lambda obj, attr: False if attr == 'select' else hasattr(obj, attr))
+    @patch('os.name', 'nt')  # Force Windows behavior to avoid select complexity
     @patch('subprocess.Popen')
-    def test_successful_process_with_string_command(self, mock_popen):
+    def test_successful_process_with_string_command(self, mock_popen, mock_hasattr):
         """Test successful execution with string command."""
         # Setup mock process
         mock_process = Mock()
-        mock_process.poll.side_effect = [None, None, None, 0]  # Running, then finished
+        # First few polls return None (running), then 0 (finished)
+        mock_process.poll.side_effect = [None, None, None, 0]
         mock_process.stdout.__enter__ = Mock(return_value=mock_process.stdout)
         mock_process.stdout.__exit__ = Mock(return_value=None)
-        mock_process.stdout.readline.side_effect = ["line1\n", "line2\n", "line3\n", ""]
+        
+        # Setup readline to return lines one by one, then empty string
+        readline_calls = ["line1\n", "line2\n", "line3\n", ""]
+        mock_process.stdout.readline.side_effect = readline_calls
+        
+        # No remaining output after process finishes
         mock_process.stdout.read.return_value = ""
         mock_process.wait.return_value = 0
         mock_popen.return_value = mock_process
@@ -57,17 +65,19 @@ class TestRunProcess(unittest.TestCase):
         
         # Verify logger calls
         expected_calls = [
-            call.trace('[process: test_process] line1'),
-            call.trace('[process: test_process] line2'),
-            call.trace('[process: test_process] line3')
+            call.debug('[process: test_process] line1'),
+            call.debug('[process: test_process] line2'),
+            call.debug('[process: test_process] line3')
         ]
-        self.mock_logger.trace.assert_has_calls(expected_calls)
+        self.mock_logger.debug.assert_has_calls(expected_calls)
         
         # Verify wait was called
         mock_process.wait.assert_called_once()
     
+    @patch('builtins.hasattr', side_effect=lambda obj, attr: False if attr == 'select' else hasattr(obj, attr))
+    @patch('os.name', 'nt')  # Force Windows behavior to avoid select complexity
     @patch('subprocess.Popen')
-    def test_successful_process_with_list_command(self, mock_popen):
+    def test_successful_process_with_list_command(self, mock_popen, mock_hasattr):
         """Test successful execution with list command."""
         # Setup mock process
         mock_process = Mock()
@@ -91,10 +101,12 @@ class TestRunProcess(unittest.TestCase):
         )
         
         # Verify logger was called
-        self.mock_logger.trace.assert_called_with('[process: list_files] output line')
+        self.mock_logger.debug.assert_called_with('[process: list_files] output line')
     
+    @patch('builtins.hasattr', side_effect=lambda obj, attr: False if attr == 'select' else hasattr(obj, attr))
+    @patch('os.name', 'nt')  # Force Windows behavior
     @patch('subprocess.Popen')
-    def test_process_without_name(self, mock_popen):
+    def test_process_without_name(self, mock_popen, mock_hasattr):
         """Test process execution without specifying a name."""
         # Setup mock process
         mock_process = Mock()
@@ -110,7 +122,7 @@ class TestRunProcess(unittest.TestCase):
         run_process("echo test")
         
         # Verify logger was called with empty name
-        self.mock_logger.trace.assert_called_with('[process: ] test output')
+        self.mock_logger.debug.assert_called_with('[process: ] test output')
     
     @patch('subprocess.Popen')
     def test_process_with_empty_output(self, mock_popen):
@@ -124,11 +136,13 @@ class TestRunProcess(unittest.TestCase):
         # Execute
         run_process("true", name="silent_process")
         
-        # Verify no trace calls were made
-        self.mock_logger.trace.assert_not_called()
+        # Verify no debug calls were made
+        self.mock_logger.debug.assert_not_called()
     
+    @patch('builtins.hasattr', side_effect=lambda obj, attr: False if attr == 'select' else hasattr(obj, attr))
+    @patch('os.name', 'nt')  # Force Windows behavior
     @patch('subprocess.Popen')
-    def test_process_with_multiline_output(self, mock_popen):
+    def test_process_with_multiline_output(self, mock_popen, mock_hasattr):
         """Test process with multiple lines of output."""
         # Setup mock process with multiline output
         mock_process = Mock()
@@ -141,16 +155,18 @@ class TestRunProcess(unittest.TestCase):
         
         # Verify all lines were logged (including empty line)
         expected_calls = [
-            call.trace('[process: multi] Line 1'),
-            call.trace('[process: multi] Line 2 with spaces'),
-            call.trace('[process: multi] Line 3'),
-            call.trace('[process: multi] '),  # Empty line
-            call.trace('[process: multi] Line 5')
+            call.debug('[process: multi] Line 1'),
+            call.debug('[process: multi] Line 2 with spaces'),
+            call.debug('[process: multi] Line 3'),
+            call.debug('[process: multi] '),  # Empty line
+            call.debug('[process: multi] Line 5')
         ]
-        self.mock_logger.trace.assert_has_calls(expected_calls)
+        self.mock_logger.debug.assert_has_calls(expected_calls)
     
+    @patch('builtins.hasattr', side_effect=lambda obj, attr: False if attr == 'select' else hasattr(obj, attr))
+    @patch('os.name', 'nt')  # Force Windows behavior
     @patch('subprocess.Popen')
-    def test_process_failure_non_zero_exit_code(self, mock_popen):
+    def test_process_failure_non_zero_exit_code(self, mock_popen, mock_hasattr):
         """Test process that exits with non-zero code."""
         # Setup mock process that fails
         mock_process = Mock()
@@ -166,7 +182,7 @@ class TestRunProcess(unittest.TestCase):
         self.assertEqual(str(cm.exception), "Process fail_test exited with code 1")
         
         # Verify output was still logged
-        self.mock_logger.trace.assert_called_with('[process: fail_test] error output')
+        self.mock_logger.debug.assert_called_with('[process: fail_test] error output')
     
     @patch('subprocess.Popen')
     def test_process_failure_different_exit_codes(self, mock_popen):
@@ -204,6 +220,7 @@ class TestRunProcess(unittest.TestCase):
         # Verify exception message - Exception with 2 args creates a tuple representation
         self.assertIn("Failed to run test_error process", str(cm.exception))
     
+    @patch('os.name', 'nt')  # Force Windows behavior to avoid select issues
     @patch('time.time')
     @patch('time.sleep')  # Mock sleep to speed up test
     @patch('subprocess.Popen')
@@ -242,8 +259,10 @@ class TestRunProcess(unittest.TestCase):
         # Verify process was terminated (may be called twice - once for timeout, once for cleanup)
         self.assertTrue(mock_process.terminate.call_count >= 1)
     
+    @patch('builtins.hasattr', side_effect=lambda obj, attr: False if attr == 'select' else hasattr(obj, attr))
+    @patch('os.name', 'nt')  # Force Windows behavior
     @patch('subprocess.Popen')
-    def test_process_with_remaining_output_after_completion(self, mock_popen):
+    def test_process_with_remaining_output_after_completion(self, mock_popen, mock_hasattr):
         """Test process that has remaining output after completion."""
         # Setup mock process that finishes with remaining output
         mock_process = Mock()
@@ -260,10 +279,10 @@ class TestRunProcess(unittest.TestCase):
         
         # Verify final output was logged
         expected_calls = [
-            call.trace('[process: final_output_test] Final output line 1'),
-            call.trace('[process: final_output_test] Final output line 2')
+            call.debug('[process: final_output_test] Final output line 1'),
+            call.debug('[process: final_output_test] Final output line 2')
         ]
-        self.mock_logger.trace.assert_has_calls(expected_calls)
+        self.mock_logger.debug.assert_has_calls(expected_calls)
     
     @patch('subprocess.Popen')  
     def test_custom_timeout_parameter(self, mock_popen):
@@ -410,8 +429,10 @@ class TestRunProcess(unittest.TestCase):
             text=True
         )
     
+    @patch('builtins.hasattr', side_effect=lambda obj, attr: False if attr == 'select' else hasattr(obj, attr))
+    @patch('os.name', 'nt')  # Force Windows behavior
     @patch('subprocess.Popen')
-    def test_output_line_stripping(self, mock_popen):
+    def test_output_line_stripping(self, mock_popen, mock_hasattr):
         """Test that output lines are properly stripped of whitespace."""
         # Setup mock process with lines that have trailing whitespace
         mock_process = Mock()
@@ -424,12 +445,12 @@ class TestRunProcess(unittest.TestCase):
         
         # Verify lines were stripped
         expected_calls = [
-            call.trace('[process: strip_test] line with spaces'),
-            call.trace('[process: strip_test] tabbed line'),
-            call.trace('[process: strip_test] '),  # Empty line after stripping
-            call.trace('[process: strip_test] ')   # Line with only whitespace, stripped to empty
+            call.debug('[process: strip_test] line with spaces'),
+            call.debug('[process: strip_test] tabbed line'),
+            call.debug('[process: strip_test] '),  # Empty line after stripping
+            call.debug('[process: strip_test] ')   # Line with only whitespace, stripped to empty
         ]
-        self.mock_logger.trace.assert_has_calls(expected_calls)
+        self.mock_logger.debug.assert_has_calls(expected_calls)
     
     def test_edge_case_inputs(self):
         """Test edge cases with various input types."""
@@ -442,7 +463,191 @@ class TestRunProcess(unittest.TestCase):
             
             # This should work with None name
             run_process("echo test", name=None)
-            self.mock_logger.trace.assert_called_with('[process: None] test')
+            self.mock_logger.debug.assert_called_with('[process: None] test')
+    
+    @patch('subprocess.Popen')
+    def test_background_process_mode(self, mock_popen):
+        """Test background process functionality."""
+        # Setup mock process
+        mock_process = Mock()
+        mock_process.pid = 12345
+        mock_popen.return_value = mock_process
+        
+        # Execute in background mode
+        result = run_process("long_running_command", name="bg_test", background=True)
+        
+        # Verify process was created correctly
+        mock_popen.assert_called_once_with(
+            "long_running_command",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True
+        )
+        
+        # Verify function returns the process object
+        self.assertEqual(result, mock_process)
+        
+        # Verify info log about background process
+        self.mock_logger.info.assert_called_with('Started background process bg_test with PID 12345')
+        
+        # Verify wait() was NOT called (background mode)
+        mock_process.wait.assert_not_called()
+    
+    @patch('subprocess.Popen')
+    def test_background_process_with_list_command(self, mock_popen):
+        """Test background process with list command."""
+        # Setup mock process
+        mock_process = Mock()
+        mock_process.pid = 54321
+        mock_popen.return_value = mock_process
+        
+        # Execute in background mode with list command
+        result = run_process(["python", "server.py"], name="server", background=True)
+        
+        # Verify process was created correctly
+        mock_popen.assert_called_once_with(
+            ["python", "server.py"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True
+        )
+        
+        # Verify function returns the process object
+        self.assertEqual(result, mock_process)
+        
+        # Verify info log about background process
+        self.mock_logger.info.assert_called_with('Started background process server with PID 54321')
+    
+    @patch('subprocess.Popen')
+    def test_foreground_process_default_behavior(self, mock_popen):
+        """Test that background=False (default) works as before."""
+        # Setup mock process
+        mock_process = Mock()
+        mock_process.poll.return_value = 0  # Process finishes immediately
+        mock_process.stdout.__enter__ = Mock(return_value=mock_process.stdout)
+        mock_process.stdout.__exit__ = Mock(return_value=None)
+        mock_process.stdout.read.return_value = "output\n"
+        mock_process.wait.return_value = 0
+        mock_popen.return_value = mock_process
+        
+        # Execute without background parameter (should default to False)
+        result = run_process("echo test", name="fg_test")
+        
+        # Verify function returns None (foreground mode)
+        self.assertIsNone(result)
+        
+        # Verify wait() was called (foreground mode)
+        mock_process.wait.assert_called_once()
+        
+        # Verify no info log about background process
+        self.mock_logger.info.assert_not_called()
+    
+    @patch('subprocess.Popen')
+    def test_background_process_exception_handling(self, mock_popen):
+        """Test exception handling during background process creation."""
+        # Setup Popen to raise an exception
+        mock_popen.side_effect = FileNotFoundError("Command not found")
+        
+        # Execute and expect exception
+        with self.assertRaises(Exception) as cm:
+            run_process("nonexistent_command", name="bg_error", background=True)
+        
+        # Verify exception message contains the error info
+        self.assertIn("Failed to run bg_error process", str(cm.exception))
+    
+    @patch('os.name', 'posix')  # Mock Unix-like OS
+    @patch('select.select')
+    @patch('subprocess.Popen')
+    def test_unix_select_functionality(self, mock_popen, mock_select):
+        """Test that select is used properly on Unix-like systems."""
+        # Setup mock process
+        mock_process = Mock()
+        mock_process.poll.side_effect = [None, None, 0]  # Running, then finished
+        mock_process.stdout.__enter__ = Mock(return_value=mock_process.stdout)
+        mock_process.stdout.__exit__ = Mock(return_value=None)
+        mock_process.stdout.readline.side_effect = ["unix line\n", ""]
+        mock_process.stdout.read.return_value = ""
+        mock_process.wait.return_value = 0
+        mock_popen.return_value = mock_process
+        
+        # Mock select to return ready stdout on first call, then empty
+        mock_select.side_effect = [([mock_process.stdout], [], []), ([], [], [])]
+        
+        # Execute
+        run_process("echo unix", name="unix_test")
+        
+        # Verify select was called with correct parameters
+        mock_select.assert_called()
+        # Verify output was logged
+        self.mock_logger.debug.assert_called_with('[process: unix_test] unix line')
+    
+    @patch('os.name', 'nt')  # Mock Windows OS
+    @patch('subprocess.Popen')
+    def test_windows_fallback_functionality(self, mock_popen):
+        """Test that Windows uses fallback readline behavior."""
+        # Setup mock process
+        mock_process = Mock()
+        mock_process.poll.side_effect = [None, None, 0]  # Running, then finished
+        mock_process.stdout.__enter__ = Mock(return_value=mock_process.stdout)
+        mock_process.stdout.__exit__ = Mock(return_value=None)
+        mock_process.stdout.readline.side_effect = ["windows line\n", ""]
+        mock_process.stdout.read.return_value = ""
+        mock_process.wait.return_value = 0
+        mock_popen.return_value = mock_process
+        
+        # Execute
+        run_process("echo windows", name="windows_test")
+        
+        # Verify output was logged
+        self.mock_logger.debug.assert_called_with('[process: windows_test] windows line')
+    
+    @patch('os.name', 'posix')  # Mock Unix-like OS
+    @patch('select.select')
+    @patch('time.time')
+    @patch('subprocess.Popen')
+    def test_unix_timeout_with_select(self, mock_popen, mock_time, mock_select):
+        """Test timeout behavior on Unix systems using select."""
+        # Setup mock process that never finishes
+        mock_process = Mock()
+        mock_process.poll.return_value = None  # Process never finishes
+        mock_process.stdout.__enter__ = Mock(return_value=mock_process.stdout)
+        mock_process.stdout.__exit__ = Mock(return_value=None)
+        
+        # Properly mock the stdout fileno for select
+        mock_process.stdout.fileno.return_value = 3
+        
+        mock_process.terminate = Mock()
+        mock_process.wait = Mock()
+        mock_popen.return_value = mock_process
+        
+        # Mock select to return no ready descriptors (simulating no output)
+        mock_select.return_value = ([], [], [])
+        
+        # Create a counter to simulate increasing time
+        time_counter = [0]
+        def mock_time_func():
+            time_counter[0] += 1
+            if time_counter[0] == 1:
+                return 0  # start_time
+            elif time_counter[0] <= 3:
+                return 50  # first few checks - still within timeout
+            else:
+                return 301  # subsequent checks - timeout exceeded
+        
+        mock_time.side_effect = mock_time_func
+        
+        # Execute with short timeout and expect exception
+        with self.assertRaises(Exception) as cm:
+            run_process("long_running_command", name="unix_timeout_test", timeout=300)
+        
+        # Verify timeout exception message
+        self.assertIn("timed out after 300 seconds", str(cm.exception))
+        
+        # Verify select was called with the stdout descriptor
+        mock_select.assert_called()
+        
+        # Verify process was terminated
+        mock_process.terminate.assert_called()
 
 
 if __name__ == '__main__':
