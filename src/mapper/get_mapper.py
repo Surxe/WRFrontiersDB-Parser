@@ -5,7 +5,7 @@ import time
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils import init_params, Params, clear_dir, run_process, wait_for_process_ready_for_injection, terminate_process_by_name, terminate_process_object, is_admin
-from python_injector import inject_dll_into_process
+from mapper.simple_injector import inject_dll_into_process
 from loguru import logger
 
 def main(params=None):
@@ -25,7 +25,7 @@ def main(params=None):
 
     # Check if running as administrator (required for DLL injection)
     if not is_admin():
-        logger.warning("Not running as administrator - DLL injection could fail but historically can succeed anyway.")
+        logger.warning("Not running as administrator - DLL injection will likely fail. Launch IDE or script as administrator.")
     else:
         logger.info("Running with administrator privileges")
 
@@ -96,7 +96,7 @@ def main(params=None):
         
         # Wait for the game to be ready for injection
         logger.info("Waiting for game to be ready for DLL injection...")
-        wait_for_process_ready_for_injection(game_process_name, initialization_time=20)  # 3 minutes total timeout
+        wait_for_process_ready_for_injection(game_process_name, initialization_time=10)
         
         logger.info("Game is ready, starting SDK creation process via DLL injection...")
         
