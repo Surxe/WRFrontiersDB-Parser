@@ -117,7 +117,7 @@ def main(params=None):
         terminate()
         has_terminated = True
 
-        logger.error("DLL injection says it failed, but it could be incorrect. Checking if the mapping file was created...")
+        logger.warning("DLL injection says it failed, but it could be incorrect. Checking if the mapping file was created...")
         mapping_file_path = get_mapper_from_sdk()
         if mapping_file_path is None:
             logger.error("DLL injection failed and mapping file was not created. Cannot continue.")
