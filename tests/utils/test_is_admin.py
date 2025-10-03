@@ -23,23 +23,29 @@ class TestIsAdmin(unittest.TestCase):
     For any non-Windows system or exception cases, it returns False.
     """
 
-    @patch('ctypes.windll.shell32.IsUserAnAdmin')
     @patch('os.name', 'nt')
-    def test_windows_admin_true(self, mock_is_user_admin):
+    def test_windows_admin_true(self):
         """Test is_admin returns True when user is admin on Windows."""
-        mock_is_user_admin.return_value = 1
-        result = is_admin()
-        self.assertTrue(result)
-        mock_is_user_admin.assert_called_once()
+        # Create a mock ctypes module with the Windows structure
+        mock_ctypes = Mock()
+        mock_ctypes.windll.shell32.IsUserAnAdmin.return_value = 1
+        
+        with patch.dict('sys.modules', {'ctypes': mock_ctypes}):
+            result = is_admin()
+            self.assertTrue(result)
+            mock_ctypes.windll.shell32.IsUserAnAdmin.assert_called_once()
 
-    @patch('ctypes.windll.shell32.IsUserAnAdmin')
     @patch('os.name', 'nt')
-    def test_windows_admin_false(self, mock_is_user_admin):
+    def test_windows_admin_false(self):
         """Test is_admin returns False when user is not admin on Windows."""
-        mock_is_user_admin.return_value = 0
-        result = is_admin()
-        self.assertFalse(result)
-        mock_is_user_admin.assert_called_once()
+        # Create a mock ctypes module with the Windows structure
+        mock_ctypes = Mock()
+        mock_ctypes.windll.shell32.IsUserAnAdmin.return_value = 0
+        
+        with patch.dict('sys.modules', {'ctypes': mock_ctypes}):
+            result = is_admin()
+            self.assertFalse(result)
+            mock_ctypes.windll.shell32.IsUserAnAdmin.assert_called_once()
 
     @patch('os.name', 'posix')
     def test_unix_admin_true(self):
@@ -63,19 +69,27 @@ class TestIsAdmin(unittest.TestCase):
         result = is_admin()
         self.assertFalse(result)
 
-    @patch('ctypes.windll.shell32.IsUserAnAdmin')
     @patch('os.name', 'nt')
-    def test_windows_ctypes_exception(self, mock_is_user_admin):
+    def test_windows_ctypes_exception(self):
         """Test is_admin handles ctypes exceptions on Windows."""
-        mock_is_user_admin.side_effect = Exception("Access denied")
-        result = is_admin()
-        self.assertFalse(result)
+        # Create a mock ctypes module that raises an exception
+        mock_ctypes = Mock()
+        mock_ctypes.windll.shell32.IsUserAnAdmin.side_effect = Exception("Access denied")
+        
+        with patch.dict('sys.modules', {'ctypes': mock_ctypes}):
+            result = is_admin()
+            self.assertFalse(result)
 
     @patch('os.name', 'nt')
     def test_windows_ctypes_import_failure(self):
         """Test is_admin handles ctypes import failure on Windows."""
-        # Mock ctypes to be unavailable
-        with patch.dict('sys.modules', {'ctypes': None}):
+        # Mock ctypes import to fail
+        def mock_import(name, *args, **kwargs):
+            if name == 'ctypes':
+                raise ImportError("No module named 'ctypes'")
+            return __import__(name, *args, **kwargs)
+        
+        with patch('builtins.__import__', side_effect=mock_import):
             result = is_admin()
             self.assertFalse(result)
 
