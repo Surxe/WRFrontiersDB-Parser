@@ -4,9 +4,16 @@ import os
 import time
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import init_params, Params, clear_dir, run_process, wait_for_process_ready_for_injection, terminate_process_by_name, terminate_process_object, is_admin
+from utils import init_params, Params, clear_dir, wait_for_process_ready_for_injection, terminate_process_by_name, terminate_process_object, is_admin
 from mapper.simple_injector import inject_dll_into_process
 from loguru import logger
+import subprocess
+
+def verify_dll_exists():
+    dll_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'mapper', 'Dumper-7.dll')
+    if not os.path.exists(dll_path):
+        raise Exception(f"DLL file not found: {dll_path}")
+    logger.info(f"DLL file confirmed: {dll_path}")
 
 def main(params=None):
     if params is None:
@@ -30,13 +37,9 @@ def main(params=None):
         logger.info("Running with administrator privileges")
 
     # Verify DLL file exists before bothering launching the game
-    dll_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'mapper', 'Dumper-7.dll')
-    if not os.path.exists(dll_path):
-        raise Exception(f"DLL file not found: {dll_path}")
-    logger.info(f"DLL file confirmed: {dll_path}")
+    verify_dll_exists()
     
     # Use subprocess.Popen directly to start game with normal window behavior
-    import subprocess
     game_process = subprocess.Popen(launch_game_params)
     logger.info(f"Game process started with PID: {game_process.pid}")
 
@@ -108,7 +111,7 @@ def main(params=None):
 
         logger.info("SDK creation process completed successfully!")
 
-    # If the error message contains "Call to LoadLibraryW in remote process failed", it may have actually worked # This actually happens every time for me, but I don't know why.
+    # If it says it errors, it may have actually worked. This actually happens every time for me so long as I'm running as administrator, but I don't know why.
     except Exception as e:
         terminate()
         has_terminated = True
@@ -126,7 +129,7 @@ def main(params=None):
         # If we didn't already get the mapper file path from the exception handler, try to get it now 
         mapping_file_path = get_mapper_from_sdk()
 
-
+    return mapping_file_path
 
 
 if __name__ == '__main__':
