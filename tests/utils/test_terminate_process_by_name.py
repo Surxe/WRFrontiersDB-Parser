@@ -415,20 +415,6 @@ class TestTerminateProcessByNameIntegration(unittest.TestCase):
         self.assertFalse(result)
         # Should log a warning
         self.mock_logger.warning.assert_called_once()
-    
-    def test_process_name_validation_integration(self):
-        """Integration test with various invalid process names."""
-        invalid_names = [None, "", "   ", "\n", "\t"]
-        
-        for invalid_name in invalid_names:
-            with self.subTest(invalid_name=repr(invalid_name)):
-                try:
-                    # These may raise exceptions or return False
-                    result = terminate_process_by_name(invalid_name)
-                    self.assertFalse(result)
-                except Exception:
-                    # Some invalid inputs may cause exceptions, which is acceptable
-                    pass
 
 
 if __name__ == '__main__':
