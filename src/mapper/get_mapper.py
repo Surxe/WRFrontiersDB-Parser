@@ -5,6 +5,7 @@ import time
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils import init_params, Params, clear_dir, run_process, wait_for_process_ready_for_injection, terminate_process_by_name, terminate_process_object, is_admin
+from python_injector import inject_dll_into_process
 from loguru import logger
 
 def main(params=None):
@@ -99,14 +100,11 @@ def main(params=None):
         
         logger.info("Game is ready, starting SDK creation process via DLL injection...")
         
-        create_sdk_params = [
-            params.dll_injector_cmd_path,
-            '--process-name', game_process_name,
-            '--inject', dll_path
-        ]
+        # Use Python-based DLL injection instead of external injector
+        injection_success = inject_dll_into_process(game_process_name, dll_path)
         
-        # Run the sdk creation process - this will block until completion
-        run_process(create_sdk_params, name='create-sdk')
+        if not injection_success:
+            raise Exception("DLL injection failed")
 
         logger.info("SDK creation process completed successfully!")
 

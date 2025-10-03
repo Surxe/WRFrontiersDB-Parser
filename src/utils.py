@@ -17,7 +17,7 @@ class Params:
     """
     A class to hold parameters for the application.
     """
-    def __init__(self, export_path=None, game_name=None, log_level=None, output_path=None, steam_username=None, steam_password=None, steam_game_download_path=None, depot_download_cmd_path=None, force_download=None, shipping_cmd_path=None, dumper7_output_path=None, dll_injector_cmd_path=None):
+    def __init__(self, export_path=None, game_name=None, log_level=None, output_path=None, steam_username=None, steam_password=None, steam_game_download_path=None, depot_download_cmd_path=None, force_download=None, shipping_cmd_path=None, dumper7_output_path=None):
         # Use provided args if not None, else fallback to environment
         raw_export_path = export_path if export_path is not None else os.getenv('EXPORTS_PATH')
         self.export_path = normalize_path(raw_export_path) if raw_export_path else None
@@ -31,7 +31,6 @@ class Params:
         self.force_download = is_truthy(force_download if force_download is not None else (os.getenv('FORCE_DOWNLOAD', 'False').lower() == 'true'))
         self.shipping_cmd_path = shipping_cmd_path if shipping_cmd_path is not None else os.getenv('SHIPPING_CMD_PATH')
         self.dumper7_output_path = dumper7_output_path if dumper7_output_path is not None else os.getenv('DUMPER7_OUTPUT_PATH')
-        self.dll_injector_cmd_path = dll_injector_cmd_path if dll_injector_cmd_path is not None else os.getenv('DLL_INJECTOR_CMD_PATH')
 
         # Setup loguru logging to /logs dir
         logs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'logs')
@@ -103,11 +102,6 @@ class Params:
             raise ValueError("DUMPER7_OUTPUT_PATH environment variable is not set.")
         if not os.path.exists(self.dumper7_output_path):
             raise ValueError(f"DUMPER7_OUTPUT_PATH '{self.dumper7_output_path}' does not exist.")
-        
-        if not self.dll_injector_cmd_path:
-            raise ValueError("DLL_INJECTOR_CMD_PATH environment variable is not set.")
-        if not os.path.exists(self.dll_injector_cmd_path):
-            raise ValueError(f"DLL_INJECTOR_CMD_PATH '{self.dll_injector_cmd_path}' does not exist.")
     def log(self):
         """
         Logs the parameters.
@@ -125,7 +119,6 @@ class Params:
             f"FORCE_DOWNLOAD: {self.force_download}\n"
             f"SHIPPING_CMD_PATH: {self.shipping_cmd_path}\n"
             f"DUMPER7_OUTPUT_PATH: {self.dumper7_output_path}\n"
-            f"DLL_INJECTOR_CMD_PATH: {self.dll_injector_cmd_path}\n"
         )
 
     def __str__(self):
