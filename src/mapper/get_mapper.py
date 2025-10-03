@@ -9,11 +9,12 @@ from mapper.simple_injector import inject_dll_into_process
 from loguru import logger
 import subprocess
 
-def verify_dll_exists():
+def get_dll_path():
     dll_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'mapper', 'Dumper-7.dll')
     if not os.path.exists(dll_path):
         raise Exception(f"DLL file not found: {dll_path}")
     logger.info(f"DLL file confirmed: {dll_path}")
+    return dll_path
 
 def main(params=None):
     if params is None:
@@ -37,7 +38,7 @@ def main(params=None):
         logger.info("Running with administrator privileges")
 
     # Verify DLL file exists before bothering launching the game
-    verify_dll_exists()
+    dll_path = get_dll_path()
     
     # Use subprocess.Popen directly to start game with normal window behavior
     game_process = subprocess.Popen(launch_game_params)
@@ -77,9 +78,9 @@ def main(params=None):
         return mapper_file_path
     
     def terminate():
-        # sleep for 5 seconds
-        logger.info("Waiting 5 seconds before terminating game process just in case the dll did inject and just needs time to process...")
-        time.sleep(5)
+        wait = 10
+        logger.info(f"Waiting {wait} seconds before terminating game process just in case the dll did inject and just needs time to process...")
+        time.sleep(wait)
 
         # Always try to terminate the game when done
         logger.info("Terminating game process...")
