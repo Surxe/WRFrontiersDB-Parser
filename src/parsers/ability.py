@@ -4,7 +4,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import Object
-from utils import ParseTarget, ParseAction, process_key_to_parser_function, asset_path_to_data, log, parse_colon_colon, parse_editor_curve_data, merge_dicts, remove_blank_values
+from utils import logger, ParseTarget, ParseAction, process_key_to_parser_function, asset_path_to_data, parse_colon_colon, parse_editor_curve_data, merge_dicts
 from parsers.image import parse_image_asset_path
 from parsers.localization_table import parse_localization
 from parsers.module_stat import ModuleStat
@@ -319,7 +319,7 @@ class Ability(Object):
         return self._p_weapon_infos(data["Properties"]["WeaponInfos"])
 
     def _p_spawn_action(self, data: dict):
-        log(f"Parsing spawn action for {self.id}", tabs=4)
+        logger.debug(f"Parsing spawn action for {self.id}")
 
         spawn_action_data = asset_path_to_data(data["ObjectPath"])
 
@@ -350,7 +350,7 @@ class Ability(Object):
         return parsed_spawn_data
     
     def _p_targeting_action(self, data: dict):
-        log(f"Parsing targeting action for {self.id}", tabs=4)
+        logger.debug(f"Parsing targeting action for {self.id}")
         targeting_action_data = asset_path_to_data(data["ObjectPath"])
 
         if data is None or data == [] or 'Properties' not in data:
@@ -383,7 +383,7 @@ class Ability(Object):
         return parsed_targeting_data
 
     def _p_confirmation_action(self, data: dict):
-        log(f"Parsing confirmation action for {self.id}", tabs=4)
+        logger.debug(f"Parsing confirmation action for {self.id}")
 
         conf_ac_data = asset_path_to_data(data["ObjectPath"])
         return self._p_targeting_action(conf_ac_data["Properties"]["TargetingAction"])
@@ -391,7 +391,7 @@ class Ability(Object):
         
 
     def _p_projectile_types(self, data: dict):
-        log(f"Parsing projectile types for {self.id}", tabs=4)
+        logger.debug(f"Parsing projectile types for {self.id}")
 
         # Validate structure
         if len(data) != 1:
@@ -399,7 +399,7 @@ class Ability(Object):
             for projectile_type in data:
                 socket_name = projectile_type["SpawnSocketName"]
                 if last_socket_name is not None and socket_name != "None" and socket_name == last_socket_name:
-                    log(f"Data structure change: Multiple projectile types with the same socket names found: {last_socket_name} and {socket_name}.")
+                    logger.error(f"Data structure change: Multiple projectile types with the same socket names found: {last_socket_name} and {socket_name}.")
                 last_socket_name = socket_name
 
         parsed_projectile_types = []
@@ -576,7 +576,7 @@ class Ability(Object):
         return p_movement_component(data)
     
     def _p_weapon_infos(self, data: dict):
-        log(f"Parsing weapon infos for {self.id}", tabs=4)
+        logger.debug(f"Parsing weapon infos for {self.id}")
         return p_weapon_infos(data)
     
     def _p_distance(self, data):
@@ -837,7 +837,6 @@ def p_actor_class(data: dict):
         "Modifier": p_modifier,
         "DurationParamName": None,
         "OvertipFX": None,
-        "Buffs": "value", #TODO
         "DeactivationSoundEvent": None,
         "ExplosionSoundEvent": None,
         "CapsuleHalfHeight": "value",

@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import PARAMS, path_to_id, asset_path_to_file_path_and_index, get_json_data, log, merge_dicts, asset_path_to_data, process_key_to_parser_function
+from utils import PARAMS, path_to_id, asset_path_to_file_path_and_index, get_json_data, logger, merge_dicts, asset_path_to_data, process_key_to_parser_function
 
 import json
 
@@ -81,7 +81,7 @@ class Object: #generic object that all classes extend
             return cls.objects[id]
         
     @classmethod
-    def get_from_asset_path(cls, asset_path: str, log_tabs: int = 1, sub_index=True, create_if_missing=True) -> str:
+    def get_from_asset_path(cls, asset_path: str, sub_index=True, create_if_missing=True) -> str:
         """
         Returns the ID of an object from its asset path.
         If the object does not exist, it creates a new instance by parsing the asset file.
@@ -91,7 +91,7 @@ class Object: #generic object that all classes extend
         obj = cls.get_from_id(obj_id)
         if obj is None and create_if_missing:
             file_path, index = asset_path_to_file_path_and_index(asset_path)
-            log(f"Parsing {cls.__name__} {obj_id} from {file_path} . {index}", tabs=log_tabs)
+            logger.debug(f"Parsing {cls.__name__} {obj_id} from {file_path} . {index}")
             obj_data = get_json_data(file_path)
             if sub_index:
                 obj_data = obj_data[index]

@@ -109,7 +109,7 @@ class PilotTalent(Object):
     def _p_stats(self, stats):
         parsed_stats = []
         for stat in stats:
-            stat_id = ModuleStat.get_from_asset_path(stat["Key"].split('SModuleStatInfo\'')[1], log_tabs=1)
+            stat_id = ModuleStat.get_from_asset_path(stat["Key"].split('SModuleStatInfo\'')[1])
             value = stat["Value"]
             parsed_stats.append({
                 "stat_id": stat_id,
@@ -137,7 +137,7 @@ class PilotTalent(Object):
                     tag = ws["ModuleTag"]
                     if tag is None:
                         continue
-                    module_tag_id = ModuleTag.get_from_asset_path(tag["ObjectPath"], log_tabs=1)
+                    module_tag_id = ModuleTag.get_from_asset_path(tag["ObjectPath"])
                     weapon_selectors.append({"module_tag_id": module_tag_id})
 
                 if weapon_selectors:
@@ -151,7 +151,7 @@ class PilotTalent(Object):
                         allowed_placement_types.append(parse_colon_colon(aptype))
                     module_tags = []
                     for mtag in aselector["ModuleTags"]:
-                        module_tag_id = ModuleTag.get_from_asset_path(mtag["ObjectPath"], log_tabs=1)
+                        module_tag_id = ModuleTag.get_from_asset_path(mtag["ObjectPath"])
                         module_tags.append({"module_tag_id": module_tag_id})
                     
                     ability_selectors.append({

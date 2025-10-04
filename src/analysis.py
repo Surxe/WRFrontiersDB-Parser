@@ -5,7 +5,7 @@ import json
 # Add parent dirs to sys path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import log, PARAMS, sort_dict
+from utils import PARAMS, sort_dict, logger
 
 class Analysis:
     def __init__(self, module_class, module_stat_class, upgrade_cost_class):
@@ -51,7 +51,7 @@ class Analysis:
         for level_index, level_data in enumerate(module_scalars['variables']):
             upgrade_cost_id = level_data.get('upgrade_currency_id')
             if upgrade_cost_id is None:
-                log(f"Warning: No upgrade cost ID found for module {getattr(module, 'id', None)} at level {level_index+1}")
+                logger.debug(f"Warning: No upgrade cost ID found for module {getattr(module, 'id', None)} at level {level_index+1}")
                 continue
             upgrade_cost = self.upgrade_cost_class.objects[upgrade_cost_id]
             currency_id = upgrade_cost.currency_id
@@ -132,7 +132,7 @@ class Analysis:
         for module_id, module in self.module_class.objects.items():
             if getattr(module, 'production_status', None) != 'Ready':
                 continue
-            log(f"Analyzing level differences for module: {module_id}")
+            logger.debug(f"Analyzing level differences for module: {module_id}")
             level_base, level_max = self._extract_base_and_max(module)
             diff = {}
             for key in level_base.keys():

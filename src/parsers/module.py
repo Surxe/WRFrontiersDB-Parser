@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import log, path_to_id, get_json_data, asset_path_to_data, parse_colon_colon, PARAMS
+from utils import logger, path_to_id, get_json_data, asset_path_to_data, parse_colon_colon, PARAMS
 from parsers.localization_table import parse_localization
 
 from parsers.object import Object
@@ -61,7 +61,7 @@ class Module(Object):
             self._process_key_to_parser_function(key_to_parser_function, props, tabs=2)
 
         if not hasattr(self, "production_status"):
-            log(f"Module {self.id} is not ready for production", tabs=1)
+            logger.debug(f"Module {self.id} is not ready for production")
 
     def _p_module_rarity(self, data):
         asset_path = data["ObjectPath"]
@@ -130,12 +130,12 @@ class Module(Object):
         stat2 = _p_parameter(data["Properties"], "Secondary")
         if stat1 is not None:
             if hasattr(self, "primary_stat_id") and stat1 != self.primary_stat_id:
-                log(f"Warning: {self.__class__.__name__} {self.id} has different primary stat ID {stat1} than previously parsed {self.primary_stat_id}.", tabs=1)
+                logger.error(f"Warning: {self.__class__.__name__} {self.id} has different primary stat ID {stat1} than previously parsed {self.primary_stat_id}.")
             self.primary_stat_id = stat1
 
         if stat2 is not None:
             if hasattr(self, "secondary_stat_id") and stat2 != self.secondary_stat_id:
-                log(f"Warning: {self.__class__.__name__} {self.id} has different secondary stat ID {stat2} than previously parsed {self.secondary_stat_id}.", tabs=1)
+                logger.error(f"Warning: {self.__class__.__name__} {self.id} has different secondary stat ID {stat2} than previously parsed {self.secondary_stat_id}.")
             self.secondary_stat_id = stat2
 
         parsed_levels_data = self._p_levels_data(data["Properties"]["LevelsData"])
@@ -204,7 +204,7 @@ class Module(Object):
                 if module_classtagfac_key in level:
                     module_classtagfac_id = level[module_classtagfac_key]
                 else:
-                    log(f"Warning: Module {self.id} level {level['Level']} is missing {module_classtagfac_key}", tabs=2)
+                    logger.warning(f"Warning: Module {self.id} level {level['Level']} is missing {module_classtagfac_key}")
 
                 if module_classtagfac_id == 'None':
                     return None
@@ -290,7 +290,7 @@ class Module(Object):
 
     def _p_faction(self, data):
         asset_path = data["ObjectPath"]
-        return Faction.get_from_asset_path(asset_path, log_tabs=1)
+        return Faction.get_from_asset_path(asset_path)
 
     def _p_module_classes(self, data):
         module_classes_ids = []
@@ -306,7 +306,7 @@ class Module(Object):
 
     def _p_module_type(self, data):
         asset_path = data["ObjectPath"]
-        return ModuleType.get_from_asset_path(asset_path, log_tabs=1)
+        return ModuleType.get_from_asset_path(asset_path)
 
     def _p_sockets(self, data):
         module_socket_type_ids = []
@@ -323,7 +323,7 @@ def parse_modules(to_file=False):
         if file.endswith(".json"):
             full_path = os.path.join(modules_source_path, file)
             module_id = path_to_id(file)
-            log(f"Parsing {Module.__name__} {module_id} from {full_path}", tabs=0)
+            logger.debug(f"Parsing {Module.__name__} {module_id} from {full_path}")
             module_data = get_json_data(full_path)
             module = Module(module_id, module_data)
 

@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import get_json_data, PARAMS, log
+from utils import logger, get_json_data, PARAMS
 
 from parsers.object import Object
 from parsers.drop_team import DropTeam
@@ -62,7 +62,7 @@ def parse_bot_presets(to_file=False):
     # parse the league-array
     for bot_preset_entry in bot_presets_by_league:
         league_asset_path = bot_preset_entry["Key"]
-        log(f"Found league path {league_asset_path}")
+        logger.debug(f"Found league path {league_asset_path}")
         league_id = League.get_from_asset_path(league_asset_path) # Just to validate it exists
         league_id = league_id #placeholder
         bot_preset_asset_path = bot_preset_entry["Value"]["ObjectPath"]
