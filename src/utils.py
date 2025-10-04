@@ -17,7 +17,7 @@ class Params:
     """
     A class to hold parameters for the application.
     """
-    def __init__(self, export_path=None, game_name=None, log_level=None, output_path=None, steam_username=None, steam_password=None, steam_game_download_path=None, depot_download_cmd_path=None, force_download=None):
+    def __init__(self, export_path=None, game_name=None, log_level=None, output_path=None, steam_username=None, steam_password=None, steam_game_download_path=None, depot_download_cmd_path=None, force_download=None, shipping_cmd_path=None, dumper7_output_path=None):
         # Use provided args if not None, else fallback to environment
         raw_export_path = export_path if export_path is not None else os.getenv('EXPORTS_PATH')
         self.export_path = normalize_path(raw_export_path) if raw_export_path else None
@@ -29,7 +29,9 @@ class Params:
         self.steam_game_download_path = steam_game_download_path if steam_game_download_path is not None else os.getenv('STEAM_GAME_DOWNLOAD_PATH')
         self.depot_downloader_cmd_path = depot_download_cmd_path if depot_download_cmd_path is not None else os.getenv('DEPOT_DOWNLOADER_CMD_PATH')
         self.force_download = is_truthy(force_download if force_download is not None else (os.getenv('FORCE_DOWNLOAD', 'False').lower() == 'true'))
-        
+        self.shipping_cmd_path = shipping_cmd_path if shipping_cmd_path is not None else os.getenv('SHIPPING_CMD_PATH')
+        self.dumper7_output_path = dumper7_output_path if dumper7_output_path is not None else os.getenv('DUMPER7_OUTPUT_PATH')
+
         # Setup loguru logging to /logs dir
         logs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'logs')
         os.makedirs(logs_dir, exist_ok=True)
@@ -87,6 +89,19 @@ class Params:
             raise ValueError("DEPOT_DOWNLOADER_CMD_PATH environment variable is not set.")
         if not os.path.exists(self.depot_downloader_cmd_path):
             raise ValueError(f"DEPOT_DOWNLOADER_CMD_PATH '{self.depot_downloader_cmd_path}' does not exist.")
+        
+        if not isinstance(self.force_download, bool):
+            raise ValueError("FORCE_DOWNLOAD must be a boolean value (True or False).")
+        
+        if not self.shipping_cmd_path:
+            raise ValueError("SHIPPING_CMD_PATH environment variable is not set.")
+        if not os.path.exists(self.shipping_cmd_path):
+            raise ValueError(f"SHIPPING_CMD_PATH '{self.shipping_cmd_path}' does not exist.")
+        
+        if not self.dumper7_output_path:
+            raise ValueError("DUMPER7_OUTPUT_PATH environment variable is not set.")
+        if not os.path.exists(self.dumper7_output_path):
+            raise ValueError(f"DUMPER7_OUTPUT_PATH '{self.dumper7_output_path}' does not exist.")
     def log(self):
         """
         Logs the parameters.
@@ -97,11 +112,13 @@ class Params:
             f"GAME_NAME: {self.game_name}\n"
             f"LOG_LEVEL: {self.log_level}\n"
             f"OUTPUT_PATH: {self.output_path}\n"
-            #f"STEAM_USERNAME: {self.steam_username}\n"
+            f"STEAM_USERNAME: {self.steam_username}\n"
             #f"STEAM_PASSWORD: {self.steam_password}\n"
             f"STEAM_GAME_DOWNLOAD_PATH: {self.steam_game_download_path}\n"
             f"DEPOT_DOWNLOADER_CMD_PATH: {self.depot_downloader_cmd_path}\n"
             f"FORCE_DOWNLOAD: {self.force_download}\n"
+            f"SHIPPING_CMD_PATH: {self.shipping_cmd_path}\n"
+            f"DUMPER7_OUTPUT_PATH: {self.dumper7_output_path}\n"
         )
 
     def __str__(self):
@@ -566,37 +583,6 @@ def process_key_to_parser_function(key_to_parser_function_map, data, obj=None, l
 #           Process           #
 ###############################
 
-def wait_for_process(process_name, timeout=60, check_interval=1):
-    """Wait for a process with the given name to be found
-    
-    Args:
-        process_name (str): The name of the process to wait for
-        timeout (int, optional): Maximum time to wait in seconds. Defaults to 60
-        check_interval (int, optional): Time between checks in seconds. Defaults to 1
-    
-    Returns:
-        bool: True if process was found, False if timeout occurred
-    """
-    import psutil
-    import time
-    
-    start_time = time.time()
-    
-    while time.time() - start_time < timeout:
-        # Check if process is running
-        for proc in psutil.process_iter(['pid', 'name']):
-            try:
-                if proc.info['name'] == process_name:
-                    logger.info(f"Process '{process_name}' found with PID {proc.info['pid']}")
-                    return True
-            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-                pass
-        
-        time.sleep(check_interval)
-    
-    logger.warning(f"Process '{process_name}' not found within {timeout} seconds")
-    return False
-
 def run_process(params, name='', timeout=60*60, background=False): #times out after 1hr
     """Runs a subprocess with the given parameters and logs its output line by line
 
@@ -819,17 +805,6 @@ def terminate_process_by_name(process_name):
             logger.warning(f"Error terminating {process_name}: {e}")
             return False
 
-def is_process_running(process):
-    """Check if a subprocess.Popen process is still running
-    
-    Args:
-        process (subprocess.Popen): The process object to check
-    
-    Returns:
-        bool: True if process is running, False otherwise
-    """
-    return process and process.poll() is None
-
 def is_admin():
     """Check if the current process is running with administrator privileges"""
     try:
@@ -838,21 +813,21 @@ def is_admin():
     except:
         return False
 
-def wait_for_process_ready_for_injection(process_name, timeout=120):
+def wait_for_process_ready_for_injection(process_name, initialization_time=30):
     """Wait for a process to be ready for DLL injection
     
     This function waits for the process to not only exist, but also be in a state
     where DLL injection is likely to succeed (fully loaded, not just starting up).
     
     Args:
-        process_name (str): The name of the process to wait for
-        timeout (int, optional): Maximum time to wait in seconds. Defaults to 120.
+        process_name (str): The name of the process to wait for (e.g., "notepad.exe")
+        initialization_time (int, optional): Time in seconds to wait after process is found. Defaults to 30.
     
     Returns:
         int: The PID of the ready process
     
     Raises:
-        Exception: If process not ready within timeout
+        Exception: If process not ready within timeout or died during initialization
     """
     import time
     
@@ -864,7 +839,6 @@ def wait_for_process_ready_for_injection(process_name, timeout=120):
     logger.info(f"Process {process_name} found (PID: {pid}), waiting for full initialization...")
     
     # Wait in chunks, checking if process is still alive
-    initialization_time = 30  # seconds to wait for initialization
     check_interval = 5  # check every 5 seconds
     
     for i in range(0, initialization_time, check_interval):
