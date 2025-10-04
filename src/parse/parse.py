@@ -1,3 +1,9 @@
+import sys
+import os
+
+# Add parent dirs to sys path for imports
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 # Parse game data and export to summarized JSON files.
 #
 # Usage:
