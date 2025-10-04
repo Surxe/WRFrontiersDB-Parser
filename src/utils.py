@@ -144,24 +144,6 @@ def is_truthy(string):
     return string in TRUE_THO
 
 ###############################
-#             LOG             #
-###############################
-
-
-# Loguru-based log function
-def log(message: str, tabs: int = 0, log_level="DEBUG") -> None:
-    if not isinstance(message, str):
-        raise TypeError("Message must be a string.")
-    if not isinstance(tabs, int) or tabs < 0:
-        raise ValueError("Tabs must be a non-negative integer.")
-    indent = '\t' * tabs
-    level = log_level.upper()
-    if level not in ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']:
-        raise ValueError(f"LOG_LEVEL {log_level} must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL.")
-    logger.log(level, f"{indent}{message}")
-
-
-###############################
 #             FILE            #
 ###############################
 
@@ -476,7 +458,7 @@ def process_key_to_parser_function(key_to_parser_function_map, data, obj=None, l
         if not key in key_to_parser_function_map:
             obj_id = getattr(obj, 'id', 'Error, no id found for obj') if obj else None
             obj_class_ref_str = f"{class_name} {obj_id} has unknown property" if class_name and obj_id else "Unknown property"
-            log(f"Warning process_key_to_parser_function(): {obj_class_ref_str} '{key}'{log_descriptor}", tabs=tabs)
+            logger.warning(f"Warning: {obj_class_ref_str} '{key}'{log_descriptor}", tabs=tabs)
         
         else:
             config = key_to_parser_function_map[key]

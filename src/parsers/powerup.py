@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import log, get_json_data, asset_path_to_data, PARAMS, merge_dicts, parse_hex, path_to_id
+from utils import logger, get_json_data, asset_path_to_data, PARAMS, merge_dicts, parse_hex, path_to_id
 from parsers.ability import p_actor_class
 from parsers.image import parse_image_asset_path
 
@@ -64,7 +64,7 @@ class Powerup(Object):
 def parse_powerup_wrapper(full_path, id):
     if 'Indicator' in full_path:
         return
-    log(f"Parsing {Powerup.__name__} {id} from {full_path}", tabs=0)
+    logger.debug(f"Parsing {Powerup.__name__} {id} from {full_path}")
     powerup_data = asset_path_to_data(get_json_data(full_path)[0]["ClassDefaultObject"]["ObjectPath"])
     powerup = Powerup(id, powerup_data)
     return powerup

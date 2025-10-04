@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import ParseTarget, parse_colon_colon, log, get_json_data, asset_path_to_file_path_and_index, asset_path_to_data, path_to_id, asset_path_to_file_path, PARAMS, parse_editor_curve_data
+from utils import ParseTarget, parse_colon_colon, logger, get_json_data, asset_path_to_file_path_and_index, asset_path_to_data, path_to_id, asset_path_to_file_path, PARAMS, parse_editor_curve_data
 from parsers.localization_table import parse_localization
 
 from parsers.object import Object
@@ -31,7 +31,7 @@ class GameMode(Object):
         bp_data = get_json_data(bp_path)
         cdo_path = bp_data[0]["ClassDefaultObject"]["ObjectPath"]
         cdo_file_path, index = asset_path_to_file_path_and_index(cdo_path)
-        log(f"Parsing {self.__class__.__name__} BP data from {cdo_file_path}", tabs=1)
+        logger.debug(f"Parsing {self.__class__.__name__} BP data from {cdo_file_path}")
         cdo_data = get_json_data(cdo_file_path)[index]
         props = cdo_data["Properties"]
 
@@ -197,7 +197,7 @@ def parse_game_modes(to_file=False):
         if 'Properties' in game_mode_data[0]:
             if 'DisplayName' in game_mode_data[0]['Properties']:
                 if 'CultureInvariantString' not in game_mode_data[0]['Properties']["DisplayName"]:
-                    log(f"Parsing {GameMode.__name__} {game_mode_id} from {game_mode_file_path}", tabs=0)
+                    logger.debug(f"Parsing {GameMode.__name__} {game_mode_id} from {game_mode_file_path}")
                     game_mode = GameMode(game_mode_id, game_mode_data)
                     game_mode._parse_bp(os.path.join(PARAMS.export_path, r"WRFrontiers\Content\Sparrow", game_mode_id_to_bp_path[game_mode_id]))
 
