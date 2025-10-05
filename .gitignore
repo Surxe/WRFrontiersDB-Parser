@@ -166,13 +166,8 @@ cython_debug/
 /output
 /logs
 WRFrontiersDB-Data
-game_version.txt
 
 # Personal
 notes.md
 run_all.sh
 todo.txt
-
-# Downloaded dependencies
-src/cue4p-batchexport/BatchExport/
-oo2core_9_win64.dll

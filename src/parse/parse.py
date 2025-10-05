@@ -36,8 +36,6 @@ load_dotenv(override=True)
 
 from utils import clear_dir, init_params
 
-from steam.download_latest import main as download_latest
-
 # Initialize parameters with command-line args
 params = init_params(
     export_path=args.EXPORTS_PATH,
@@ -45,8 +43,6 @@ params = init_params(
     log_level=args.LOG_LEVEL,
     output_path=args.OUTPUT_PATH
 )
-
-#download_latest(params)
 
 from parsers.module import *
 from parsers.localization import *
