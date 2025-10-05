@@ -23,10 +23,13 @@ class BatchExporter:
         
         Args:
             params (Params, optional): Params object containing configuration. If None, will create default.
-            mapping_file_path (str, optional): Path to the mapping file for UE4 assets
+            mapping_file_path (str): Path to the mapping file for UE4 assets (required)
         """
         if params is None:
             params = init_params()
+        
+        if mapping_file_path is None:
+            raise ValueError("mapping_file_path is required for BatchExporter")
         
         self.params = params
         self.mapping_file_path = mapping_file_path
@@ -58,7 +61,7 @@ class BatchExporter:
                 "Please ensure EXPORTS_PATH is set correctly in your environment."
             )
         
-        if self.mapping_file_path and not os.path.exists(self.mapping_file_path):
+        if not os.path.exists(self.mapping_file_path):
             raise FileNotFoundError(
                 f"Mapping file not found: {self.mapping_file_path}. "
                 "Please provide a valid mapping file path."
@@ -84,12 +87,9 @@ class BatchExporter:
             "--export-output-path", self.params.export_path
         ]
         
-        # Add mapping file if provided
-        if self.mapping_file_path:
-            cmd.extend(["--mapping-file-path", self.mapping_file_path])
-            logger.info(f"Using mapping file: {self.mapping_file_path}")
-        else:
-            logger.warning("No mapping file provided - extraction may be limited")
+        # Add mapping file (required)
+        cmd.extend(["--mapping-file-path", self.mapping_file_path])
+        logger.info(f"Using mapping file: {self.mapping_file_path}")
         
         logger.info(f"Executing BatchExport with command: {' '.join(cmd)}")
         logger.info(f"PAK files directory: {self.params.steam_game_download_path}")
@@ -156,8 +156,7 @@ class BatchExporter:
             "--export-output-path", self.params.export_path
         ]
         
-        if self.mapping_file_path:
-            cmd.extend(["--mapping-file-path", self.mapping_file_path])
+        cmd.extend(["--mapping-file-path", self.mapping_file_path])
         
         return ' '.join(f'"{arg}"' if ' ' in arg else arg for arg in cmd)
     
@@ -172,7 +171,7 @@ class BatchExporter:
             "executable_exists": self.executable_path.exists(),
             "pak_directory_exists": os.path.exists(self.params.steam_game_download_path),
             "export_directory_exists": os.path.exists(self.params.export_path),
-            "mapping_file_exists": self.mapping_file_path is None or os.path.exists(self.mapping_file_path)
+            "mapping_file_exists": os.path.exists(self.mapping_file_path)
         }
         
         checks["all_prerequisites_met"] = all(checks.values())
@@ -185,10 +184,13 @@ def main(params=None, mapping_file_path=None):
     
     Args:
         params (Params, optional): Configuration parameters
-        mapping_file_path (str, optional): Path to the mapping file
+        mapping_file_path (str): Path to the mapping file (required)
     """
     if params is None:
         raise ValueError("Params must be provided")
+    
+    if mapping_file_path is None:
+        raise ValueError("mapping_file_path must be provided")
     
     try:
         batch_exporter = BatchExporter(params, mapping_file_path)
@@ -220,8 +222,10 @@ if __name__ == "__main__":
     # Example usage
     params = Params()
     
-    # You would set the mapping file path here
-    # mapping_file = r"C:\path\to\your\mapping\file.usmap"
-    mapping_file = None  # Set this to your mapping file path
+    # Set the mapping file path (required)
+    mapping_file = r"C:\path\to\your\mapping\file.usmap"  # Update this path
+    
+    if mapping_file == r"C:\path\to\your\mapping\file.usmap":
+        raise ValueError("Please set the actual mapping file path before running")
     
     main(params, mapping_file)
