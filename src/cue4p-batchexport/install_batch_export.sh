@@ -1,16 +1,36 @@
 #!/bin/bash
 
-# Download CUE4P BatchExport v1.0.0 Windows release
-# This script downloads the Windows x64 release of BatchExport from GitHub
+# Download CUE4P BatchExport latest Windows release
+# This script downloads the latest Windows x64 release of BatchExport from GitHub
 
 set -e  # Exit on any error
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BATCH_EXPORT_DIR="$SCRIPT_DIR"
-VERSION="v1.0.0"
+EXECUTABLE_NAME="BatchExport.exe"
+
+# Get latest version from GitHub API
+echo "Fetching latest version from GitHub..."
+LATEST_RELEASE_API="https://api.github.com/repos/Surxe/CUE4P-BatchExport/releases/latest"
+
+# Try to get latest version using curl or wget
+if command -v curl >/dev/null 2>&1; then
+    VERSION=$(curl -s "$LATEST_RELEASE_API" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+elif command -v wget >/dev/null 2>&1; then
+    VERSION=$(wget -qO- "$LATEST_RELEASE_API" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+else
+    echo "Error: Neither curl nor wget found for API call. Falling back to v1.0.0"
+    VERSION="v1.0.0"
+fi
+
+# Fallback if API call failed
+if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
+    echo "Warning: Failed to get latest version from API. Using v1.0.0"
+    VERSION="v1.0.0"
+fi
+
 RELEASE_URL="https://github.com/Surxe/CUE4P-BatchExport/releases/download/${VERSION}/BatchExport-${VERSION}-win-x64.zip"
 ZIP_FILE="BatchExport-${VERSION}-win-x64.zip"
-EXECUTABLE_NAME="BatchExport.exe"
 
 echo "================================================"
 echo "CUE4P BatchExport Installer"
@@ -22,7 +42,7 @@ echo ""
 
 # Check if BatchExport is already installed
 if [ -f "$BATCH_EXPORT_DIR/$EXECUTABLE_NAME" ]; then
-    echo "✓ BatchExport executable already exists at: $BATCH_EXPORT_DIR/$EXECUTABLE_NAME"
+    echo "BatchExport executable already exists at: $BATCH_EXPORT_DIR/$EXECUTABLE_NAME"
     echo "To reinstall, delete the executable and run this script again."
     exit 0
 fi
@@ -35,12 +55,12 @@ elif command -v wget >/dev/null 2>&1; then
     DOWNLOAD_CMD="wget -O"
     echo "Using wget for download..."
 else
-    echo "❌ Error: Neither curl nor wget found. Please install one of them."
+    echo "Error: Neither curl nor wget found. Please install one of them."
     exit 1
 fi
 
 # Download the release zip file
-echo "📦 Downloading BatchExport $VERSION..."
+echo "Downloading BatchExport $VERSION..."
 cd "$BATCH_EXPORT_DIR"
 
 if [ "$DOWNLOAD_CMD" = "curl -L -o" ]; then
@@ -51,20 +71,20 @@ fi
 
 # Check if download was successful
 if [ ! -f "$ZIP_FILE" ]; then
-    echo "❌ Error: Failed to download $ZIP_FILE"
+    echo "Error: Failed to download $ZIP_FILE"
     exit 1
 fi
 
-echo "✓ Downloaded $ZIP_FILE"
+echo "Downloaded $ZIP_FILE"
 
 # Check if unzip is available
 if ! command -v unzip >/dev/null 2>&1; then
-    echo "❌ Error: unzip not found. Please install unzip to extract the archive."
+    echo "Error: unzip not found. Please install unzip to extract the archive."
     exit 1
 fi
 
 # Extract the zip file
-echo "📂 Extracting BatchExport..."
+echo "Extracting BatchExport..."
 unzip -o "$ZIP_FILE"
 
 # Find and move the executable to the current directory
@@ -88,7 +108,7 @@ fi
 
 # Verify extraction was successful
 if [ ! -f "$EXECUTABLE_NAME" ]; then
-    echo "❌ Error: $EXECUTABLE_NAME not found after extraction"
+    echo "Error: $EXECUTABLE_NAME not found after extraction"
     echo "Contents of extracted files:"
     ls -la
     exit 1
@@ -101,13 +121,13 @@ rm -f "$ZIP_FILE"
 find . -name "win-x64" -type d -empty -delete 2>/dev/null || true
 find . -name "*x64*" -type d -empty -delete 2>/dev/null || true
 
-echo "✓ Extracted and cleaned up"
+echo "Extracted and cleaned up"
 
 # Verify the executable
-echo "🔍 Verifying BatchExport installation..."
+echo "Verifying BatchExport installation..."
 if [ -f "$EXECUTABLE_NAME" ]; then
     FILE_SIZE=$(stat -f%z "$EXECUTABLE_NAME" 2>/dev/null || stat -c%s "$EXECUTABLE_NAME" 2>/dev/null || echo "unknown")
-    echo "✓ BatchExport executable found"
+    echo "BatchExport executable found"
     echo "  Path: $BATCH_EXPORT_DIR/$EXECUTABLE_NAME"
     echo "  Size: $FILE_SIZE bytes"
     
@@ -115,7 +135,7 @@ if [ -f "$EXECUTABLE_NAME" ]; then
     chmod +x "$EXECUTABLE_NAME" 2>/dev/null || true
     
     echo ""
-    echo "🎉 BatchExport $VERSION installed successfully!"
+    echo "BatchExport $VERSION installed successfully!"
     echo ""
     echo "Usage:"
     echo "  $BATCH_EXPORT_DIR/$EXECUTABLE_NAME [options]"
@@ -124,7 +144,7 @@ if [ -f "$EXECUTABLE_NAME" ]; then
     echo "  executable_path = r'$BATCH_EXPORT_DIR\\$EXECUTABLE_NAME'"
     
 else
-    echo "❌ Error: Installation verification failed"
+    echo "Error: Installation verification failed"
     exit 1
 fi
 
