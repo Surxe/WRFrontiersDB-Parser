@@ -37,6 +37,15 @@ class BatchExporter:
         self.batch_export_dir = Path(__file__).parent / "BatchExport"
         self.executable_path = self.batch_export_dir / "BatchExport.exe"
         
+        # Build the command once during initialization
+        self.command = [
+            str(self.executable_path),
+            "--preset", "WarRobotsFrontiers",
+            "--pak-files-directory", self.params.steam_game_download_path,
+            "--export-output-path", self.params.export_path,
+            "--mapping-file-path", self.mapping_file_path
+        ]
+        
         # Validate paths
         self._validate_setup()
     
@@ -77,20 +86,8 @@ class BatchExporter:
             RuntimeError: If BatchExport execution fails
         """
         logger.info("Starting BatchExport process...")
-        
-        # Build command arguments
-        cmd = [
-            str(self.executable_path),
-            "--preset", "WarRobotsFrontiers",
-            "--pak-files-directory", self.params.steam_game_download_path,
-            "--export-output-path", self.params.export_path
-        ]
-        
-        # Add mapping file (required)
-        cmd.extend(["--mapping-file-path", self.mapping_file_path])
         logger.info(f"Using mapping file: {self.mapping_file_path}")
-        
-        logger.info(f"Executing BatchExport with command: {' '.join(cmd)}")
+        logger.info(f"Executing BatchExport with command: {str(self)}")
         logger.info(f"PAK files directory: {self.params.steam_game_download_path}")
         logger.info(f"Export output path: {self.params.export_path}")
         
@@ -98,7 +95,7 @@ class BatchExporter:
             # Execute BatchExport using run_process from utils
             # run_process handles logging, timeouts, and error handling internally
             run_process(
-                params=cmd,
+                params=self.command,
                 name="BatchExport",
                 timeout=3600  # 1 hour timeout
             )
@@ -109,24 +106,6 @@ class BatchExporter:
             error_msg = f"BatchExport execution failed: {e}"
             logger.error(error_msg)
             raise RuntimeError(error_msg)
-    
-    def get_command_preview(self):
-        """
-        Get a preview of the command that would be executed.
-        
-        Returns:
-            str: The command string that would be executed
-        """
-        cmd = [
-            str(self.executable_path),
-            "--preset", "WarRobotsFrontiers", 
-            "--pak-files-directory", self.params.steam_game_download_path,
-            "--export-output-path", self.params.export_path
-        ]
-        
-        cmd.extend(["--mapping-file-path", self.mapping_file_path])
-        
-        return ' '.join(f'"{arg}"' if ' ' in arg else arg for arg in cmd)
     
     def check_prerequisites(self):
         """
@@ -144,6 +123,10 @@ class BatchExporter:
         
         checks["all_prerequisites_met"] = all(checks.values())
         return checks
+    
+    def __str__(self):
+        """Return the command that would be executed as a string."""
+        return ' '.join(f'"{arg}"' if ' ' in arg else arg for arg in self.command)
 
 
 def main(params=None, mapping_file_path=None):
@@ -173,7 +156,7 @@ def main(params=None, mapping_file_path=None):
             raise RuntimeError("Prerequisites check failed")
         
         # Show command preview
-        logger.info(f"Command to execute: {batch_exporter.get_command_preview()}")
+        logger.info(f"Command to execute: {str(batch_exporter)}")
         
         # Run BatchExport
         batch_exporter.run()
