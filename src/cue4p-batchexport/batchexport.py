@@ -1,0 +1,227 @@
+# Add two levels of parent dirs to sys path
+import sys
+import os
+import subprocess
+from pathlib import Path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from utils import init_params, Params
+from loguru import logger
+
+
+class BatchExporter:
+    """
+    A class to handle batch exporting of game assets using the CUE4P BatchExport tool.
+    
+    This class manages the execution of BatchExport.exe with the appropriate parameters
+    for extracting War Robots Frontiers game data from .pak files to JSON format.
+    """
+    
+    def __init__(self, params=None, mapping_file_path=None):
+        """
+        Initialize the BatchExporter.
+        
+        Args:
+            params (Params, optional): Params object containing configuration. If None, will create default.
+            mapping_file_path (str, optional): Path to the mapping file for UE4 assets
+        """
+        if params is None:
+            params = init_params()
+        
+        self.params = params
+        self.mapping_file_path = mapping_file_path
+        
+        # Path to BatchExport executable
+        self.batch_export_dir = Path(__file__).parent / "BatchExport"
+        self.executable_path = self.batch_export_dir / "BatchExport.exe"
+        
+        # Validate paths
+        self._validate_setup()
+    
+    def _validate_setup(self):
+        """Validate that all required paths and files exist."""
+        if not self.executable_path.exists():
+            raise FileNotFoundError(
+                f"BatchExport.exe not found at {self.executable_path}. "
+                "Please run install_batch_export.sh first to download it."
+            )
+        
+        if not os.path.exists(self.params.steam_game_download_path):
+            raise FileNotFoundError(
+                f"Steam game download path not found: {self.params.steam_game_download_path}. "
+                "Please ensure STEAM_GAME_DOWNLOAD_PATH is set correctly in your environment."
+            )
+        
+        if not os.path.exists(self.params.export_path):
+            raise FileNotFoundError(
+                f"Export path not found: {self.params.export_path}. "
+                "Please ensure EXPORTS_PATH is set correctly in your environment."
+            )
+        
+        if self.mapping_file_path and not os.path.exists(self.mapping_file_path):
+            raise FileNotFoundError(
+                f"Mapping file not found: {self.mapping_file_path}. "
+                "Please provide a valid mapping file path."
+            )
+    
+    def run(self):
+        """
+        Execute BatchExport with the configured parameters.
+        
+        Returns:
+            subprocess.CompletedProcess: The result of the BatchExport execution
+            
+        Raises:
+            RuntimeError: If BatchExport execution fails
+        """
+        logger.info("Starting BatchExport process...")
+        
+        # Build command arguments
+        cmd = [
+            str(self.executable_path),
+            "--preset", "WarRobotsFrontiers",
+            "--pak-files-directory", self.params.steam_game_download_path,
+            "--export-output-path", self.params.export_path
+        ]
+        
+        # Add mapping file if provided
+        if self.mapping_file_path:
+            cmd.extend(["--mapping-file-path", self.mapping_file_path])
+            logger.info(f"Using mapping file: {self.mapping_file_path}")
+        else:
+            logger.warning("No mapping file provided - extraction may be limited")
+        
+        logger.info(f"Executing BatchExport with command: {' '.join(cmd)}")
+        logger.info(f"PAK files directory: {self.params.steam_game_download_path}")
+        logger.info(f"Export output path: {self.params.export_path}")
+        
+        try:
+            # Execute BatchExport
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                cwd=self.batch_export_dir,
+                timeout=3600  # 1 hour timeout
+            )
+            
+            # Log output
+            if result.stdout:
+                logger.info("BatchExport stdout:")
+                for line in result.stdout.splitlines():
+                    logger.info(f"  {line}")
+            
+            if result.stderr:
+                logger.warning("BatchExport stderr:")
+                for line in result.stderr.splitlines():
+                    logger.warning(f"  {line}")
+            
+            # Check return code
+            if result.returncode == 0:
+                logger.success("BatchExport completed successfully!")
+                return result
+            else:
+                error_msg = f"BatchExport failed with return code {result.returncode}"
+                if result.stderr:
+                    error_msg += f": {result.stderr.strip()}"
+                logger.error(error_msg)
+                raise RuntimeError(error_msg)
+        
+        except subprocess.TimeoutExpired:
+            error_msg = "BatchExport timed out after 1 hour"
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
+        
+        except FileNotFoundError as e:
+            error_msg = f"BatchExport executable not found: {e}"
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
+        
+        except Exception as e:
+            error_msg = f"BatchExport execution failed: {e}"
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
+    
+    def get_command_preview(self):
+        """
+        Get a preview of the command that would be executed.
+        
+        Returns:
+            str: The command string that would be executed
+        """
+        cmd = [
+            str(self.executable_path),
+            "--preset", "WarRobotsFrontiers", 
+            "--pak-files-directory", self.params.steam_game_download_path,
+            "--export-output-path", self.params.export_path
+        ]
+        
+        if self.mapping_file_path:
+            cmd.extend(["--mapping-file-path", self.mapping_file_path])
+        
+        return ' '.join(f'"{arg}"' if ' ' in arg else arg for arg in cmd)
+    
+    def check_prerequisites(self):
+        """
+        Check if all prerequisites are met for running BatchExport.
+        
+        Returns:
+            dict: Status of each prerequisite check
+        """
+        checks = {
+            "executable_exists": self.executable_path.exists(),
+            "pak_directory_exists": os.path.exists(self.params.steam_game_download_path),
+            "export_directory_exists": os.path.exists(self.params.export_path),
+            "mapping_file_exists": self.mapping_file_path is None or os.path.exists(self.mapping_file_path)
+        }
+        
+        checks["all_prerequisites_met"] = all(checks.values())
+        return checks
+
+
+def main(params=None, mapping_file_path=None):
+    """
+    Main function to run BatchExport with the given parameters.
+    
+    Args:
+        params (Params, optional): Configuration parameters
+        mapping_file_path (str, optional): Path to the mapping file
+    """
+    if params is None:
+        raise ValueError("Params must be provided")
+    
+    try:
+        batch_exporter = BatchExporter(params, mapping_file_path)
+        
+        # Check prerequisites
+        prereq_status = batch_exporter.check_prerequisites()
+        if not prereq_status["all_prerequisites_met"]:
+            logger.error("Prerequisites not met:")
+            for check, status in prereq_status.items():
+                if not status and check != "all_prerequisites_met":
+                    logger.error(f"  - {check}: {'✓' if status else '✗'}")
+            raise RuntimeError("Prerequisites check failed")
+        
+        # Show command preview
+        logger.info(f"Command to execute: {batch_exporter.get_command_preview()}")
+        
+        # Run BatchExport
+        result = batch_exporter.run()
+        
+        logger.success("BatchExport process completed successfully!")
+        return result
+        
+    except Exception as e:
+        logger.error(f"BatchExport failed: {e}")
+        raise
+
+
+if __name__ == "__main__":
+    # Example usage
+    params = Params()
+    
+    # You would set the mapping file path here
+    # mapping_file = r"C:\path\to\your\mapping\file.usmap"
+    mapping_file = None  # Set this to your mapping file path
+    
+    main(params, mapping_file)
