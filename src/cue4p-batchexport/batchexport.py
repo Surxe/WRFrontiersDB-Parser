@@ -1,11 +1,10 @@
 # Add two levels of parent dirs to sys path
 import sys
 import os
-import subprocess
 from pathlib import Path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import init_params, Params
+from utils import init_params, Params, run_process
 from loguru import logger
 
 
@@ -72,7 +71,7 @@ class BatchExporter:
         Execute BatchExport with the configured parameters.
         
         Returns:
-            subprocess.CompletedProcess: The result of the BatchExport execution
+            None: The process completes successfully or raises an exception
             
         Raises:
             RuntimeError: If BatchExport execution fails
@@ -96,47 +95,16 @@ class BatchExporter:
         logger.info(f"Export output path: {self.params.export_path}")
         
         try:
-            # Execute BatchExport
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                cwd=self.batch_export_dir,
+            # Execute BatchExport using run_process from utils
+            # run_process handles logging, timeouts, and error handling internally
+            run_process(
+                params=cmd,
+                name="BatchExport",
                 timeout=3600  # 1 hour timeout
             )
             
-            # Log output
-            if result.stdout:
-                logger.info("BatchExport stdout:")
-                for line in result.stdout.splitlines():
-                    logger.info(f"  {line}")
+            logger.success("BatchExport completed successfully!")
             
-            if result.stderr:
-                logger.warning("BatchExport stderr:")
-                for line in result.stderr.splitlines():
-                    logger.warning(f"  {line}")
-            
-            # Check return code
-            if result.returncode == 0:
-                logger.success("BatchExport completed successfully!")
-                return result
-            else:
-                error_msg = f"BatchExport failed with return code {result.returncode}"
-                if result.stderr:
-                    error_msg += f": {result.stderr.strip()}"
-                logger.error(error_msg)
-                raise RuntimeError(error_msg)
-        
-        except subprocess.TimeoutExpired:
-            error_msg = "BatchExport timed out after 1 hour"
-            logger.error(error_msg)
-            raise RuntimeError(error_msg)
-        
-        except FileNotFoundError as e:
-            error_msg = f"BatchExport executable not found: {e}"
-            logger.error(error_msg)
-            raise RuntimeError(error_msg)
-        
         except Exception as e:
             error_msg = f"BatchExport execution failed: {e}"
             logger.error(error_msg)
@@ -208,10 +176,10 @@ def main(params=None, mapping_file_path=None):
         logger.info(f"Command to execute: {batch_exporter.get_command_preview()}")
         
         # Run BatchExport
-        result = batch_exporter.run()
+        batch_exporter.run()
         
         logger.success("BatchExport process completed successfully!")
-        return result
+        return True
         
     except Exception as e:
         logger.error(f"BatchExport failed: {e}")
