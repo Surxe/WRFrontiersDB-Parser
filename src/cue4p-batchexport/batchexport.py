@@ -107,23 +107,6 @@ class BatchExporter:
             logger.error(error_msg)
             raise RuntimeError(error_msg)
     
-    def check_prerequisites(self):
-        """
-        Check if all prerequisites are met for running BatchExport.
-        
-        Returns:
-            dict: Status of each prerequisite check
-        """
-        checks = {
-            "executable_exists": self.executable_path.exists(),
-            "pak_directory_exists": os.path.exists(self.params.steam_game_download_path),
-            "export_directory_exists": os.path.exists(self.params.export_path),
-            "mapping_file_exists": os.path.exists(self.mapping_file_path)
-        }
-        
-        checks["all_prerequisites_met"] = all(checks.values())
-        return checks
-    
     def __str__(self):
         """Return the command that would be executed as a string."""
         return ' '.join(f'"{arg}"' if ' ' in arg else arg for arg in self.command)
@@ -145,15 +128,6 @@ def main(params=None, mapping_file_path=None):
     
     try:
         batch_exporter = BatchExporter(params, mapping_file_path)
-        
-        # Check prerequisites
-        prereq_status = batch_exporter.check_prerequisites()
-        if not prereq_status["all_prerequisites_met"]:
-            logger.error("Prerequisites not met:")
-            for check, status in prereq_status.items():
-                if not status and check != "all_prerequisites_met":
-                    logger.error(f"  - {check}: {'✓' if status else '✗'}")
-            raise RuntimeError("Prerequisites check failed")
         
         # Show command preview
         logger.info(f"Command to execute: {str(batch_exporter)}")
