@@ -6,8 +6,11 @@
 set -e  # Exit on any error
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BATCH_EXPORT_DIR="$SCRIPT_DIR"
+BATCH_EXPORT_DIR="$SCRIPT_DIR/BatchExport"
 EXECUTABLE_NAME="BatchExport.exe"
+
+# Create the BatchExport directory if it doesn't exist
+mkdir -p "$BATCH_EXPORT_DIR"
 
 # Get latest version from GitHub API
 echo "Fetching latest version from GitHub..."
@@ -29,8 +32,11 @@ if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
     VERSION="v1.0.0"
 fi
 
-RELEASE_URL="https://github.com/Surxe/CUE4P-BatchExport/releases/download/${VERSION}/BatchExport-${VERSION}-win-x64.zip"
-ZIP_FILE="BatchExport-${VERSION}-win-x64.zip"
+echo "Detected version: $VERSION"
+
+# Use the correct asset name from GitHub releases
+RELEASE_URL="https://github.com/Surxe/CUE4P-BatchExport/releases/download/${VERSION}/BatchExport-windows-x64.zip"
+ZIP_FILE="BatchExport-windows-x64.zip"
 
 echo "================================================"
 echo "CUE4P BatchExport Installer"
@@ -75,7 +81,39 @@ if [ ! -f "$ZIP_FILE" ]; then
     exit 1
 fi
 
-echo "Downloaded $ZIP_FILE"
+# Validate the downloaded file
+FILE_SIZE=$(stat -f%z "$ZIP_FILE" 2>/dev/null || stat -c%s "$ZIP_FILE" 2>/dev/null || echo "0")
+echo "Downloaded $ZIP_FILE (Size: $FILE_SIZE bytes)"
+
+# Check if file is too small (likely an error page)
+if [ "$FILE_SIZE" -lt 1000 ]; then
+    echo "Error: Downloaded file is too small ($FILE_SIZE bytes). This might be an error page."
+    echo "File contents:"
+    head -n 10 "$ZIP_FILE"
+    echo "Please check if the release exists: $RELEASE_URL"
+    rm -f "$ZIP_FILE"
+    exit 1
+fi
+
+# Test if it's a valid ZIP file
+if ! unzip -t "$ZIP_FILE" >/dev/null 2>&1; then
+    echo "Error: Downloaded file is not a valid ZIP archive."
+    echo "File size: $FILE_SIZE bytes"
+    echo "File type: $(file "$ZIP_FILE" 2>/dev/null || echo 'unknown')"
+    echo "First few lines of file:"
+    head -n 5 "$ZIP_FILE"
+    
+    # Check if it's an HTML error page (common when URL is wrong)
+    if head -n 1 "$ZIP_FILE" | grep -q "<html\|<!DOCTYPE"; then
+        echo "The downloaded file appears to be an HTML page (likely 404 error)."
+        echo "This suggests the release URL might be incorrect:"
+        echo "  $RELEASE_URL"
+        echo "Please check if version $VERSION exists on GitHub."
+    fi
+    
+    rm -f "$ZIP_FILE"
+    exit 1
+fi
 
 # Check if unzip is available
 if ! command -v unzip >/dev/null 2>&1; then
@@ -85,7 +123,18 @@ fi
 
 # Extract the zip file
 echo "Extracting BatchExport..."
-unzip -o "$ZIP_FILE"
+echo "Archive contents:"
+unzip -l "$ZIP_FILE"
+echo ""
+
+# Extract with verbose output for debugging
+if ! unzip -o "$ZIP_FILE"; then
+    echo "Error: Failed to extract $ZIP_FILE"
+    echo "ZIP file info:"
+    file "$ZIP_FILE" 2>/dev/null || echo "file command not available"
+    ls -la "$ZIP_FILE"
+    exit 1
+fi
 
 # Find and move the executable to the current directory
 EXTRACTED_EXECUTABLE=""
