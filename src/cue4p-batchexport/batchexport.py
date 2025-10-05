@@ -7,6 +7,16 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils import init_params, Params, run_process
 from loguru import logger
 
+"""
+Usage:
+    python batchexport.py <mapping_file_path>
+
+Example:
+    python batchexport.py /path/to/mapping/file.usmap
+
+Alternatively, you can import and use the BatchExporter class directly:
+"""
+
 
 class BatchExporter:
     """
@@ -43,7 +53,8 @@ class BatchExporter:
             "--preset", "WarRobotsFrontiers",
             "--pak-files-directory", self.params.steam_game_download_path,
             "--export-output-path", self.params.export_path,
-            "--mapping-file-path", self.mapping_file_path
+            "--mapping-file-path", self.mapping_file_path,
+            "--is-logging-enabled", "true" if self.params.log_level == "DEBUG" else "false"
         ]
         
         # Validate paths
@@ -144,13 +155,14 @@ def main(params=None, mapping_file_path=None):
 
 
 if __name__ == "__main__":
-    # Example usage
+    import sys
+    
+    if len(sys.argv) < 2:
+        print("Usage: python batchexport.py <mapping_file_path>")
+        print("Example: python batchexport.py /path/to/mapping/file.usmap")
+        sys.exit(1)
+    
+    mapping_file = sys.argv[1]
     params = Params()
-    
-    # Set the mapping file path (required)
-    mapping_file = r"C:\path\to\your\mapping\file.usmap"  # Update this path
-    
-    if mapping_file == r"C:\path\to\your\mapping\file.usmap":
-        raise ValueError("Please set the actual mapping file path before running")
     
     main(params, mapping_file)
