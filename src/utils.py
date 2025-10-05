@@ -18,20 +18,13 @@ class Params:
     """
     A class to hold parameters for the application.
     """
-    def __init__(self, export_path=None, game_name=None, log_level=None, output_path=None, steam_username=None, steam_password=None, steam_game_download_path=None, depot_download_cmd_path=None, force_download=None, shipping_cmd_path=None, dumper7_output_path=None):
+    def __init__(self, export_path=None, output_path=None, game_name=None, log_level=None,):
         # Use provided args if not None, else fallback to environment
         raw_export_path = export_path if export_path is not None else os.getenv('EXPORTS_PATH')
         self.export_path = normalize_path(raw_export_path) if raw_export_path else None
+        self.output_path = output_path if output_path is not None else os.getenv('OUTPUT_PATH', None)
         self.game_name = game_name if game_name is not None else os.getenv('GAME_NAME')
         self.log_level = (log_level if log_level is not None else os.getenv('LOG_LEVEL', 'DEBUG')).upper()
-        self.output_path = output_path if output_path is not None else os.getenv('OUTPUT_PATH', None)
-        self.steam_username = steam_username if steam_username is not None else os.getenv('STEAM_USERNAME')
-        self.steam_password = steam_password if steam_password is not None else os.getenv('STEAM_PASSWORD')
-        self.steam_game_download_path = steam_game_download_path if steam_game_download_path is not None else os.getenv('STEAM_GAME_DOWNLOAD_PATH')
-        self.depot_downloader_cmd_path = depot_download_cmd_path if depot_download_cmd_path is not None else os.getenv('DEPOT_DOWNLOADER_CMD_PATH')
-        self.force_download = is_truthy(force_download if force_download is not None else (os.getenv('FORCE_DOWNLOAD', 'False').lower() == 'true'))
-        self.shipping_cmd_path = shipping_cmd_path if shipping_cmd_path is not None else os.getenv('SHIPPING_CMD_PATH')
-        self.dumper7_output_path = dumper7_output_path if dumper7_output_path is not None else os.getenv('DUMPER7_OUTPUT_PATH')
 
         # Setup loguru logging to /logs dir
         logs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'logs')
@@ -61,13 +54,7 @@ class Params:
             raise ValueError("EXPORTS_PATH environment variable is not set.")
         if not os.path.exists(self.export_path):
             raise ValueError(f"EXPORTS_PATH '{self.export_path}' does not exist.")
-
-        if not self.game_name:
-            raise ValueError("GAME_NAME environment variable is not set.")
         
-        if self.log_level not in ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']:
-            raise ValueError(f"LOG_LEVEL {self.log_level} must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL.")
-
         # Create a default output path if not set
         if self.output_path is None:
             self.output_path = os.path.join(self.export_path, 'output')
@@ -75,34 +62,12 @@ class Params:
         if not os.path.exists(self.output_path):
             raise ValueError(f"OUTPUT_PATH '{self.output_path}' does not exist.")
 
-        if not self.steam_username:
-            raise ValueError("STEAM_USERNAME environment variable is not set.")
+        if not self.game_name:
+            raise ValueError("GAME_NAME environment variable is not set.")
+        
+        if self.log_level not in ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']:
+            raise ValueError(f"LOG_LEVEL {self.log_level} must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL.")
 
-        if not self.steam_password:
-            raise ValueError("STEAM_PASSWORD environment variable is not set.")
-        
-        if not self.steam_game_download_path:
-            raise ValueError("STEAM_GAME_DOWNLOAD_PATH environment variable is not set.")
-        if not os.path.exists(self.steam_game_download_path):
-            raise ValueError(f"STEAM_GAME_DOWNLOAD_PATH '{self.steam_game_download_path}' does not exist.")
-
-        if not self.depot_downloader_cmd_path:
-            raise ValueError("DEPOT_DOWNLOADER_CMD_PATH environment variable is not set.")
-        if not os.path.exists(self.depot_downloader_cmd_path):
-            raise ValueError(f"DEPOT_DOWNLOADER_CMD_PATH '{self.depot_downloader_cmd_path}' does not exist.")
-        
-        if not isinstance(self.force_download, bool):
-            raise ValueError("FORCE_DOWNLOAD must be a boolean value (True or False).")
-        
-        if not self.shipping_cmd_path:
-            raise ValueError("SHIPPING_CMD_PATH environment variable is not set.")
-        if not os.path.exists(self.shipping_cmd_path):
-            raise ValueError(f"SHIPPING_CMD_PATH '{self.shipping_cmd_path}' does not exist.")
-        
-        if not self.dumper7_output_path:
-            raise ValueError("DUMPER7_OUTPUT_PATH environment variable is not set.")
-        if not os.path.exists(self.dumper7_output_path):
-            raise ValueError(f"DUMPER7_OUTPUT_PATH '{self.dumper7_output_path}' does not exist.")
     def log(self):
         """
         Logs the parameters.
@@ -110,16 +75,9 @@ class Params:
         logger.info(
             f"Params initialized with:\n"
             f"EXPORT_PATH: {self.export_path}\n"
+            f"OUTPUT_PATH: {self.output_path}\n"
             f"GAME_NAME: {self.game_name}\n"
             f"LOG_LEVEL: {self.log_level}\n"
-            f"OUTPUT_PATH: {self.output_path}\n"
-            f"STEAM_USERNAME: {self.steam_username}\n"
-            #f"STEAM_PASSWORD: {self.steam_password}\n"
-            f"STEAM_GAME_DOWNLOAD_PATH: {self.steam_game_download_path}\n"
-            f"DEPOT_DOWNLOADER_CMD_PATH: {self.depot_downloader_cmd_path}\n"
-            f"FORCE_DOWNLOAD: {self.force_download}\n"
-            f"SHIPPING_CMD_PATH: {self.shipping_cmd_path}\n"
-            f"DUMPER7_OUTPUT_PATH: {self.dumper7_output_path}\n"
         )
 
     def __str__(self):
