@@ -318,7 +318,7 @@ class Module(Object):
     
 
 def parse_modules(to_file=False):
-    modules_source_path = os.path.join(OPTIONS.export_path, r"WRFrontiers\Content\Sparrow\Mechanics\Meta\Entities\Modules")
+    modules_source_path = os.path.join(OPTIONS.export_dir, r"WRFrontiers\Content\Sparrow\Mechanics\Meta\Entities\Modules")
     for file in os.listdir(modules_source_path):
         if file.endswith(".json"):
             full_path = os.path.join(modules_source_path, file)

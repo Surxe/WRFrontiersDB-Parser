@@ -181,7 +181,7 @@ class Analysis:
 
     def to_file(self):
         """Write analysis data to output file."""
-        file_path = os.path.join(OPTIONS.output_path, f'{self.__class__.__name__}.json')
+        file_path = os.path.join(OPTIONS.output_dir, f'{self.__class__.__name__}.json')
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(self.to_json())
 

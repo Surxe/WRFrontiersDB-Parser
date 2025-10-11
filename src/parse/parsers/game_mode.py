@@ -176,7 +176,7 @@ class GameMode(Object):
         return parsed_data
 
 def parse_game_modes(to_file=False):
-    root_path = os.path.join(OPTIONS.export_path, r"WRFrontiers\Content\Sparrow\Mechanics\DA_Meta_Root.json")
+    root_path = os.path.join(OPTIONS.export_dir, r"WRFrontiers\Content\Sparrow\Mechanics\DA_Meta_Root.json")
     root_data = get_json_data(root_path)
     game_modes = root_data[0]["Properties"]["GameModes"]
     for game_mode_entry in game_modes:
@@ -199,7 +199,7 @@ def parse_game_modes(to_file=False):
                 if 'CultureInvariantString' not in game_mode_data[0]['Properties']["DisplayName"]:
                     logger.debug(f"Parsing {GameMode.__name__} {game_mode_id} from {game_mode_file_path}")
                     game_mode = GameMode(game_mode_id, game_mode_data)
-                    game_mode._parse_bp(os.path.join(OPTIONS.export_path, r"WRFrontiers\Content\Sparrow", game_mode_id_to_bp_path[game_mode_id]))
+                    game_mode._parse_bp(os.path.join(OPTIONS.export_dir, r"WRFrontiers\Content\Sparrow", game_mode_id_to_bp_path[game_mode_id]))
 
     if to_file: # Condition prevents needlessly saving the same data multiple times, as it will also be saved if ran thru parse.py
         GameMode.to_file()

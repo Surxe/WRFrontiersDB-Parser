@@ -19,8 +19,8 @@ class Image():
     @classmethod
     def to_file(cls):
         # Write json file of image_paths to output
-        output_path = os.path.join(OPTIONS.output_path, f"{cls.__name__}.json")
-        with open(output_path, 'w') as f:
+        output_dir = os.path.join(OPTIONS.output_dir, f"{cls.__name__}.json")
+        with open(output_dir, 'w') as f:
             json.dump(list(cls.image_paths.keys()), f, indent=4)
 
 
@@ -34,7 +34,7 @@ def parse_image_asset_path(data: dict) -> str:
     else:
         raise ValueError("Data must contain 'AssetPathName' or 'ObjectPath'.")
     export_plus_file_path = asset_path_to_file_path(asset_path)
-    image_path_generic = export_plus_file_path.split(OPTIONS.export_path)[1].split(".")[0] # #<export_path>\\<file_path>\\<image_name>.json -> <file_path>/<image_name>
+    image_path_generic = export_plus_file_path.split(OPTIONS.export_dir)[1].split(".")[0] # #<export_dir>\\<file_path>\\<image_name>.json -> <file_path>/<image_name>
     Image(image_path_generic)  # Register the image path
     return normalize_path(image_path_generic)
 

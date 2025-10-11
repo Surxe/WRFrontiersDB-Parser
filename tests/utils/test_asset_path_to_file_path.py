@@ -25,7 +25,7 @@ class TestAssetPathToFilePath(unittest.TestCase):
         # Mock the OPTIONS object that the function depends on
         self.mock_options = Mock()
         self.mock_options.game_name = "DungeonCrawler"
-        self.mock_options.export_path = "F:\\TestExports"
+        self.mock_options.export_dir = "F:\\TestExports"
         
         # Set the OPTIONS in the utils module directly
         src_utils.OPTIONS = self.mock_options
@@ -100,10 +100,10 @@ class TestAssetPathToFilePath(unittest.TestCase):
         result = asset_path_to_file_path(asset_path)
         self.assertEqual(result, expected)
     
-    def test_different_export_paths(self):
+    def test_different_export_dirs(self):
         """Test with different export paths."""
         # Change export path
-        self.mock_options.export_path = "C:\\GameExports"
+        self.mock_options.export_dir = "C:\\GameExports"
         
         asset_path = "/Game/Data/Test.0"
         expected = normalize_path("C:\\GameExports\\DungeonCrawler\\Content\\Data\\Test.json")
@@ -113,7 +113,7 @@ class TestAssetPathToFilePath(unittest.TestCase):
     def test_path_normalization(self):
         """Test that paths are properly normalized."""
         # Test with forward slashes in export path
-        self.mock_options.export_path = "F:/TestExports"
+        self.mock_options.export_dir = "F:/TestExports"
         
         asset_path = "/Game/Data/Test.0"
         result = asset_path_to_file_path(asset_path)

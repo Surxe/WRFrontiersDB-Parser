@@ -5,6 +5,7 @@ import json
 import os
 from loguru import logger
 import shutil
+import re
 load_dotenv()
 from options import init_options
 OPTIONS = init_options()
@@ -65,9 +66,9 @@ def asset_path_to_file_path(asset_path):
     relative_path_parts = relative_path.split('/')
     
     # Normalize the export path first to ensure consistent separators
-    normalized_export_path = normalize_path(OPTIONS.export_path)
+    normalized_export_dir = normalize_path(OPTIONS.export_dir)
     # Build the full file path using os.path.join for cross-platform compatibility
-    file_path = os.path.join(normalized_export_path, *relative_path_parts) + ".json"
+    file_path = os.path.join(normalized_export_dir, *relative_path_parts) + ".json"
     # Normalize the final path using our custom normalize_path function
     file_path = normalize_path(file_path)
     return file_path

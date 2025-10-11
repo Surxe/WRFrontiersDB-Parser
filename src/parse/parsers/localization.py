@@ -22,7 +22,7 @@ class Localization(Object):
         if not isinstance(self.source_data, dict):
             raise ValueError(f"Localization source data is not a dictionary: {type(self.source_data)}")
         
-        file_path = os.path.join(OPTIONS.output_path, f'Localization\{self.id}.json')
+        file_path = os.path.join(OPTIONS.output_dir, f'Localization\{self.id}.json')
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         with open(file_path, 'w', encoding='utf-8') as f:
             json.dump(self.source_data, f, indent=4, ensure_ascii=False)
@@ -45,7 +45,7 @@ class Localization(Object):
             localization._to_file()
 
 def parse_localizations():
-    localization_source_path = os.path.join(OPTIONS.export_path, r"WRFrontiers\Content\Localization\Game")
+    localization_source_path = os.path.join(OPTIONS.export_dir, r"WRFrontiers\Content\Localization\Game")
 
     for dir_name in os.listdir(localization_source_path):
         if not os.path.isdir(os.path.join(localization_source_path, dir_name)):

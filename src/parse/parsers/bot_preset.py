@@ -33,7 +33,7 @@ class BotPreset(Object):
         return ids
 
 def parse_bot_presets(to_file=False):
-    root_path = os.path.join(OPTIONS.export_path, r"WRFrontiers\Content\Sparrow\Mechanics\DA_Meta_Root.json")
+    root_path = os.path.join(OPTIONS.export_dir, r"WRFrontiers\Content\Sparrow\Mechanics\DA_Meta_Root.json")
     root_data = get_json_data(root_path)
     props = root_data[0]["Properties"]
 

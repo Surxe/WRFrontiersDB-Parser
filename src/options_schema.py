@@ -1,5 +1,4 @@
 from typing import Literal
-from pathlib import Path
 
 """
 # Schema
@@ -44,7 +43,7 @@ OPTIONS_SCHEMA = {
             "EXPORT_DIR": {
                 "env": "EXPORT_DIR",
                 "arg": "--export-dir",
-                "type": Path,
+                "type": str,
                 "default": None,
                 "help": "Directory where the exported game JSON files are stored.",
                 "section": "Parse",
@@ -52,7 +51,7 @@ OPTIONS_SCHEMA = {
             "OUTPUT_DIR": {
                 "env": "OUTPUT_DIR",
                 "arg": "--output-dir",
-                "type": Path,
+                "type": str,
                 "default": None,
                 "help": "Directory where the parser will output files.",
                 "section": "Parse",
