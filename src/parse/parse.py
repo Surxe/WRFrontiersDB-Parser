@@ -4,45 +4,17 @@ import os
 # Add parent dirs to sys path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Parse game data and export to summarized JSON files.
-#
-# Usage:
-#   python src/parse.py [--EXPORTS_PATH path] [--GAME_NAME name] [--LOG_LEVEL level] [--OUTPUT_PATH path]
-# Command-line arguments override .env settings using the same name.
-#
-# Parameters:
-#   --EXPORTS_PATH  (required) Path to the directory containing game export data
-#   --GAME_NAME     (required) Name of the game to parse
-#   --LOG_LEVEL     (optional) Logging verbosity: DEBUG, INFO, or silent (default: DEBUG)
-#   --OUTPUT_PATH   (optional) Path to the directory where output files will be saved (TODO, requires /output subdir)
-#
-# Examples:
-#   python src/parse.py --EXPORTS_PATH "/path/to/exports" --GAME_NAME "MyGame"
-#   python src/parse.py --EXPORTS_PATH "/path/to/exports" --GAME_NAME "MyGame" --LOG_LEVEL "INFO" --OUTPUT_PATH "/path/to/output"
+# Add current parse directory to path so parsers can be imported
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.append(current_dir)
 
-import argparse
 from dotenv import load_dotenv
-
-# Parse command-line arguments for Params fields
-parser = argparse.ArgumentParser(description="Run WRFrontiersDB Parser with optional overrides.")
-parser.add_argument('--EXPORTS_PATH', type=str, help='Override EXPORTS_PATH')
-parser.add_argument('--GAME_NAME', type=str, help='Override GAME_NAME')
-parser.add_argument('--LOG_LEVEL', type=str, help='Override LOG_LEVEL')
-parser.add_argument('--OUTPUT_PATH', type=str, help='Override OUTPUT_PATH')
-args = parser.parse_args()
+from utils import clear_dir
+from options import init_options
 
 # Force reload .env file, overriding any existing environment variables
 load_dotenv(override=True)
-
-from utils import clear_dir, init_params
-
-# Initialize parameters with command-line args
-params = init_params(
-    export_path=args.EXPORTS_PATH,
-    game_name=args.GAME_NAME,
-    log_level=args.LOG_LEVEL,
-    output_path=args.OUTPUT_PATH
-)
 
 from parsers.module import *
 from parsers.localization import *
@@ -53,64 +25,67 @@ from parsers.bot_preset import *
 from parsers.powerup import *
 from analysis import *
 
-clear_dir("output")  # Clear the data directory before parsing
+def main():
+    clear_dir("output")  # Clear the data directory before parsing
+
+    parse_localizations()
+    parse_modules() #module relies on english localization being added to each key just as a helpful Ctrl+F reference
+    parse_pilots()  # Pilot parser relies on module data being parsed first
+    parse_progression_table()
+    parse_game_modes()
+    parse_bot_presets()
+    parse_powerups()
+    analyze(Module, ModuleStat, UpgradeCost)
 
 
+    ProgressionTable.to_file()
+    Currency.to_file()
+    ContentUnlock.to_file()
+    Decal.to_file()
+    CustomizationType.to_file()
+    CustomizationRarity.to_file()
+    Rarity.to_file()
+    GroupReward.to_file()
+    Material.to_file()
+    Weathering.to_file()
+    Skin.to_file()
 
-parse_localizations()
-parse_modules() #module relies on english localization being added to each key just as a helpful Ctrl+F reference
-parse_pilots()  # Pilot parser relies on module data being parsed first
-parse_progression_table()
-parse_game_modes()
-parse_bot_presets()
-parse_powerups()
-analyze(Module, ModuleStat, UpgradeCost)
+    Module.to_file()
+    ModuleRarity.to_file()
+    CharacterModule.to_file()
+    Ability.to_file()
+    Faction.to_file()
+    ModuleClass.to_file()
+    CharacterClass.to_file()
+    ModuleTag.to_file()
+    ModuleType.to_file()
+    ModuleCategory.to_file()
+    ModuleSocketType.to_file()
+    ModuleStat.to_file()
+    ModuleStatsTable.to_file()
+    UpgradeCost.to_file()
 
+    Pilot.to_file()
+    PilotType.to_file()
+    PilotClass.to_file()
+    PilotPersonality.to_file()
+    PilotTalentType.to_file()
+    PilotTalent.to_file()
 
-ProgressionTable.to_file()
-Currency.to_file()
-ContentUnlock.to_file()
-Decal.to_file()
-CustomizationType.to_file()
-CustomizationRarity.to_file()
-Rarity.to_file()
-GroupReward.to_file()
-Material.to_file()
-Weathering.to_file()
-Skin.to_file()
+    GameMode.to_file()
+    BotNames.to_file()
+    HonorReward.to_file()
 
-Module.to_file()
-ModuleRarity.to_file()
-CharacterModule.to_file()
-Ability.to_file()
-Faction.to_file()
-ModuleClass.to_file()
-CharacterClass.to_file()
-ModuleTag.to_file()
-ModuleType.to_file()
-ModuleCategory.to_file()
-ModuleSocketType.to_file()
-ModuleStat.to_file()
-ModuleStatsTable.to_file()
-UpgradeCost.to_file()
+    BotPreset.to_file()
+    DropTeam.to_file()
+    CharacterPreset.to_file()
+    League.to_file()
 
-Pilot.to_file()
-PilotType.to_file()
-PilotClass.to_file()
-PilotPersonality.to_file()
-PilotTalentType.to_file()
-PilotTalent.to_file()
+    Powerup.to_file()
 
-GameMode.to_file()
-BotNames.to_file()
-HonorReward.to_file()
+    Localization.to_file()
+    Image.to_file()
 
-BotPreset.to_file()
-DropTeam.to_file()
-CharacterPreset.to_file()
-League.to_file()
-
-Powerup.to_file()
-
-Localization.to_file()
-Image.to_file()
+if __name__ == "__main__":
+    OPTIONS = init_options()
+    main()

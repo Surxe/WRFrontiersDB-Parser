@@ -21,20 +21,20 @@ class TestAssetPathToFilePath(unittest.TestCase):
     """Test cases for the asset_path_to_file_path function."""
     
     def setUp(self):
-        """Set up test fixtures with mock PARAMS."""
-        # Mock the PARAMS object that the function depends on
-        self.mock_params = Mock()
-        self.mock_params.game_name = "DungeonCrawler"
-        self.mock_params.export_path = "F:\\TestExports"
+        """Set up test fixtures with mock OPTIONS."""
+        # Mock the OPTIONS object that the function depends on
+        self.mock_options = Mock()
+        self.mock_options.game_name = "DungeonCrawler"
+        self.mock_options.export_dir = "F:\\TestExports"
         
-        # Set the PARAMS in the utils module directly
-        src_utils.PARAMS = self.mock_params
+        # Set the OPTIONS in the utils module directly
+        src_utils.OPTIONS = self.mock_options
     
     def tearDown(self):
         """Clean up after tests."""
-        # Clean up the PARAMS if it exists
-        if hasattr(src_utils, 'PARAMS'):
-            delattr(src_utils, 'PARAMS')
+        # Clean up the OPTIONS if it exists
+        if hasattr(src_utils, 'OPTIONS'):
+            delattr(src_utils, 'OPTIONS')
     
     def test_game_path_conversion(self):
         """Test conversion of /Game/ paths to file paths."""
@@ -93,17 +93,17 @@ class TestAssetPathToFilePath(unittest.TestCase):
     def test_different_game_names(self):
         """Test with different game names."""
         # Change game name
-        self.mock_params.game_name = "TestGame"
+        self.mock_options.game_name = "TestGame"
         
         asset_path = "/Game/TestContent/Data/Item.0"
         expected = normalize_path("F:\\TestExports\\TestGame\\Content\\TestContent\\Data\\Item.json")
         result = asset_path_to_file_path(asset_path)
         self.assertEqual(result, expected)
     
-    def test_different_export_paths(self):
+    def test_different_export_dirs(self):
         """Test with different export paths."""
         # Change export path
-        self.mock_params.export_path = "C:\\GameExports"
+        self.mock_options.export_dir = "C:\\GameExports"
         
         asset_path = "/Game/Data/Test.0"
         expected = normalize_path("C:\\GameExports\\DungeonCrawler\\Content\\Data\\Test.json")
@@ -113,7 +113,7 @@ class TestAssetPathToFilePath(unittest.TestCase):
     def test_path_normalization(self):
         """Test that paths are properly normalized."""
         # Test with forward slashes in export path
-        self.mock_params.export_path = "F:/TestExports"
+        self.mock_options.export_dir = "F:/TestExports"
         
         asset_path = "/Game/Data/Test.0"
         result = asset_path_to_file_path(asset_path)

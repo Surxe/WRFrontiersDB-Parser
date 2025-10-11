@@ -2,105 +2,15 @@ from dotenv import load_dotenv
 
 import os
 import json
-import re
-import sys
-import subprocess
 import os
 from loguru import logger
 import shutil
+import re
 load_dotenv()
+from options import init_options
 
-###############################
-#           Params            #
-###############################
-
-class Params:
-    """
-    A class to hold parameters for the application.
-    """
-    def __init__(self, export_path=None, output_path=None, game_name=None, log_level=None,):
-        # Use provided args if not None, else fallback to environment
-        raw_export_path = export_path if export_path is not None else os.getenv('EXPORTS_PATH')
-        self.export_path = normalize_path(raw_export_path) if raw_export_path else None
-        self.output_path = output_path if output_path is not None else os.getenv('OUTPUT_PATH', None)
-        self.game_name = game_name if game_name is not None else os.getenv('GAME_NAME')
-        self.log_level = (log_level if log_level is not None else os.getenv('LOG_LEVEL', 'DEBUG')).upper()
-
-        # Setup loguru logging to /logs dir
-        logs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'logs')
-        os.makedirs(logs_dir, exist_ok=True)
-        if self.export_path:
-            log_filename = self.export_path.replace('\\', '/').rstrip('/').split('/')[-1] + '.log'
-            # i.e. F:/WRF/2025-08-12/<exports> to 2025-08-12.log
-        else:
-            log_filename = 'default.log'
-        log_path = os.path.join(logs_dir, log_filename)
-        logger.remove()
-        
-        # Clear the log file before adding the handler
-        with open(log_path, 'w') as f:
-            pass
-        logger.add(log_path, level=self.log_level, rotation="10 MB", retention="10 days", enqueue=True)
-        logger.add(sys.stdout, level=self.log_level)
-        
-        self.validate()
-        self.log()
-
-    def validate(self):
-        """
-        Validates the parameters.
-        """
-        if not self.export_path:
-            raise ValueError("EXPORTS_PATH environment variable is not set.")
-        if not os.path.exists(self.export_path):
-            raise ValueError(f"EXPORTS_PATH '{self.export_path}' does not exist.")
-        
-        # Create a default output path if not set
-        if self.output_path is None:
-            self.output_path = os.path.join(self.export_path, 'output')
-            os.makedirs(self.output_path, exist_ok=True)
-        if not os.path.exists(self.output_path):
-            raise ValueError(f"OUTPUT_PATH '{self.output_path}' does not exist.")
-
-        if not self.game_name:
-            raise ValueError("GAME_NAME environment variable is not set.")
-        
-        if self.log_level not in ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']:
-            raise ValueError(f"LOG_LEVEL {self.log_level} must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL.")
-
-    def log(self):
-        """
-        Logs the parameters.
-        """
-        logger.info(
-            f"Params initialized with:\n"
-            f"EXPORT_PATH: {self.export_path}\n"
-            f"OUTPUT_PATH: {self.output_path}\n"
-            f"GAME_NAME: {self.game_name}\n"
-            f"LOG_LEVEL: {self.log_level}\n"
-        )
-
-    def __str__(self):
-        return f"Params(export_path={self.export_path}, game_name={self.game_name}, log_level={self.log_level})"
-
-
-# Helper to initialize PARAMS with direct args if available
-def init_params(export_path=None, game_name=None, log_level=None, output_path=None):
-    global PARAMS
-    PARAMS = Params(export_path, game_name, log_level, output_path)
-    return PARAMS
-
-def is_truthy(string):
-    TRUE_THO = [
-        True,
-        'true',
-        'True',
-        'TRUE',
-        't',
-        'T',
-        1,
-    ]
-    return string in TRUE_THO
+# Initialize OPTIONS as None - will be set by init_params/init_options when called
+OPTIONS = None
 
 ###############################
 #             FILE            #
@@ -141,7 +51,11 @@ def normalize_path(path: str) -> str:
 
 # Converts "asset_path_name" or "ObjectPath" to the actual file path
 def asset_path_to_file_path(asset_path):
-    game_name = PARAMS.game_name
+    # Ensure OPTIONS is initialized
+    if OPTIONS is None:
+        raise ValueError("OPTIONS not initialized. Call init_options() first.")
+    
+    game_name = OPTIONS.game_name
     # ObjectPath (DT) are suffixed with .<assetName> like path/to//assetName.assetName, return 0 index
         # "DungeonCrawler/Content/DungeonCrawler/ActorStatus/Buff/AbyssalFlame/GE_AbyssalFlame.0" -> "F:\DarkAndDarkerWiki\Exports\DungeonCrawler\Content\DungeonCrawler\ActorStatus\Buff\AbyssalFlame\GE_AbyssalFlame.json"
     # asset_path_name (V2) are prefixed with \Game instead of \DungeonCrawler\Content, and suffixed with .<index>
@@ -158,9 +72,9 @@ def asset_path_to_file_path(asset_path):
     relative_path_parts = relative_path.split('/')
     
     # Normalize the export path first to ensure consistent separators
-    normalized_export_path = normalize_path(PARAMS.export_path)
+    normalized_export_dir = normalize_path(OPTIONS.export_dir)
     # Build the full file path using os.path.join for cross-platform compatibility
-    file_path = os.path.join(normalized_export_path, *relative_path_parts) + ".json"
+    file_path = os.path.join(normalized_export_dir, *relative_path_parts) + ".json"
     # Normalize the final path using our custom normalize_path function
     file_path = normalize_path(file_path)
     return file_path
