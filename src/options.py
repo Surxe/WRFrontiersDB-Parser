@@ -155,11 +155,21 @@ class Options:
                 for sub_option, sub_details in details["section_options"].items():
                     process_option(sub_option, sub_details)
 
-        # If none of the root options are in our options, default all to true for ease of use
-        if not any(root_option in options for root_option in self.root_options):
+        # If none of the root options have been explicitly set (from args or env), default all to true for ease of use
+        # Check if any root option was explicitly provided (not just defaulted from schema)
+        explicitly_set_root_options = []
+        for root_option in self.root_options:
+            attr_name = OPTIONS_SCHEMA[root_option]["arg"].lstrip('--').replace('-', '_')
+            # Check if it was in args or environment
+            if (attr_name in args_dict and args_dict[attr_name] is not None) or \
+               OPTIONS_SCHEMA[root_option]["env"] in os.environ:
+                explicitly_set_root_options.append(root_option)
+        
+        if not explicitly_set_root_options:
+            # No root options were explicitly set, default all to True
             for root_option in self.root_options:
                 options[root_option] = True
-            logger.debug("No root options are set to true, defaulting all to True")
+            logger.debug("No root options explicitly set, defaulting all to True")
 
         return options
     

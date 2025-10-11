@@ -1,4 +1,7 @@
 #!/bin/bash
+
+exit 1;
+# NEEDS TO BE REWRITTEN IN PYTHON
 set -e
 
 # This script handles git operations to push parsed data from output/ directory
