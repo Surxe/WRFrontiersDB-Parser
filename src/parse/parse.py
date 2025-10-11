@@ -4,6 +4,11 @@ import os
 # Add parent dirs to sys path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Add current parse directory to path so parsers can be imported
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.append(current_dir)
+
 from dotenv import load_dotenv
 from utils import clear_dir
 from options import init_options
