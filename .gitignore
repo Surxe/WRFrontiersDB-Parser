@@ -166,6 +166,7 @@ cython_debug/
 /output
 /logs
 WRFrontiersDB-Data
+build_scripts/
 
 # Personal
 notes.md
