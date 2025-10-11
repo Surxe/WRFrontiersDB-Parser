@@ -283,7 +283,7 @@ class TestMainFunction(unittest.TestCase):
             push_module.OPTIONS = mock_opts
             
             with self.assertRaises(ValueError) as context:
-                main()
+                main(mock_opts)
             
             self.assertIn("GH_DATA_REPO_PAT", str(context.exception))
 
@@ -306,7 +306,7 @@ class TestMainFunction(unittest.TestCase):
             push_module.OPTIONS = mock_opts
             
             with self.assertRaises(ValueError) as context:
-                main()
+                main(mock_opts)
             
             self.assertIn("GAME_VERSION", str(context.exception))
 
