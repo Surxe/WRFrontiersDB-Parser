@@ -15,6 +15,41 @@ python src/run.py --log-level INFO   # Run all steps with default/env values, ex
 ### Parameters
 
 <!-- BEGIN_GENERATED_OPTIONS -->
+#### Logging
+
+- **LOG_LEVEL** - Logging level. Must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL.
+  - Default: `"DEBUG"`
+  - Command line: `--log-level`
+
+
+#### Parse
+
+- **SHOULD_PARSE** - Whether to parse the game files after downloading.
+  - Default: `"true"`
+  - Command line: `--should-parse`
+
+* **GAME_NAME** - Name of the game to download.
+  - Default: `"WRFrontiers"`
+  - Command line: `--game-name`
+
+* **EXPORT_DIR** - Directory where the exported game JSON files are stored.
+  - Default: None - required if section enabled
+  - Command line: `--export-dir`
+
+* **OUTPUT_DIR** - Directory where the parser will output files.
+  - Default: None - required if section enabled
+  - Command line: `--output-dir`
+
+
+#### Push Data
+
+- **SHOULD_PUSH_DATA** - Whether to push parsed data to the data repository.
+  - Default: `"false"`
+  - Command line: `--should-push-data`
+
+* **GH_DATA_REPO_PAT** - PAT token to the GitHub repository that stores the data.
+  - Default: None - required if section enabled
+  - Command line: `--gh-data-repo-pat`
 
 
 <!-- END_GENERATED_OPTIONS -->
