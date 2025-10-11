@@ -43,10 +43,12 @@ class TestOptions(unittest.TestCase):
         self.temp_dir = tempfile.mkdtemp()
         self.export_dir = os.path.join(self.temp_dir, "export")
         self.output_dir = os.path.join(self.temp_dir, "output")
+        self.mapper_dir = os.path.join(self.temp_dir, "mapper")
         
         # Create required directories
         os.makedirs(self.export_dir)
         os.makedirs(self.output_dir)
+        os.makedirs(self.mapper_dir)
 
     def tearDown(self):
         """Clean up temporary directories."""
@@ -290,9 +292,7 @@ class TestOptions(unittest.TestCase):
         args = create_args(
             log_level="INFO",
             should_parse=False,
-            should_parse=False,
-            should_get_mapper=False,
-            should_batch_export=False
+            should_push_data=False
         )
         
         with patch.dict(os.environ, {}, clear=True):
@@ -301,9 +301,7 @@ class TestOptions(unittest.TestCase):
         # Verify the provided args are respected
         self.assertEqual(options.log_level, "INFO")
         self.assertFalse(options.should_parse)
-        self.assertFalse(options.should_parse)
-        self.assertFalse(options.should_get_mapper)
-        self.assertFalse(options.should_batch_export)
+        self.assertFalse(options.should_push_data)
 
     @patch.object(src_options, 'logger')
     @patch('builtins.print')
@@ -316,13 +314,8 @@ class TestOptions(unittest.TestCase):
             log_level="DEBUG",
             should_parse=True,
             game_name="test",
-            steam_password="test",
-            steam_game_download_dir=self.export_dir,
-            should_get_mapper=True,
-            dumper7_output_dir=self.dumper_dir,
-            output_mapper_file=os.path.join(self.mapper_dir, "test.usmap"),
-            should_batch_export=True,
-            output_data_dir=self.output_dir
+            export_dir=self.export_dir,
+            output_dir=self.output_dir
         )
         
         with patch.dict(os.environ, {}, clear=True):
@@ -344,13 +337,8 @@ class TestOptions(unittest.TestCase):
             log_level="DEBUG",
             should_parse=True,
             game_name="test",
-            steam_password="test",
-            steam_game_download_dir=self.export_dir,
-            should_get_mapper=True,
-            dumper7_output_dir=self.dumper_dir,
-            output_mapper_file=os.path.join(self.mapper_dir, "test.usmap"),
-            should_batch_export=True,
-            output_data_dir=self.output_dir
+            export_dir=self.export_dir,
+            output_dir=self.output_dir
         )
         
         with patch.dict(os.environ, {}, clear=True):
@@ -369,13 +357,8 @@ class TestOptions(unittest.TestCase):
             log_level="DEBUG",
             should_parse=True,
             game_name="test",
-            steam_password="test",
-            steam_game_download_dir=self.export_dir,
-            should_get_mapper=True,
-            dumper7_output_dir=self.dumper_dir,
-            output_mapper_file=os.path.join(self.mapper_dir, "test.usmap"),
-            should_batch_export=True,
-            output_data_dir=self.output_dir
+            export_dir=self.export_dir,
+            output_dir=self.output_dir
         )
         
         with patch.dict(os.environ, {}, clear=True):
@@ -395,13 +378,8 @@ class TestOptions(unittest.TestCase):
             log_level="INFO",
             should_parse=True,
             game_name="test",
-            steam_password="test",
-            steam_game_download_dir=self.export_dir,
-            should_get_mapper=True,
-            dumper7_output_dir=self.dumper_dir,
-            output_mapper_file=os.path.join(self.mapper_dir, "test.usmap"),
-            should_batch_export=True,
-            output_data_dir=self.output_dir
+            export_dir=self.export_dir,
+            output_dir=self.output_dir
         )
         
         with patch.dict(os.environ, {}, clear=True):
@@ -426,13 +404,8 @@ class TestOptions(unittest.TestCase):
             log_level="DEBUG",
             should_parse=True,
             game_name="testuser",
-            steam_password="secret_password",  # This should be hidden
-            steam_game_download_dir=self.export_dir,
-            should_get_mapper=True,
-            dumper7_output_dir=self.dumper_dir,
-            output_mapper_file=os.path.join(self.mapper_dir, "test.usmap"),
-            should_batch_export=True,
-            output_data_dir=self.output_dir
+            export_dir=self.export_dir,
+            output_dir=self.output_dir
         )
         
         with patch.dict(os.environ, {}, clear=True):
@@ -457,18 +430,16 @@ class TestOptions(unittest.TestCase):
         
         # Test with all should flags disabled to avoid validation errors
         env_vars = {
-            'MANIFEST_ID': '',  # Empty string should be converted appropriately  
+            'GAME_NAME': '',  # Empty string should be converted appropriately  
             'SHOULD_PARSE': 'False',
-            'SHOULD_PARSE': 'False',
-            'SHOULD_GET_MAPPER': 'False', 
-            'SHOULD_BATCH_EXPORT': 'False'
+            'SHOULD_PUSH_DATA': 'False'
         }
         
         with patch.dict(os.environ, env_vars, clear=True):
             options = Options()
         
-        # Empty strings should be preserved for string types
-        self.assertEqual(options.manifest_id, "")
+        # Empty strings should fallback to defaults for options with defaults
+        self.assertEqual(options.game_name, "WRFrontiers")
 
     @patch.object(src_options, 'logger')
     @patch('builtins.print')
@@ -477,10 +448,14 @@ class TestOptions(unittest.TestCase):
         mock_logger.add = Mock()
         mock_logger.remove = Mock()
         
-        # Create a minimal test case
+        # Create a minimal test case with should flags disabled to avoid validation errors
+        env_vars = {
+            'SHOULD_PARSE': 'False',
+            'SHOULD_PUSH_DATA': 'False'
+        }
         args = create_args(log_level="WARNING")
         
-        with patch.dict(os.environ, {}, clear=True):
+        with patch.dict(os.environ, env_vars, clear=True):
             options = Options(args)
         
         # Verify the method processed the schema correctly

@@ -8,7 +8,9 @@ import shutil
 import re
 load_dotenv()
 from options import init_options
-OPTIONS = init_options()
+
+# Initialize OPTIONS as None - will be set by init_params/init_options when called
+OPTIONS = None
 
 ###############################
 #             FILE            #
@@ -49,6 +51,10 @@ def normalize_path(path: str) -> str:
 
 # Converts "asset_path_name" or "ObjectPath" to the actual file path
 def asset_path_to_file_path(asset_path):
+    # Ensure OPTIONS is initialized
+    if OPTIONS is None:
+        raise ValueError("OPTIONS not initialized. Call init_options() first.")
+    
     game_name = OPTIONS.game_name
     # ObjectPath (DT) are suffixed with .<assetName> like path/to//assetName.assetName, return 0 index
         # "DungeonCrawler/Content/DungeonCrawler/ActorStatus/Buff/AbyssalFlame/GE_AbyssalFlame.0" -> "F:\DarkAndDarkerWiki\Exports\DungeonCrawler\Content\DungeonCrawler\ActorStatus\Buff\AbyssalFlame\GE_AbyssalFlame.json"
