@@ -12,7 +12,7 @@ from typing import Literal
 * **sensitive** - Boolean flag for password masking
 
 # Patterns
-* **should_** - Main action flags (e.g., `should_download_steam_game`)
+* **should_** - Main action flags (e.g., `should_parse`)
 """
 
 OPTIONS_SCHEMA = {

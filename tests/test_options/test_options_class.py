@@ -290,7 +290,7 @@ class TestOptions(unittest.TestCase):
         args = create_args(
             log_level="INFO",
             should_parse=False,
-            should_download_steam_game=False,
+            should_parse=False,
             should_get_mapper=False,
             should_batch_export=False
         )
@@ -301,7 +301,7 @@ class TestOptions(unittest.TestCase):
         # Verify the provided args are respected
         self.assertEqual(options.log_level, "INFO")
         self.assertFalse(options.should_parse)
-        self.assertFalse(options.should_download_steam_game)
+        self.assertFalse(options.should_parse)
         self.assertFalse(options.should_get_mapper)
         self.assertFalse(options.should_batch_export)
 
@@ -314,7 +314,7 @@ class TestOptions(unittest.TestCase):
         
         args = create_args(
             log_level="DEBUG",
-            should_download_steam_game=True,
+            should_parse=True,
             game_name="test",
             steam_password="test",
             steam_game_download_dir=self.export_dir,
@@ -330,7 +330,7 @@ class TestOptions(unittest.TestCase):
         
         # Test that schema keys (UPPER_CASE) become lowercase attributes
         self.assertTrue(hasattr(options, 'log_level'))  # LOG_LEVEL -> log_level
-        self.assertTrue(hasattr(options, 'should_download_steam_game'))  # SHOULD_DOWNLOAD_STEAM_GAME -> should_download_steam_game
+        self.assertTrue(hasattr(options, 'should_parse'))  # SHOULD_PARSE -> should_parse
         self.assertTrue(hasattr(options, 'game_name'))  # GAME_NAME -> game_name
 
     @patch.object(src_options, 'logger')
@@ -342,7 +342,7 @@ class TestOptions(unittest.TestCase):
         
         args = create_args(
             log_level="DEBUG",
-            should_download_steam_game=True,
+            should_parse=True,
             game_name="test",
             steam_password="test",
             steam_game_download_dir=self.export_dir,
@@ -367,7 +367,7 @@ class TestOptions(unittest.TestCase):
         
         args = create_args(
             log_level="DEBUG",
-            should_download_steam_game=True,
+            should_parse=True,
             game_name="test",
             steam_password="test",
             steam_game_download_dir=self.export_dir,
@@ -393,7 +393,7 @@ class TestOptions(unittest.TestCase):
         
         args = create_args(
             log_level="INFO",
-            should_download_steam_game=True,
+            should_parse=True,
             game_name="test",
             steam_password="test",
             steam_game_download_dir=self.export_dir,
@@ -424,7 +424,7 @@ class TestOptions(unittest.TestCase):
         
         args = create_args(
             log_level="DEBUG",
-            should_download_steam_game=True,
+            should_parse=True,
             game_name="testuser",
             steam_password="secret_password",  # This should be hidden
             steam_game_download_dir=self.export_dir,
@@ -459,7 +459,7 @@ class TestOptions(unittest.TestCase):
         env_vars = {
             'MANIFEST_ID': '',  # Empty string should be converted appropriately  
             'SHOULD_PARSE': 'False',
-            'SHOULD_DOWNLOAD_STEAM_GAME': 'False',
+            'SHOULD_PARSE': 'False',
             'SHOULD_GET_MAPPER': 'False', 
             'SHOULD_BATCH_EXPORT': 'False'
         }
