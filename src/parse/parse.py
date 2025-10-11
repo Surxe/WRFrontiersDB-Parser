@@ -4,45 +4,33 @@ import os
 # Add parent dirs to sys path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Parse game data and export to summarized JSON files.
-#
-# Usage:
-#   python src/parse.py [--EXPORTS_PATH path] [--GAME_NAME name] [--LOG_LEVEL level] [--OUTPUT_PATH path]
-# Command-line arguments override .env settings using the same name.
-#
-# Parameters:
-#   --EXPORTS_PATH  (required) Path to the directory containing game export data
-#   --GAME_NAME     (required) Name of the game to parse
-#   --LOG_LEVEL     (optional) Logging verbosity: DEBUG, INFO, or silent (default: DEBUG)
-#   --OUTPUT_PATH   (optional) Path to the directory where output files will be saved (TODO, requires /output subdir)
-#
-# Examples:
-#   python src/parse.py --EXPORTS_PATH "/path/to/exports" --GAME_NAME "MyGame"
-#   python src/parse.py --EXPORTS_PATH "/path/to/exports" --GAME_NAME "MyGame" --LOG_LEVEL "INFO" --OUTPUT_PATH "/path/to/output"
-
 import argparse
 from dotenv import load_dotenv
+from options import init_options, ArgumentWriter
 
 # Parse command-line arguments for Params fields
-parser = argparse.ArgumentParser(description="Run WRFrontiersDB Parser with optional overrides.")
-parser.add_argument('--EXPORTS_PATH', type=str, help='Override EXPORTS_PATH')
-parser.add_argument('--GAME_NAME', type=str, help='Override GAME_NAME')
-parser.add_argument('--LOG_LEVEL', type=str, help='Override LOG_LEVEL')
-parser.add_argument('--OUTPUT_PATH', type=str, help='Override OUTPUT_PATH')
+parser = argparse.ArgumentParser(
+        description="WRFrontiers-Parser - Complete game asset parser pipeline",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+For detailed documentation including all command line arguments, configuration options,
+and troubleshooting information, please see the README.md file.
+
+Quick Examples:
+  python run.py
+        """
+    )
+argument_writer = ArgumentWriter()
+argument_writer.add_arguments(parser)
 args = parser.parse_args()
 
 # Force reload .env file, overriding any existing environment variables
 load_dotenv(override=True)
 
-from utils import clear_dir, init_options
+from utils import clear_dir
 
 # Initialize options with command-line args
-options = init_options(
-    export_path=args.EXPORTS_PATH,
-    game_name=args.GAME_NAME,
-    log_level=args.LOG_LEVEL,
-    output_path=args.OUTPUT_PATH
-)
+options = init_options(args)
 
 from parsers.module import *
 from parsers.localization import *

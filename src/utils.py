@@ -2,8 +2,6 @@ from dotenv import load_dotenv
 
 import os
 import json
-import re
-import sys
 import os
 from loguru import logger
 import shutil
