@@ -73,6 +73,13 @@ OPTIONS_SCHEMA = {
                 "default": None,
                 "help": "Version of the game being processed, as its release date yyyy-mm-dd.",
             },
+            "TARGET_BRANCH": {
+                "env": "TARGET_BRANCH",
+                "arg": "--target-branch",
+                "type": str,
+                "default": "testing-grounds",
+                "help": "Target branch to push data to in the data repository.",
+            },
             "GH_DATA_REPO_PAT": {
                 "env": "GH_DATA_REPO_PAT",
                 "arg": "--gh-data-repo-pat",
