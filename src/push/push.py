@@ -51,6 +51,8 @@ def run_git_command(cmd, cwd=None, capture_output=True, check=True, log_output=F
             env=env,
             capture_output=capture_output,
             text=True,
+            encoding='utf-8',
+            errors='ignore',  # Ignore problematic unicode characters instead of failing
             check=check
         )
         
@@ -60,6 +62,10 @@ def run_git_command(cmd, cwd=None, capture_output=True, check=True, log_output=F
         return result
         
     except subprocess.CalledProcessError as e:
+        # If ''nothing to commit' is in the error, make it a warning instead of error
+        if "nothing to commit" in e.stdout:
+            logger.warning("No changes to commit.")
+            return e  # Return the exception object for further handling if needed
         logger.error(f"Git command failed: {' '.join(cmd)}")
         if e.stdout:
             logger.error(f"STDOUT: {e.stdout}")
@@ -223,10 +229,17 @@ def update_current_data(repo_dir, output_dir, new_game_version, latest_commit):
     commit_message = f"Update current data to version:{new_game_version} from latest Parser commit:{latest_commit}"
     
     run_git_command(['git', 'add', '.'], cwd=repo_dir, log_output=False)
-    run_git_command(['git', 'commit', '-m', commit_message], cwd=repo_dir, 
-                   log_output=True)
     
-    logger.info(f"Updated current data to version {new_game_version} and committed changes.")
+    # Try to commit, but don't fail if there's nothing to commit
+    try:
+        run_git_command(['git', 'commit', '-m', commit_message], cwd=repo_dir, 
+                       log_output=True)
+        logger.info(f"Updated current data to version {new_game_version} and committed changes.")
+    except subprocess.CalledProcessError as e:
+        if "nothing to commit" in e.stdout:
+            logger.info(f"No changes detected - current data is already version {new_game_version}.")
+        else:
+            raise  # Re-raise if it's a different error
 
 
 def archive_old_data(repo_dir, game_version_to_archive, new_game_version):
@@ -312,7 +325,7 @@ def archive_old_data(repo_dir, game_version_to_archive, new_game_version):
                             run_git_command(['git', 'commit', '-m', commit_message], cwd=repo_dir,
                                            log_output=True)
                             
-                            logger.info(f"✅ Archived version {game_version_to_archive} and committed changes.")
+                            logger.info(f"Archived version {game_version_to_archive} and committed changes.")
                         else:
                             logger.debug("No files were successfully archived.")
                     else:
