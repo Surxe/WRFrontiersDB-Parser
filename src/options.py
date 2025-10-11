@@ -8,8 +8,6 @@ from pathlib import Path
 from loguru import logger
 load_dotenv()
 
-from utils import is_truthy
-
 """
 Central configuration schema to provide a single source of truth for all documentation and functionality of options/args
 """
@@ -167,7 +165,7 @@ class Options:
     
     def validate(self) -> None:
         # If a root option is true, ensure its sub-options are provided (meaning not defaulted to None)
-        options_as_dict = {k.upper(): v for k, v in self.__dict__.items() if k is not 'root_options'}
+        options_as_dict = {k.upper(): v for k, v in self.__dict__.items() if k != 'root_options'}
         for root_option in self.root_options:
             missing_options = []
             if options_as_dict.get(root_option) is True:
@@ -215,3 +213,15 @@ def init_options(args: Namespace | None = None):
     global OPTIONS
     OPTIONS = Options(args)
     return OPTIONS
+
+def is_truthy(string):
+    TRUE_THO = [
+        True,
+        'true',
+        'True',
+        'TRUE',
+        't',
+        'T',
+        1,
+    ]
+    return string in TRUE_THO

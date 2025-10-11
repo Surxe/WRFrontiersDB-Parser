@@ -29,7 +29,7 @@ OPTIONS_SCHEMA = {
         "env": "SHOULD_PARSE",
         "arg": "--should-parse",
         "type": bool,
-        "default": True,
+        "default": False,
         "help": "Whether to parse the game files after downloading.",
         "section": "Parse",
         "section_options": {
