@@ -2,6 +2,11 @@ import unittest
 import sys
 import os
 
+# Set required environment variables before importing utils to prevent OPTIONS validation errors
+os.environ['SHOULD_PARSE'] = 'false'  # Disable parsing to avoid requiring EXPORT_DIR and OUTPUT_DIR
+os.environ.setdefault('EXPORT_DIR', '/tmp/test_export')  # Fallback if SHOULD_PARSE somehow becomes true
+os.environ.setdefault('OUTPUT_DIR', '/tmp/test_output')  # Fallback if SHOULD_PARSE somewhere becomes true
+
 # Add the src directory to the Python path to import utils
 src_path = os.path.join(os.path.dirname(__file__), '..', '..', 'src')
 sys.path.insert(0, src_path)

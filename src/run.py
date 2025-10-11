@@ -7,7 +7,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import argparse
 from options import init_options, ArgumentWriter
 from parse.parse import main as parse_main
-#from push.push import main as push_main
+from push.push import main as push_main
 
 # Parse command-line arguments for Params fields
 parser = argparse.ArgumentParser(
@@ -28,7 +28,6 @@ args = parser.parse_args()
 OPTIONS = init_options(args)
 
 if OPTIONS.should_parse:
-    parse_main()
+    parse_main(OPTIONS)
 if OPTIONS.should_push_data:
-    pass
-    #push_main()
+    push_main(OPTIONS)

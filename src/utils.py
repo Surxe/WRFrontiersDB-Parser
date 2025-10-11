@@ -9,8 +9,8 @@ import re
 load_dotenv()
 from options import init_options
 
-# Initialize OPTIONS as None - will be set by init_params/init_options when called
-OPTIONS = None
+OPTIONS = init_options()  # Initialize OPTIONS here to ensure it's available for functions below
+# will be overridden by init_options from run.py if the args are used in addition to just env params
 
 ###############################
 #             FILE            #
