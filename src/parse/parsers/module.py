@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import logger, path_to_id, get_json_data, asset_path_to_data, parse_colon_colon, PARAMS
+from utils import logger, path_to_id, get_json_data, asset_path_to_data, parse_colon_colon, OPTIONS
 from parsers.localization_table import parse_localization
 
 from parsers.object import Object
@@ -108,7 +108,7 @@ class Module(Object):
         if "LevelsData" not in data["Properties"]:
             return
         
-        def _p_parameter(data, parmeter_order):
+        def _p_parameter(data, parameter_order):
             """
             data may contain 
             {
@@ -117,8 +117,8 @@ class Module(Object):
             }
             parameter_order = "Primary" or "Secondary"
             """
-            default_x_parameter = f"Default{parmeter_order}Parameter"
-            x_stat_meta_information = f"{parmeter_order}StatMetaInformation"
+            default_x_parameter = f"Default{parameter_order}Parameter"
+            x_stat_meta_information = f"{parameter_order}StatMetaInformation"
             if x_stat_meta_information in data:
                 asset_path = data[x_stat_meta_information]["ObjectPath"]
                 stat_id = ModuleStat.get_from_asset_path(asset_path)
@@ -318,7 +318,7 @@ class Module(Object):
     
 
 def parse_modules(to_file=False):
-    modules_source_path = os.path.join(PARAMS.export_path, r"WRFrontiers\Content\Sparrow\Mechanics\Meta\Entities\Modules")
+    modules_source_path = os.path.join(OPTIONS.export_path, r"WRFrontiers\Content\Sparrow\Mechanics\Meta\Entities\Modules")
     for file in os.listdir(modules_source_path):
         if file.endswith(".json"):
             full_path = os.path.join(modules_source_path, file)

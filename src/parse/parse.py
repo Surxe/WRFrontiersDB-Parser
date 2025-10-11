@@ -34,10 +34,10 @@ args = parser.parse_args()
 # Force reload .env file, overriding any existing environment variables
 load_dotenv(override=True)
 
-from utils import clear_dir, init_params
+from utils import clear_dir, init_options
 
-# Initialize parameters with command-line args
-params = init_params(
+# Initialize options with command-line args
+options = init_options(
     export_path=args.EXPORTS_PATH,
     game_name=args.GAME_NAME,
     log_level=args.LOG_LEVEL,

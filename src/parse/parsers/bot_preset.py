@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import logger, get_json_data, PARAMS
+from utils import logger, get_json_data, OPTIONS
 
 from parsers.object import Object
 from parsers.drop_team import DropTeam
@@ -33,7 +33,7 @@ class BotPreset(Object):
         return ids
 
 def parse_bot_presets(to_file=False):
-    root_path = os.path.join(PARAMS.export_path, r"WRFrontiers\Content\Sparrow\Mechanics\DA_Meta_Root.json")
+    root_path = os.path.join(OPTIONS.export_path, r"WRFrontiers\Content\Sparrow\Mechanics\DA_Meta_Root.json")
     root_data = get_json_data(root_path)
     props = root_data[0]["Properties"]
 

@@ -55,7 +55,7 @@ fi
 # === CONFIGURATION ===
 DATA_REPO_URL="https://${GH_DATA_REPO_PAT}@github.com/Surxe/WRFrontiersDB-Data.git"
 DATA_REPO_DIR="WRFrontiersDB-Data"
-OUTPUT_DIR="output"    # this should match PARAMS.output_path
+OUTPUT_DIR="output"    # this should match OPTIONS.output_path
 
 if [ -z "$TARGET_BRANCH" ]; then
     TARGET_BRANCH="testing-grounds"

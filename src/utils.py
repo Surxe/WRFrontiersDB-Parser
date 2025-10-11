@@ -50,7 +50,7 @@ def normalize_path(path: str) -> str:
 
 # Converts "asset_path_name" or "ObjectPath" to the actual file path
 def asset_path_to_file_path(asset_path):
-    game_name = PARAMS.game_name
+    game_name = OPTIONS.game_name
     # ObjectPath (DT) are suffixed with .<assetName> like path/to//assetName.assetName, return 0 index
         # "DungeonCrawler/Content/DungeonCrawler/ActorStatus/Buff/AbyssalFlame/GE_AbyssalFlame.0" -> "F:\DarkAndDarkerWiki\Exports\DungeonCrawler\Content\DungeonCrawler\ActorStatus\Buff\AbyssalFlame\GE_AbyssalFlame.json"
     # asset_path_name (V2) are prefixed with \Game instead of \DungeonCrawler\Content, and suffixed with .<index>
@@ -67,7 +67,7 @@ def asset_path_to_file_path(asset_path):
     relative_path_parts = relative_path.split('/')
     
     # Normalize the export path first to ensure consistent separators
-    normalized_export_path = normalize_path(PARAMS.export_path)
+    normalized_export_path = normalize_path(OPTIONS.export_path)
     # Build the full file path using os.path.join for cross-platform compatibility
     file_path = os.path.join(normalized_export_path, *relative_path_parts) + ".json"
     # Normalize the final path using our custom normalize_path function

@@ -106,7 +106,7 @@ class Options:
         self.log()
 
     def _process_schema(self, schema: dict, args_dict: dict) -> dict:
-        """Process the option schema, env params, and args to get the combined options."""
+        """Process the option schema, env options, and args to get the combined options."""
 
         # Combine args and options
         options = {}

@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import PARAMS, path_to_id, asset_path_to_file_path_and_index, get_json_data, logger, merge_dicts, asset_path_to_data, process_key_to_parser_function
+from utils import OPTIONS, path_to_id, asset_path_to_file_path_and_index, get_json_data, logger, merge_dicts, asset_path_to_data, process_key_to_parser_function
 
 import json
 
@@ -118,6 +118,6 @@ class Object: #generic object that all classes extend
     
     @classmethod
     def to_file(cls):
-        file_path = os.path.join(PARAMS.output_path, f'{cls.__name__}.json')
+        file_path = os.path.join(OPTIONS.output_path, f'{cls.__name__}.json')
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(cls.to_json())

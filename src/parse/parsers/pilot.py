@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import logger, path_to_id, get_json_data, asset_path_to_data, PARAMS
+from utils import logger, path_to_id, get_json_data, asset_path_to_data, OPTIONS
 from parsers.localization_table import parse_localization
 
 from parsers.object import Object
@@ -109,7 +109,7 @@ def parse_pilot_wrapper(dir, file_name):
     return pilot
 
 def parse_pilots(to_file=False):
-    pilots_source_path = os.path.join(PARAMS.export_path, r"WRFrontiers\Content\Sparrow\Pilots\PilotsDataAssets")
+    pilots_source_path = os.path.join(OPTIONS.export_path, r"WRFrontiers\Content\Sparrow\Pilots\PilotsDataAssets")
     
     # Hero pilots are in this dir directly
     for file in os.listdir(pilots_source_path):

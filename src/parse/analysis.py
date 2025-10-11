@@ -5,7 +5,7 @@ import json
 # Add parent dirs to sys path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import PARAMS, sort_dict, logger
+from utils import OPTIONS, sort_dict, logger
 
 class Analysis:
     def __init__(self, module_class, module_stat_class, upgrade_cost_class):
@@ -181,7 +181,7 @@ class Analysis:
 
     def to_file(self):
         """Write analysis data to output file."""
-        file_path = os.path.join(PARAMS.output_path, f'{self.__class__.__name__}.json')
+        file_path = os.path.join(OPTIONS.output_path, f'{self.__class__.__name__}.json')
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(self.to_json())
 
