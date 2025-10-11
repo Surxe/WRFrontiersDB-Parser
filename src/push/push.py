@@ -10,7 +10,7 @@ from pathlib import Path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from dotenv import load_dotenv
-from options import init_options
+from options import init_options, Options
 from loguru import logger
 
 # Force reload .env file, overriding any existing environment variables
@@ -356,7 +356,7 @@ def push_changes(repo_dir, target_branch):
     logger.info(f"All changes committed and pushed successfully to branch '{target_branch}'.")
 
 
-def main():
+def main(OPTIONS: Options):
     """Main function that orchestrates the data pushing process."""
     # Validate required options
     if not OPTIONS.game_version:
@@ -415,5 +415,4 @@ def main():
 
 
 if __name__ == "__main__":
-    OPTIONS = init_options()
-    main()
+    main(init_options())
