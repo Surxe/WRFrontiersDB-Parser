@@ -66,6 +66,13 @@ OPTIONS_SCHEMA = {
         "help": "Whether to push parsed data to the data repository.",
         "section": "Push Data",
         "section_options": {
+            "GAME_VERSION": {
+                "env": "GAME_VERSION",
+                "arg": "--game-version",
+                "type": str,
+                "default": None,
+                "help": "Version of the game being processed, as its release date yyyy-mm-dd.",
+            },
             "GH_DATA_REPO_PAT": {
                 "env": "GH_DATA_REPO_PAT",
                 "arg": "--gh-data-repo-pat",

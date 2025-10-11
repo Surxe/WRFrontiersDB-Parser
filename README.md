@@ -25,7 +25,7 @@ python src/run.py --log-level INFO   # Run all steps with default/env values, ex
 #### Parse
 
 - **SHOULD_PARSE** - Whether to parse the game files after downloading.
-  - Default: `"true"`
+  - Default: `"false"`
   - Command line: `--should-parse`
 
 * **GAME_NAME** - Name of the game to download.
@@ -46,6 +46,10 @@ python src/run.py --log-level INFO   # Run all steps with default/env values, ex
 - **SHOULD_PUSH_DATA** - Whether to push parsed data to the data repository.
   - Default: `"false"`
   - Command line: `--should-push-data`
+
+* **GAME_VERSION** - Version of the game being processed, as its release date yyyy-mm-dd.
+  - Default: None - required if section enabled
+  - Command line: `--game-version`
 
 * **GH_DATA_REPO_PAT** - PAT token to the GitHub repository that stores the data.
   - Default: None - required if section enabled
