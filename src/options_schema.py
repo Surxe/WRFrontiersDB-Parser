@@ -73,6 +73,13 @@ OPTIONS_SCHEMA = {
                 "default": None,
                 "help": "Version of the game being processed, as its release date yyyy-mm-dd.",
             },
+            "IS_CURRENT": {
+                "env": "IS_CURRENT",
+                "arg": "--is-current",
+                "type": bool,
+                "default": False,
+                "help": "Whether to also push data to the 'current' directory (in addition to archive).",
+            },
             "TARGET_BRANCH": {
                 "env": "TARGET_BRANCH",
                 "arg": "--target-branch",
