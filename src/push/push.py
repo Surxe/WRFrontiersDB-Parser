@@ -181,7 +181,7 @@ def get_current_version(repo_dir):
         return None
 
 
-def update_current_data(repo_dir, output_dir, new_game_version, latest_commit):
+def update_current_data(repo_dir, output_dir, new_game_version, current_version, latest_commit):
     """
     Update the current data with new parsed output.
     
@@ -189,6 +189,7 @@ def update_current_data(repo_dir, output_dir, new_game_version, latest_commit):
         repo_dir: Path to the data repository directory
         output_dir: Path to the output directory with new data
         new_game_version: Version string for the new data
+        current_version: Current version string for the commit message
         latest_commit: Latest commit info for commit message
     """
     current_path = os.path.join(repo_dir, 'current')
@@ -226,13 +227,14 @@ def update_current_data(repo_dir, output_dir, new_game_version, latest_commit):
         f.write(new_game_version)
     
     # Commit the changes
-    commit_message = f"Update current data to version:{new_game_version} from latest Parser commit:{latest_commit}"
+    commit_title = f"Current from '{current_version}' to '{new_game_version}'"
+    commit_description = f"Parser commit: '{latest_commit}'"
     
     run_git_command(['git', 'add', '.'], cwd=repo_dir, log_output=False)
     
     # Try to commit, but don't fail if there's nothing to commit
     try:
-        run_git_command(['git', 'commit', '-m', commit_message], cwd=repo_dir, 
+        run_git_command(['git', 'commit', '-m', commit_title, '-m', commit_description], cwd=repo_dir,
                        log_output=True)
         logger.info(f"Updated current data to version {new_game_version} and committed changes.")
     except subprocess.CalledProcessError as e:
@@ -319,7 +321,7 @@ def archive_old_data(repo_dir, game_version_to_archive, new_game_version):
                         # Check if we successfully archived any files
                         if os.listdir(archive_path):
                             # Commit the archival changes
-                            commit_message = f"Archive version:{game_version_to_archive} data"
+                            commit_message = f"Archive version:'{game_version_to_archive}'"
                             
                             run_git_command(['git', 'add', '.'], cwd=repo_dir, log_output=False)
                             run_git_command(['git', 'commit', '-m', commit_message], cwd=repo_dir,
@@ -396,7 +398,7 @@ def main(OPTIONS: Options):
         current_version = get_current_version(data_repo_dir)
         
         # Update current data with new output
-        update_current_data(data_repo_dir, output_dir, OPTIONS.game_version, latest_commit)
+        update_current_data(data_repo_dir, output_dir, OPTIONS.game_version, current_version, latest_commit)
         
         # Archive old data if version changed
         archive_old_data(data_repo_dir, current_version, OPTIONS.game_version)
