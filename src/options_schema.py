@@ -73,9 +73,9 @@ OPTIONS_SCHEMA = {
                 "default": None,
                 "help": "Version of the game being processed, as its release date yyyy-mm-dd.",
             },
-            "IS_CURRENT": {
-                "env": "IS_CURRENT",
-                "arg": "--is-current",
+            "CURRENT_IS_LATEST": {
+                "env": "CURRENT_IS_LATEST",
+                "arg": "--current-is-latest",
                 "type": bool,
                 "default": False,
                 "help": "Whether to also push data to the 'current' directory (in addition to archive).",

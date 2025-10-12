@@ -334,7 +334,7 @@ def main(OPTIONS: Options):
         upload_to_archive(data_repo_dir, output_dir, OPTIONS.game_version, latest_commit)
         
         # Only update current if IS_CURRENT is true
-        if OPTIONS.is_current:
+        if OPTIONS.current_is_latest:
             logger.info("IS_CURRENT is true, updating current directory...")
             update_current_data(data_repo_dir, output_dir, OPTIONS.game_version, latest_commit)
         else:
