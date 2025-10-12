@@ -199,7 +199,7 @@ def upload_to_archive(repo_dir, output_dir, game_version, latest_commit):
         f.write(game_version)
     
     # Commit the changes
-    commit_title = f"Add archive version '{game_version}'"
+    commit_title = f"Add/update archive version '{game_version}'"
     commit_description = f"Parser commit: '{latest_commit}'"
     
     run_git_command(['git', 'add', '.'], cwd=repo_dir, log_output=False)
@@ -211,7 +211,7 @@ def upload_to_archive(repo_dir, output_dir, game_version, latest_commit):
         logger.info(f"Uploaded archive data for version {game_version} and committed changes.")
     except subprocess.CalledProcessError as e:
         if "nothing to commit" in e.stdout:
-            logger.info(f"No changes detected - archive data is already version {game_version}.")
+            logger.info(f"No changes detected for archive version {game_version}.")
         else:
             raise  # Re-raise if it's a different error
 
@@ -273,7 +273,7 @@ def update_current_data(repo_dir, output_dir, game_version, latest_commit):
         logger.info(f"Updated current data to version {game_version} and committed changes.")
     except subprocess.CalledProcessError as e:
         if "nothing to commit" in e.stdout:
-            logger.info(f"No changes detected - current data is already version {game_version}.")
+            logger.info(f"No changes detected for current version {game_version}.")
         else:
             raise  # Re-raise if it's a different error
 
