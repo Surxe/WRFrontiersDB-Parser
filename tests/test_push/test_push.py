@@ -18,8 +18,8 @@ sys.path.insert(0, src_path)
 try:
     from push.push import (
         remove_readonly, run_git_command, clone_data_repo, configure_git_repo,
-        switch_to_target_branch, get_latest_commit_info, get_current_version,
-        update_current_data, archive_old_data, push_changes, main
+        switch_to_target_branch, get_latest_commit_info, upload_to_archive,
+        update_current_data, push_changes, main
     )
 except ImportError:
     # Fallback to dynamic loading if direct import fails
@@ -35,9 +35,8 @@ except ImportError:
     configure_git_repo = push_module.configure_git_repo
     switch_to_target_branch = push_module.switch_to_target_branch
     get_latest_commit_info = push_module.get_latest_commit_info
-    get_current_version = push_module.get_current_version
+    upload_to_archive = push_module.upload_to_archive
     update_current_data = push_module.update_current_data
-    archive_old_data = push_module.archive_old_data
     push_changes = push_module.push_changes
     main = push_module.main
 
@@ -179,7 +178,7 @@ class TestCloneDataRepo(unittest.TestCase):
         """Test cloning to a new directory."""
         mock_exists.return_value = False
         
-        clone_data_repo(self.temp_dir, "fake_token")
+        clone_data_repo("https://github.com/fake/repo.git", self.temp_dir)
         
         # Should not attempt to remove directory if it doesn't exist
         mock_rmtree.assert_not_called()
@@ -196,43 +195,13 @@ class TestCloneDataRepo(unittest.TestCase):
         """Test cloning when directory already exists."""
         mock_exists.return_value = True
         
-        clone_data_repo(self.temp_dir, "fake_token")
+        clone_data_repo("https://github.com/fake/repo.git", self.temp_dir)
         
         # Should remove existing directory
         mock_rmtree.assert_called_once()
         
         # Should call git clone
         mock_git_command.assert_called_once()
-
-
-class TestGetCurrentVersion(unittest.TestCase):
-    """Test cases for get_current_version function."""
-
-    def setUp(self):
-        """Set up test fixtures."""
-        self.temp_dir = tempfile.mkdtemp()
-        
-    def tearDown(self):
-        """Clean up test fixtures."""
-        shutil.rmtree(self.temp_dir, ignore_errors=True)
-
-    def test_get_current_version_exists(self):
-        """Test get_current_version with existing version file."""
-        # Create current directory and version file
-        current_dir = os.path.join(self.temp_dir, "current")
-        os.makedirs(current_dir)
-        version_file = os.path.join(current_dir, "version.txt")
-        
-        with open(version_file, 'w') as f:
-            f.write("1.2.3\n")
-        
-        result = get_current_version(self.temp_dir)
-        self.assertEqual(result, "1.2.3")
-
-    def test_get_current_version_not_exists(self):
-        """Test get_current_version with missing version file."""
-        result = get_current_version(self.temp_dir)
-        self.assertIsNone(result)
 
 
 class TestConfigureGitRepo(unittest.TestCase):

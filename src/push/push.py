@@ -159,36 +159,71 @@ def get_latest_commit_info():
         return "Unknown commit"
 
 
-def get_current_version(repo_dir):
+def upload_to_archive(repo_dir, output_dir, game_version, latest_commit):
     """
-    Get the current game version from version.txt file.
-    
-    Args:
-        repo_dir: Path to the repository directory
-        
-    Returns:
-        String with current version or None if not found
-    """
-    version_file = os.path.join(repo_dir, 'current', 'version.txt')
-    
-    if os.path.exists(version_file):
-        with open(version_file, 'r') as f:
-            current_version = f.read().strip()
-        logger.debug(f"Will archive version {current_version} from current/version.txt")
-        return current_version
-    else:
-        logger.debug("No current/version.txt found, will not archive any data.")
-        return None
-
-
-def update_current_data(repo_dir, output_dir, new_game_version, latest_commit):
-    """
-    Update the current data with new parsed output.
+    Upload parsed data to the archive directory for the specified version.
     
     Args:
         repo_dir: Path to the data repository directory
         output_dir: Path to the output directory with new data
-        new_game_version: Version string for the new data
+        game_version: Version string for the data being archived
+        latest_commit: Latest commit info for commit message
+    """
+    archive_path = os.path.join(repo_dir, 'archive', game_version)
+    
+    # Clear existing archive data for this version (if it exists)
+    if os.path.exists(archive_path):
+        logger.debug(f"Deleting old archive data for version {game_version}...")
+        shutil.rmtree(archive_path)
+    
+    logger.info(f"Creating archive directory: archive/{game_version}/")
+    os.makedirs(archive_path, exist_ok=True)
+    
+    logger.info(f"Copying new output to archive/{game_version}/...")
+    
+    # Copy all files from output directory to archive directory
+    if os.path.exists(output_dir):
+        for item in os.listdir(output_dir):
+            src = os.path.join(output_dir, item)
+            dst = os.path.join(archive_path, item)
+            if os.path.isdir(src):
+                shutil.copytree(src, dst)
+            else:
+                shutil.copy2(src, dst)
+    else:
+        raise ValueError(f"Output directory {output_dir} does not exist")
+    
+    # Write version file
+    version_file = os.path.join(archive_path, 'version.txt')
+    with open(version_file, 'w') as f:
+        f.write(game_version)
+    
+    # Commit the changes
+    commit_title = f"Add/update archive version '{game_version}'"
+    commit_description = f"Parser commit: '{latest_commit}'"
+    
+    run_git_command(['git', 'add', '.'], cwd=repo_dir, log_output=False)
+    
+    # Try to commit, but don't fail if there's nothing to commit
+    try:
+        run_git_command(['git', 'commit', '-m', commit_title, '-m', commit_description], cwd=repo_dir,
+                       log_output=True)
+        logger.info(f"Uploaded archive data for version {game_version} and committed changes.")
+    except subprocess.CalledProcessError as e:
+        if "nothing to commit" in e.stdout:
+            logger.info(f"No changes detected for archive version {game_version}.")
+        else:
+            raise  # Re-raise if it's a different error
+
+
+def update_current_data(repo_dir, output_dir, game_version, latest_commit):
+    """
+    Update the current directory with new parsed output.
+    
+    Args:
+        repo_dir: Path to the data repository directory
+        output_dir: Path to the output directory with new data
+        game_version: Version string for the new data
         latest_commit: Latest commit info for commit message
     """
     current_path = os.path.join(repo_dir, 'current')
@@ -223,121 +258,24 @@ def update_current_data(repo_dir, output_dir, new_game_version, latest_commit):
     # Write version file
     version_file = os.path.join(current_path, 'version.txt')
     with open(version_file, 'w') as f:
-        f.write(new_game_version)
+        f.write(game_version)
     
     # Commit the changes
-    commit_message = f"Update current data to version:{new_game_version} from latest Parser commit:{latest_commit}"
+    commit_title = f"Update current to version '{game_version}'"
+    commit_description = f"Parser commit: '{latest_commit}'"
     
     run_git_command(['git', 'add', '.'], cwd=repo_dir, log_output=False)
     
     # Try to commit, but don't fail if there's nothing to commit
     try:
-        run_git_command(['git', 'commit', '-m', commit_message], cwd=repo_dir, 
+        run_git_command(['git', 'commit', '-m', commit_title, '-m', commit_description], cwd=repo_dir,
                        log_output=True)
-        logger.info(f"Updated current data to version {new_game_version} and committed changes.")
+        logger.info(f"Updated current data to version {game_version} and committed changes.")
     except subprocess.CalledProcessError as e:
         if "nothing to commit" in e.stdout:
-            logger.info(f"No changes detected - current data is already version {new_game_version}.")
+            logger.info(f"No changes detected for current version {game_version}.")
         else:
             raise  # Re-raise if it's a different error
-
-
-def archive_old_data(repo_dir, game_version_to_archive, new_game_version):
-    """
-    Archive the previous version's data if different from new version.
-    
-    Args:
-        repo_dir: Path to the data repository directory
-        game_version_to_archive: Version to archive
-        new_game_version: New version being deployed
-    """
-    if not game_version_to_archive or game_version_to_archive == new_game_version:
-        logger.debug(f"Skipping archive - versions are the same: {game_version_to_archive}")
-        return
-    
-    archive_path = os.path.join(repo_dir, 'archive', game_version_to_archive)
-    logger.info(f"Archiving previous data to {archive_path}...")
-    
-    os.makedirs(archive_path, exist_ok=True)
-    
-    # Create temporary directory to extract old data from git
-    with tempfile.TemporaryDirectory() as temp_dir:
-        try:
-            # Try to extract the old data from the previous commit
-            result = run_git_command(
-                ['git', 'show', 'HEAD~1:current/'],
-                cwd=repo_dir,
-                capture_output=True,
-                check=False
-            )
-            
-            if result.returncode == 0:
-                # Extract files from previous commit using git archive
-                run_git_command(
-                    ['git', 'archive', 'HEAD~1', 'current/'],
-                    cwd=repo_dir,
-                    capture_output=True,
-                    check=False
-                )
-                
-                # Use git show to extract individual files
-                try:
-                    # Get list of files from previous commit's current directory
-                    file_list_result = run_git_command(
-                        ['git', 'ls-tree', '-r', '--name-only', 'HEAD~1', 'current/'],
-                        cwd=repo_dir,
-                        capture_output=True,
-                        check=False
-                    )
-                    
-                    if file_list_result.returncode == 0 and file_list_result.stdout.strip():
-                        files = file_list_result.stdout.strip().split('\n')
-                        
-                        for file_path in files:
-                            if file_path.startswith('current/'):
-                                # Remove 'current/' prefix for destination
-                                relative_path = file_path[8:]  # len('current/') = 8
-                                dest_file = os.path.join(archive_path, relative_path)
-                                
-                                # Create destination directory if needed
-                                dest_dir = os.path.dirname(dest_file)
-                                if dest_dir:
-                                    os.makedirs(dest_dir, exist_ok=True)
-                                
-                                # Extract file content from git
-                                file_content_result = run_git_command(
-                                    ['git', 'show', f'HEAD~1:{file_path}'],
-                                    cwd=repo_dir,
-                                    capture_output=True,
-                                    check=False
-                                )
-                                
-                                if file_content_result.returncode == 0:
-                                    with open(dest_file, 'w', encoding='utf-8') as f:
-                                        f.write(file_content_result.stdout)
-                        
-                        # Check if we successfully archived any files
-                        if os.listdir(archive_path):
-                            # Commit the archival changes
-                            commit_message = f"Archive version:{game_version_to_archive} data"
-                            
-                            run_git_command(['git', 'add', '.'], cwd=repo_dir, log_output=False)
-                            run_git_command(['git', 'commit', '-m', commit_message], cwd=repo_dir,
-                                           log_output=True)
-                            
-                            logger.info(f"Archived version {game_version_to_archive} and committed changes.")
-                        else:
-                            logger.debug("No files were successfully archived.")
-                    else:
-                        logger.debug("No previous current data found in git history.")
-                        
-                except subprocess.CalledProcessError:
-                    logger.debug("Could not extract file list from previous commit.")
-            else:
-                logger.debug("No previous current data found to archive.")
-                
-        except Exception as e:
-            logger.warning(f"Error during archival process: {e}")
 
 
 def push_changes(repo_dir, target_branch):
@@ -392,14 +330,15 @@ def main(OPTIONS: Options):
         # Get latest commit info from parser repo
         latest_commit = get_latest_commit_info()
         
-        # Get current version for archival
-        current_version = get_current_version(data_repo_dir)
+        # Always upload to archive
+        upload_to_archive(data_repo_dir, output_dir, OPTIONS.game_version, latest_commit)
         
-        # Update current data with new output
-        update_current_data(data_repo_dir, output_dir, OPTIONS.game_version, latest_commit)
-        
-        # Archive old data if version changed
-        archive_old_data(data_repo_dir, current_version, OPTIONS.game_version)
+        # Only update current if IS_CURRENT is true
+        if OPTIONS.current_is_latest:
+            logger.info("IS_CURRENT is true, updating current directory...")
+            update_current_data(data_repo_dir, output_dir, OPTIONS.game_version, latest_commit)
+        else:
+            logger.info("IS_CURRENT is false, skipping current directory update.")
         
         # Push all changes
         push_changes(data_repo_dir, OPTIONS.target_branch)

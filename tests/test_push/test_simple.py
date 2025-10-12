@@ -41,46 +41,10 @@ class TestPushModuleFunctions(unittest.TestCase):
         self.assertTrue(hasattr(push_module, 'run_git_command'))
         self.assertTrue(callable(push_module.run_git_command))
 
-    def test_get_current_version_function_exists(self):
-        """Test that get_current_version function exists and is callable."""
-        self.assertTrue(hasattr(push_module, 'get_current_version'))
-        self.assertTrue(callable(push_module.get_current_version))
-
-    def test_get_current_version_with_file(self):
-        """Test get_current_version with a real version.txt file."""
-        # Create the directory structure expected by the function
-        current_dir = os.path.join(self.temp_dir, "current")
-        os.makedirs(current_dir, exist_ok=True)
-        
-        # Create a test version.txt file
-        version_file = os.path.join(current_dir, "version.txt")
-        test_version = "1.2.3"
-        
-        with open(version_file, 'w', encoding='utf-8') as f:
-            f.write(test_version)
-        
-        # Test the function
-        result = push_module.get_current_version(self.temp_dir)
-        self.assertEqual(result, "1.2.3")
-
-    def test_get_current_version_missing_file(self):
-        """Test get_current_version with missing version.txt file."""
-        result = push_module.get_current_version(self.temp_dir)
-        self.assertIsNone(result)
-
-    def test_get_current_version_whitespace_handling(self):
-        """Test get_current_version with whitespace in version.txt."""
-        # Create the directory structure expected by the function
-        current_dir = os.path.join(self.temp_dir, "current")
-        os.makedirs(current_dir, exist_ok=True)
-        
-        version_file = os.path.join(current_dir, "version.txt")
-        
-        with open(version_file, 'w', encoding='utf-8') as f:
-            f.write("  1.2.3  \n")  # Version with whitespace
-        
-        result = push_module.get_current_version(self.temp_dir)
-        self.assertEqual(result, "1.2.3")  # Should be stripped
+    def test_upload_to_archive_function_exists(self):
+        """Test that upload_to_archive function exists and is callable."""
+        self.assertTrue(hasattr(push_module, 'upload_to_archive'))
+        self.assertTrue(callable(push_module.upload_to_archive))
 
     def test_main_function_exists(self):
         """Test that main function exists and is callable."""
@@ -96,9 +60,8 @@ class TestPushModuleFunctions(unittest.TestCase):
             'configure_git_repo',
             'switch_to_target_branch',
             'get_latest_commit_info',
-            'get_current_version',
+            'upload_to_archive',
             'update_current_data',
-            'archive_old_data',
             'push_changes',
             'main'
         ]
