@@ -52,7 +52,7 @@ python src/run.py --log-level INFO   # Run all steps with default/env values, ex
   - Command line: `--game-version`
 
 * **CURRENT_IS_LATEST** - Whether to also push data to the 'current' directory (in addition to archive).
-  - Default: `"false"`
+  - Default: `"true"`
   - Command line: `--current-is-latest`
 
 * **TARGET_BRANCH** - Target branch to push data to in the data repository.

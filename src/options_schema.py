@@ -77,7 +77,7 @@ OPTIONS_SCHEMA = {
                 "env": "CURRENT_IS_LATEST",
                 "arg": "--current-is-latest",
                 "type": bool,
-                "default": False,
+                "default": True,
                 "help": "Whether to also push data to the 'current' directory (in addition to archive).",
             },
             "TARGET_BRANCH": {
