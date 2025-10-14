@@ -16,14 +16,6 @@ from typing import Literal
 """
 
 OPTIONS_SCHEMA = {
-    "LOG_LEVEL": {
-        "env": "LOG_LEVEL",
-        "arg": "--log-level",
-        "type": Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-        "default": "DEBUG",
-        "section": "Logging",
-        "help": "Logging level. Must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL."
-    },
     "SHOULD_PARSE": {
         "env": "SHOULD_PARSE",
         "arg": "--should-parse",
@@ -49,15 +41,6 @@ OPTIONS_SCHEMA = {
         "section": "Parse",
         "depends_on": ["SHOULD_PARSE"],
         "help": "Directory where the exported game JSON files are stored."
-    },
-    "OUTPUT_DIR": {
-        "env": "OUTPUT_DIR",
-        "arg": "--output-dir",
-        "type": str,
-        "default": None,
-        "section": "Parse",
-        "depends_on": ["SHOULD_PARSE", "SHOULD_PUSH_DATA"],
-        "help": "Directory where the parser will output files."
     },
     "SHOULD_PUSH_DATA": {
         "env": "SHOULD_PUSH_DATA",
@@ -103,5 +86,22 @@ OPTIONS_SCHEMA = {
         "depends_on": ["SHOULD_PUSH_DATA"],
         "sensitive": True,
         "help": "PAT token to the GitHub repository that stores the data."
+    },
+    "LOG_LEVEL": {
+        "env": "LOG_LEVEL",
+        "arg": "--log-level",
+        "type": Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        "default": "DEBUG",
+        "section": "Both",
+        "help": "Logging level. Must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL."
+    },
+    "OUTPUT_DIR": {
+        "env": "OUTPUT_DIR",
+        "arg": "--output-dir",
+        "type": str,
+        "default": None,
+        "section": "Both",
+        "depends_on": ["SHOULD_PARSE", "SHOULD_PUSH_DATA"],
+        "help": "Directory where the parser will output files."
     },
 }

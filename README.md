@@ -15,13 +15,6 @@ python src/run.py --log-level INFO   # Run all steps with default/env values, ex
 ### Parameters
 
 <!-- BEGIN_GENERATED_OPTIONS -->
-#### Logging
-
-- **LOG_LEVEL** - Logging level. Must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL.
-  - Default: `"DEBUG"`
-  - Command line: `--log-level`
-
-
 #### Parse
 
 - **SHOULD_PARSE** - Whether to parse the game files after downloading.
@@ -37,11 +30,6 @@ python src/run.py --log-level INFO   # Run all steps with default/env values, ex
   - Default: None - required when SHOULD_PARSE is True
   - Command line: `--export-dir`
   - Depends on: `SHOULD_PARSE`
-
-* **OUTPUT_DIR** - Directory where the parser will output files.
-  - Default: None - required when SHOULD_PARSE or SHOULD_PUSH_DATA is True
-  - Command line: `--output-dir`
-  - Depends on: `SHOULD_PARSE`, `SHOULD_PUSH_DATA`
 
 
 #### Push Data
@@ -69,6 +57,18 @@ python src/run.py --log-level INFO   # Run all steps with default/env values, ex
   - Default: None - required when SHOULD_PUSH_DATA is True
   - Command line: `--gh-data-repo-pat`
   - Depends on: `SHOULD_PUSH_DATA`
+
+
+#### Both
+
+- **LOG_LEVEL** - Logging level. Must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL.
+  - Default: `"DEBUG"`
+  - Command line: `--log-level`
+
+* **OUTPUT_DIR** - Directory where the parser will output files.
+  - Default: None - required when SHOULD_PARSE or SHOULD_PUSH_DATA is True
+  - Command line: `--output-dir`
+  - Depends on: `SHOULD_PARSE`, `SHOULD_PUSH_DATA`
 
 
 <!-- END_GENERATED_OPTIONS -->
