@@ -14,7 +14,7 @@ from pathlib import Path
 src_path = Path(__file__).parent.parent / "src"
 sys.path.insert(0, str(src_path))
 
-from options import OPTIONS_SCHEMA
+from options_schema import OPTIONS_SCHEMA
 
 
 def generate_by_process_section():
@@ -28,12 +28,10 @@ def generate_by_process_section():
         section = details.get("section", "Other")
         if section not in sections_data:
             sections_data[section] = []
-        sections_data[section].append((option_name, details, False))
         
-        # Add section_options
-        if "section_options" in details:
-            for sub_option, sub_details in details["section_options"].items():
-                sections_data[section].append((sub_option, sub_details, True))
+        # Determine if this is a dependent option (has depends_on field)
+        is_dependent = "depends_on" in details
+        sections_data[section].append((option_name, details, is_dependent))
     
     # Generate documentation for each section
     for section, options in sections_data.items():
@@ -41,24 +39,30 @@ def generate_by_process_section():
             f"#### {section}",
             "",
         ])
-        for option_name, details, is_section_option in options:
-            add_option_doc_to_lines(lines, option_name, details, is_section_option)
+        for option_name, details, is_dependent in options:
+            add_option_doc_to_lines(lines, option_name, details, is_dependent)
         lines.append("")
     
     return "\n".join(lines)
 
 
 
-def add_option_doc_to_lines(lines, option_name, details, is_section_option=False, indent_level=0):
+def add_option_doc_to_lines(lines, option_name, details, is_dependent=False, indent_level=0):
     """Add documentation for a single option to the lines list."""
     env_var = details["env"]
     help_text = details.get("help", "")
     default = details.get("default", "")
     arg_name = details["arg"]
+    depends_on = details.get("depends_on", [])
     
     # Convert default value to readable string
     if default is None:
-        default_str = "None - required if section enabled"
+        if depends_on:
+            # Build dependency string
+            dep_str = " or ".join(depends_on)
+            default_str = f"None - required when {dep_str} is True"
+        else:
+            default_str = "None"
     elif isinstance(default, bool):
         default_str = f'`"{str(default).lower()}"`'
     elif isinstance(default, str):
@@ -70,12 +74,17 @@ def add_option_doc_to_lines(lines, option_name, details, is_section_option=False
         default_str = f'`"{default}"`'
     
     # Create the option entry
-    indent = "  " * indent_level if is_section_option else ""
-    bullet = "-" if not is_section_option else "*"
+    indent = "  " * indent_level if is_dependent else ""
+    bullet = "-" if not is_dependent else "*"
     
     lines.append(f"{indent}{bullet} **{env_var}** - {help_text}")
     lines.append(f"{indent}  - Default: {default_str}")
     lines.append(f"{indent}  - Command line: `{arg_name}`")
+    
+    # Add dependency information if present
+    if depends_on:
+        dep_list = ", ".join(f"`{dep}`" for dep in depends_on)
+        lines.append(f"{indent}  - Depends on: {dep_list}")
     
     # Add links if present
     if "links" in details:
@@ -143,10 +152,12 @@ def validate_generated_docs():
             
             # Check for expected content
             if filename == "readme_options_section.md":
-                if "#### Logging" not in content:
-                    print(f"Warning: {filename} missing expected sections")
-                    return False
-            
+                sections = ['Both', 'Parse', 'Push']
+                for section in sections:
+                    if f"#### {section}" not in content:
+                        print(f"Warning: {filename} missing expected section: {section}")
+                        return False
+
             print(f"Generated {filename} ({len(content.splitlines())} lines)")
             
         except Exception as e:

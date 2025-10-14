@@ -185,35 +185,35 @@ class TestArgumentWriter(unittest.TestCase):
         self.assertIn("Test option help (default: test_default)", help_text)
 
     @patch.object(src_options, 'logger')
-    def test_section_options_are_added(self, mock_logger):
-        """Test that section_options are recursively added to the parser."""
+    def test_dependent_options_are_added(self, mock_logger):
+        """Test that dependent options are added to the parser."""
         test_schema = {
             "MAIN_OPTION": {
                 "arg": "--main-option",
                 "type": bool,
                 "default": False,
-                "help": "Main option",
-                "section_options": {
-                    "SUB_OPTION_1": {
-                        "arg": "--sub-option-1",
-                        "type": str,
-                        "default": "sub_default",
-                        "help": "Sub option 1"
-                    },
-                    "SUB_OPTION_2": {
-                        "arg": "--sub-option-2",
-                        "type": int,
-                        "default": 10,
-                        "help": "Sub option 2"
-                    }
-                }
+                "help": "Main option"
+            },
+            "SUB_OPTION_1": {
+                "arg": "--sub-option-1",
+                "type": str,
+                "default": "sub_default",
+                "help": "Sub option 1",
+                "depends_on": ["MAIN_OPTION"]
+            },
+            "SUB_OPTION_2": {
+                "arg": "--sub-option-2",
+                "type": int,
+                "default": 10,
+                "help": "Sub option 2",
+                "depends_on": ["MAIN_OPTION"]
             }
         }
         
         with patch.object(self.writer, 'schema', test_schema):
             self.writer.add_arguments(self.parser)
         
-        # Parse arguments for main and sub options
+        # Parse arguments for main and dependent options
         args = self.parser.parse_args([
             '--main-option',
             '--sub-option-1', 'test_value',
@@ -225,37 +225,35 @@ class TestArgumentWriter(unittest.TestCase):
         self.assertEqual(args.sub_option_2, 25)
 
     @patch.object(src_options, 'logger')
-    def test_nested_section_options(self, mock_logger):
-        """Test deeply nested section_options are handled correctly."""
+    def test_multi_level_dependencies(self, mock_logger):
+        """Test options with dependencies on multiple other options are handled correctly."""
         test_schema = {
             "LEVEL_1": {
                 "arg": "--level-1",
                 "type": bool,
                 "default": False,
-                "help": "Level 1 option",
-                "section_options": {
-                    "LEVEL_2": {
-                        "arg": "--level-2",
-                        "type": str,
-                        "default": "level2",
-                        "help": "Level 2 option",
-                        "section_options": {
-                            "LEVEL_3": {
-                                "arg": "--level-3",
-                                "type": int,
-                                "default": 3,
-                                "help": "Level 3 option"
-                            }
-                        }
-                    }
-                }
+                "help": "Level 1 option"
+            },
+            "LEVEL_2": {
+                "arg": "--level-2",
+                "type": str,
+                "default": "level2",
+                "help": "Level 2 option",
+                "depends_on": ["LEVEL_1"]
+            },
+            "LEVEL_3": {
+                "arg": "--level-3",
+                "type": int,
+                "default": 3,
+                "help": "Level 3 option",
+                "depends_on": ["LEVEL_1", "LEVEL_2"]
             }
         }
         
         with patch.object(self.writer, 'schema', test_schema):
             self.writer.add_arguments(self.parser)
         
-        # Parse nested arguments
+        # Parse arguments with dependencies
         args = self.parser.parse_args([
             '--level-1',
             '--level-2', 'nested_value',

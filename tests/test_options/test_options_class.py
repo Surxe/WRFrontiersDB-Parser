@@ -62,15 +62,20 @@ class TestOptions(unittest.TestCase):
         mock_logger.add = Mock()
         mock_logger.remove = Mock()
         
-        # When no args are provided, root options default to True but required sub-options are missing
+        # When no args are provided, root options default to True but required dependent options are missing
         with patch.dict(os.environ, {}, clear=True):
             with self.assertRaises(ValueError) as context:
                 Options()
             
         # Should raise validation error for missing required options
+        # The error will be about the first missing required option encountered
         error_message = str(context.exception)
-        self.assertIn("EXPORT_DIR", error_message)
-        self.assertIn("OUTPUT_DIR", error_message)
+        self.assertIn("is required when any of the following are true", error_message)
+        # At least one of the required options should be mentioned
+        self.assertTrue(
+            "EXPORT_DIR" in error_message or "OUTPUT_DIR" in error_message or "GAME_VERSION" in error_message,
+            f"Expected one of the required options in error message: {error_message}"
+        )
 
     @patch.object(src_options, 'logger')
     def test_options_init_with_args(self, mock_logger):
@@ -239,12 +244,12 @@ class TestOptions(unittest.TestCase):
             self.assertEqual(options.log_level, "DEBUG")  # Should fall back to default
 
     @patch.object(src_options, 'logger')
-    def test_options_missing_required_section_options_raises_error(self, mock_logger):
-        """Test that missing required section options raise ValueError."""
+    def test_options_missing_required_dependent_options_raises_error(self, mock_logger):
+        """Test that missing required dependent options raise ValueError."""
         mock_logger.add = Mock()
         mock_logger.remove = Mock()
         
-        # Enable should_parse but don't provide required section options
+        # Enable should_parse but don't provide required dependent options
         args = create_args(
             should_parse=True,
             # Missing: export_dir, output_dir
@@ -256,9 +261,14 @@ class TestOptions(unittest.TestCase):
                 Options(args)
             
             error_message = str(context.exception)
-            self.assertIn("following options must be provided", error_message)
-            self.assertIn("EXPORT_DIR", error_message)
-            self.assertIn("OUTPUT_DIR", error_message)
+            self.assertIn("is required when any of the following are true", error_message)
+            # Should mention SHOULD_PARSE as the active dependency
+            self.assertIn("SHOULD_PARSE", error_message)
+            # At least one of the required options should be mentioned
+            self.assertTrue(
+                "EXPORT_DIR" in error_message or "OUTPUT_DIR" in error_message,
+                f"Expected EXPORT_DIR or OUTPUT_DIR in error message: {error_message}"
+            )
 
     @patch.object(src_options, 'logger')
     def test_options_should_flags_explicit_false(self, mock_logger):

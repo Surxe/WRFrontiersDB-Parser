@@ -61,6 +61,12 @@ class Analysis:
         return module_upgrade_costs
 
     def _get_more_is_better_map(self, stat_keys_to_rank):
+        """
+        key is stat
+        if value is bool, it indicates more_is_better directly
+        if value is str, it indicates module_stat key to lookup more_is_better
+        if for any key not in the map, it assumes key is a short_key of a stat to lookup more_is_better
+        """
         stat_to_more_is_better = {
             "ChargeDuration": "DA_ModuleStat_ChargeDrain.0",
             "Cooldown": "DA_ModuleStat_Cooldown.0",
@@ -76,6 +82,8 @@ class Analysis:
             "Armor": "DA_ModuleStat_Armor.0",
             "TimeBetweenShots": True,
             "DamageNoArmor": "DA_ModuleStat_ShieldDamage.0",
+            "PrimaryParameter": True,
+            "SecondaryParameter": True,
         }
         stat_to_more_is_better_final = {}
         for stat_key in stat_keys_to_rank:
@@ -83,7 +91,8 @@ class Analysis:
             if entry is None:
                 module_stat = next((stat for stat in self.module_stat_class.objects.values() if stat.short_key == stat_key), None)
                 if module_stat is None:
-                    raise ValueError(f"Unknown module stat for short_key {stat_key}")
+                    more_is_better = True #default to true
+                    logger.error(f"No module stat found for short_key {stat_key}, defaulting more_is_better to True")
                 more_is_better = getattr(module_stat, 'more_is_better', True)
             elif isinstance(entry, str):
                 module_stat = self.module_stat_class.objects[entry]

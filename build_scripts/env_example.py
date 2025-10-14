@@ -15,7 +15,7 @@ from typing import Dict, Any, Set
 src_path = Path(__file__).parent.parent / "src"
 sys.path.insert(0, str(src_path))
 
-from options import OPTIONS_SCHEMA
+from options_schema import OPTIONS_SCHEMA
 
 
 def generate_env_example() -> str:
@@ -28,11 +28,12 @@ def generate_env_example() -> str:
     
     lines = header + [""]  # Add blank line after header
     
-    def process_option(option_name: str, details: Dict[str, Any], is_section_option: bool = False) -> None:
+    def process_option(option_name: str, details: Dict[str, Any]) -> None:
         """Process a single option and add it to the lines."""
         env_var = details["env"]
         help_text = details.get("help", "")
         default = details.get("default", "")
+        depends_on = details.get("depends_on", [])
         
         # Convert default value to string representation for .env file
         if default is None:
@@ -62,30 +63,37 @@ def generate_env_example() -> str:
             else:
                 lines.append(f"# {help_text}")
         
+        # Add dependency information if present
+        if depends_on:
+            dep_str = " or ".join(depends_on)
+            lines.append(f"# Required when {dep_str} is True")
+        
         # Add the environment variable with default value
         lines.append(f'{env_var}="{default_str}"')
         lines.append("")  # Blank line after each option
     
-    # Process options by section
-    sections_processed = set()
+    # Group options by section while preserving order
+    sections_data = {}
+    section_order = []
     
     for option_name, details in OPTIONS_SCHEMA.items():
         section = details.get("section", "Other")
+        if section not in sections_data:
+            sections_data[section] = []
+            section_order.append(section)
+        sections_data[section].append((option_name, details))
+    
+    # Process options by section
+    for i, section in enumerate(section_order):
+        # Add extra blank line between sections (except before first section)
+        if i > 0:
+            lines.append("")
         
-        # Add section header if we haven't processed this section yet
-        if section not in sections_processed:
-            if sections_processed:  # Add extra blank line between sections
-                lines.append("")
-            lines.append(f"# {section}")
-            sections_processed.add(section)
+        lines.append(f"# {section}")
         
-        # Process main option
-        process_option(option_name, details)
-        
-        # Process section_options if they exist
-        if "section_options" in details:
-            for sub_option, sub_details in details["section_options"].items():
-                process_option(sub_option, sub_details, is_section_option=True)
+        # Process all options in this section
+        for option_name, details in sections_data[section]:
+            process_option(option_name, details)
     
     return "\n".join(lines)
 
@@ -108,13 +116,14 @@ def update_env_example() -> bool:
         
         # Show summary of options
         option_count = len(OPTIONS_SCHEMA)
-        section_option_count = sum(
-            len(details.get("section_options", {})) 
-            for details in OPTIONS_SCHEMA.values()
-        )
-        total_options = option_count + section_option_count
         
-        print(f"Processed {total_options} options ({option_count} main + {section_option_count} sub-options)")
+        # Count dependent options (options with depends_on field)
+        dependent_count = sum(
+            1 for details in OPTIONS_SCHEMA.values()
+            if "depends_on" in details
+        )
+        
+        print(f"Processed {option_count} options ({option_count - dependent_count} root + {dependent_count} dependent)")
         
     except Exception as e:
         print(f"Error updating .env.example: {e}")
