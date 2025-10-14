@@ -102,6 +102,6 @@ OPTIONS_SCHEMA = {
         "default": None,
         "section": "Both",
         "depends_on": ["SHOULD_PARSE", "SHOULD_PUSH_DATA"],
-        "help": "Directory where the parser will output files."
+        "help": "Directory where the parser will output files and where data is pushed from."
     },
 }

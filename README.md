@@ -65,7 +65,7 @@ python src/run.py --log-level INFO   # Run all steps with default/env values, ex
   - Default: `"DEBUG"`
   - Command line: `--log-level`
 
-* **OUTPUT_DIR** - Directory where the parser will output files.
+* **OUTPUT_DIR** - Directory where the parser will output files and where data is pushed from.
   - Default: None - required when SHOULD_PARSE or SHOULD_PUSH_DATA is True
   - Command line: `--output-dir`
   - Depends on: `SHOULD_PARSE`, `SHOULD_PUSH_DATA`
