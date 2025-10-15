@@ -89,8 +89,8 @@ class Options:
         # Setup loguru logging to /logs dir
         logs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'logs')
         os.makedirs(logs_dir, exist_ok=True)
-        if hasattr(self, 'output_dir') and self.output_dir:
-            log_filename = str(self.output_dir).replace('\\', '/').rstrip('/').split('/')[-1] + '.log'
+        if hasattr(self, 'export_dir') and self.export_dir:
+            log_filename = str(self.export_dir).replace('\\', '/').rstrip('/').split('/')[-1] + '.log'
             # i.e. F:/WRF/2025-08-12/<exports> to 2025-08-12.log
         else:
             log_filename = 'default.log'
@@ -100,7 +100,7 @@ class Options:
         # Clear the log file before adding the handler
         with open(log_path, 'w') as f:
             pass
-        logger.add(log_path, level=self.log_level, rotation="10 MB", retention="10 days", enqueue=True)
+        logger.add(log_path, level=self.log_level, rotation="30 MB", retention="10 days", enqueue=True)
         logger.add(sys.stdout, level=self.log_level)
         
         self.log()
