@@ -56,6 +56,7 @@ class Ability(Object):
             "ReactionOnRecharge": None, #voice line
             "SpawnActorAction": {"parser": self._p_spawn_action, "action": ParseAction.DICT_ENTRY, "target": ParseTarget.MATCH_KEY_SNAKE},
             "ConfirmationAction": {"parser": self._p_confirmation_action, "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY},
+            "HackingCastAction": None, #TODO kernel
             "ActorCDOShapeComponent": self._p_actor_class,
             "TargetingActionWithConfirmation": {"parser": self._p_confirmation_action, "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY},
             "ImmediateTargetingAction": None,
@@ -287,6 +288,8 @@ class Ability(Object):
             "InputActionOccupationPriority": None, #orbital strike
             "CompensationPower": "value", #kumo chassis
             "BuffAreaDistance": "value", #kumo torso
+            "DistanceRange": None, #TODO kernel
+            "BuffOnTarget": None, #TODO kernel
         }
 
         my_ability_data = self._process_key_to_parser_function(
@@ -433,6 +436,7 @@ class Ability(Object):
                 "EffectiveDistanceSettingsDefault": (self._p_distance, "EffectiveDistanceSettings"),
                 "MaxDistanceSettingsDefault": (self._p_distance, "MaxDistanceSettings"),
                 "DeathDistanceSettingsDefault": (self._p_distance, "DeathDistanceSettings"),
+                "DefaultDistanceSettings": (parse_editor_curve_data, "DefaultDistanceSettings"),
                 "OwnerReactionOnHit": None, # voiceline
                 "VictimReactionOnHoming": None,
                 "VictimReactionOnHit": None, # voiceline
@@ -465,6 +469,11 @@ class Ability(Object):
                 "ObstaclesCollisionComponent": None,
                 "bUseGravityChangeFromDistanceCurve": "value", #ghost turret
                 "GravityChangeFromDistance": parse_editor_curve_data,
+                "ContinuousPushing": None, #kinetic pulse, is empty
+                "PushingEffect": None, #NSI - vfx?
+                "AvoidMarker": None,
+                "ContinuousPushingSettings": self._p_cont_pushing_settings,
+                "TracerOffsetTime": None,
             }
 
             parsed_proj = self._process_key_to_parser_function(
@@ -475,6 +484,17 @@ class Ability(Object):
             parsed_projectile_types.append(parsed_proj)
 
         return parsed_projectile_types
+    
+    def _p_cont_pushing_settings(self, data: dict):
+        key_to_parser_function = {
+            "Interval": "value",
+            "PushingSettings": self._p_pushing_settings,
+        }
+        return self._process_key_to_parser_function(
+            key_to_parser_function, data, log_descriptor="ContinuousPushingSettings", tabs=5, set_attrs=False, default_configuration={
+                'target': ParseTarget.MATCH_KEY
+            }
+        )
     
     def _p_actions(self, list: dict):
         parsed_actions = []
@@ -1067,6 +1087,8 @@ def p_actor_class(data: dict):
         "ProjectileShieldDamageMult": "value",
         "bApplyMeshFxToAllModules": None,
         "SocketToFX_ColorId": None,
+        "WeaponSoundComponent": None,
+        "Tracker": None,
     }
 
     parsed_data = process_key_to_parser_function(

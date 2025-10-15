@@ -22,6 +22,7 @@ class HonorReward(Object):
             "HonorPoints": "value",
             "bIncremental": "value",
             "ProcessingTime": parse_colon_colon,
+            "TitanCharge": "value",
             "ID": None,
         }
 
@@ -30,4 +31,5 @@ class HonorReward(Object):
 
     def _p_reward_processor(self, data):
         data = asset_path_to_data(data["ObjectPath"])
-        return data["Properties"]#["PlayerStateProperty"]
+        if "Properties" in data:
+            return data["Properties"]#["PlayerStateProperty"]

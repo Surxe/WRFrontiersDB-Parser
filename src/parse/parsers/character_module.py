@@ -266,6 +266,8 @@ class CharacterModule(Object):
                 # dont know where its at but it dont really matter
                 "MuzzleLaserInfos": None, #vfx of horde
                 "SpreadAngle": "value", #horde
+                "TracerOffsetTime": None, #zenit
+                "RangeReserve": "value", #zenit
             }
 
             # Recursively parse template if present
@@ -382,6 +384,7 @@ class CharacterModule(Object):
             "HitError": "value",
             "DistToInitialSpeed": parse_editor_curve_data,
             "bBallisticModeForced": "value",
+            "RangeReserve": "value",
         }
 
         return self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="BallisticBehavior", set_attrs=False, tabs=2, default_configuration={
