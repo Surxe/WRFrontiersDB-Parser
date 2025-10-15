@@ -1,3 +1,5 @@
+# Can be run directly for convenience, but only offers env vars, and not arguments. For running just push with args, use run.py with --should-push-data
+
 import sys
 import os
 import stat

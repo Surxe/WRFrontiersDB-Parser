@@ -1,6 +1,8 @@
 
 import sys
 import os
+
+from loguru import logger
 # Add current directory to path for imports
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -28,6 +30,8 @@ args = parser.parse_args()
 OPTIONS = init_options(args)
 
 if OPTIONS.should_parse:
-    parse_main(OPTIONS)
+    logger.debug(f"should_parse is set to {OPTIONS.should_parse}, proceeding with parsing.")
+    parse_main()
 if OPTIONS.should_push_data:
+    logger.debug(f"should_push_data is set to {OPTIONS.should_push_data}, proceeding with pushing data.")
     push_main(OPTIONS)

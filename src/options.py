@@ -89,8 +89,8 @@ class Options:
         # Setup loguru logging to /logs dir
         logs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'logs')
         os.makedirs(logs_dir, exist_ok=True)
-        if hasattr(self, 'output_data_dir') and self.output_data_dir:
-            log_filename = str(self.output_data_dir).replace('\\', '/').rstrip('/').split('/')[-1] + '.log'
+        if hasattr(self, 'output_dir') and self.output_dir:
+            log_filename = str(self.output_dir).replace('\\', '/').rstrip('/').split('/')[-1] + '.log'
             # i.e. F:/WRF/2025-08-12/<exports> to 2025-08-12.log
         else:
             log_filename = 'default.log'

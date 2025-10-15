@@ -1,3 +1,5 @@
+# Can be run directly for convenience, but only offers env vars, and not arguments. For running just parse with args, use run.py with --should-parse
+
 import sys
 import os
 
@@ -25,7 +27,7 @@ from parsers.bot_preset import *
 from parsers.powerup import *
 from analysis import *
 
-def main(OPTIONS: Options):
+def main():
     clear_dir("output")  # Clear the data directory before parsing
 
     parse_localizations()
@@ -87,4 +89,5 @@ def main(OPTIONS: Options):
     Image.to_file()
 
 if __name__ == "__main__":
-    main(init_options())
+    init_options()
+    main()
