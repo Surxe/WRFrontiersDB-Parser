@@ -100,7 +100,7 @@ class Options:
         # Clear the log file before adding the handler
         with open(log_path, 'w') as f:
             pass
-        logger.add(log_path, level=self.log_level, rotation="10 MB", retention="10 days", enqueue=True)
+        logger.add(log_path, level=self.log_level, rotation="30 MB", retention="10 days", enqueue=True)
         logger.add(sys.stdout, level=self.log_level)
         
         self.log()

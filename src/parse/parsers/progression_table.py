@@ -1,6 +1,8 @@
 # Add parent dirs to sys path
 import sys
 import os
+
+from loguru import logger
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils import path_to_id
@@ -61,6 +63,8 @@ class ProgressionTable(Object):
             "CharacterSkins": (lambda skins: [Skin.get_from_asset_path(skin["Skin"]["ObjectPath"]) for skin in skins], "skins_ids"),
             "CharacterSetups": self._confirm_empty,
             "PilotRewards": (self._p_pilots, "pilots"),
+            "ModuleVariantRewards": self._confirm_empty,
+            "RobotVariantRewards": self._confirm_empty,
         }
 
         parsed_reward = self._process_key_to_parser_function(key_to_parser_function, reward, set_attrs=False, log_descriptor='_p_level_reward()', tabs=4)
@@ -92,11 +96,11 @@ class ProgressionTable(Object):
     
     def _confirm_empty(self, data: list):
         if data != []:
-            raise ValueError(f"Data structure change, ProgressionTable level attribute is no longer always empty. {data}")
+            logger.error(f"Data structure change, ProgressionTable level attribute is no longer always empty. {data}")
 
     def _confirm_0(self, data: int):
         if data != 0:
-            raise ValueError("Data structure change, ProgressionTable level attribute is no longer always 0.")
+            logger.error(f"Data structure change, ProgressionTable level attribute is no longer always 0.")
 
 def parse_progression_table(to_file=False):
     progression_table_path = r"WRFrontiers/Content/Sparrow/Mechanics/DA_ProgressionTable.json"

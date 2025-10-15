@@ -102,6 +102,8 @@ class PilotTalent(Object):
             # Regular attributes
             "Stats": self._p_stats,
             "Buffs": self._p_buffs,
+
+            "ReactivationPolicy": parse_colon_colon,
         }
 
         self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor=bp_file_path, tabs=2)
