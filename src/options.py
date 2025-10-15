@@ -82,15 +82,15 @@ class Options:
             # Convert schema key (UPPER_CASE) to attribute name (lower_case)
             attr_name = key.lower()
             setattr(self, attr_name, value)
-            logger.debug(f"Set attribute {attr_name} to value: {value}")
+            logger.debug(f"Set attribute {attr_name} to value: {value if not details.get('sensitive', False) else '***HIDDEN***'}")
 
         self.validate()
 
         # Setup loguru logging to /logs dir
         logs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'logs')
         os.makedirs(logs_dir, exist_ok=True)
-        if hasattr(self, 'output_data_dir') and self.output_data_dir:
-            log_filename = str(self.output_data_dir).replace('\\', '/').rstrip('/').split('/')[-1] + '.log'
+        if hasattr(self, 'export_dir') and self.export_dir:
+            log_filename = str(self.export_dir).replace('\\', '/').rstrip('/').split('/')[-1] + '.log'
             # i.e. F:/WRF/2025-08-12/<exports> to 2025-08-12.log
         else:
             log_filename = 'default.log'
@@ -123,11 +123,11 @@ class Options:
             # 1. Check args first
             if attr_name in args_dict and args_dict[attr_name] is not None:
                 value = args_dict[attr_name]
-                logger.debug(f"Argument {attr_name} found in args with value: {value}")
+                logger.debug(f"Argument {attr_name} found in args with value: {value if not details.get('sensitive', False) else '***HIDDEN***'}")
             # 2. Check environment variable
             elif details["env"] in os.environ:
                 env_value = os.environ[details["env"]]
-                logger.debug(f"Environment variable {details['env']} found with value: {env_value}")
+                logger.debug(f"Environment variable {details['env']} found with value: {env_value if not details.get('sensitive', False) else '***HIDDEN***'}")
                 # Convert environment string to proper type
                 if details["type"] == bool:
                     value = is_truthy(env_value)
@@ -192,7 +192,7 @@ class Options:
                         f"{option_name} is required when any of the following are true: "
                         f"{', '.join(depends_on_list)}. Currently active: {', '.join(active_dependencies)}"
                     )
-                logger.debug(f"Dependent option {option_name} is set to {value}")
+                logger.debug(f"Dependent option {option_name} is set to {value if not details.get('sensitive', False) else '***HIDDEN***'}")
         
     def log(self):
         """
