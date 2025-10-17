@@ -49,7 +49,7 @@ class Analysis:
         if module_scalars is None:
             return None
         for level_index, level_data in enumerate(module_scalars['variables']):
-            upgrade_cost_id = level_data.get('upgrade_currency_id')
+            upgrade_cost_id = level_data.get('upgrade_cost_id')
             if upgrade_cost_id is None:
                 logger.debug(f"Warning: No upgrade cost ID found for module {getattr(module, 'id', None)} at level {level_index+1}")
                 continue
@@ -145,7 +145,7 @@ class Analysis:
             level_base, level_max = self._extract_base_and_max(module)
             diff = {}
             for key in level_base.keys():
-                if key in superficial_keys or key in ['ScrapRewards', 'upgrade_currency_id']:
+                if key in superficial_keys or key in ['ScrapRewards', 'upgrade_cost_id']:
                     continue
                 base_value = level_base[key]
                 max_value = level_max[key]
