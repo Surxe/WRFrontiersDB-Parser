@@ -3,10 +3,10 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from parsers.object import Object
+from parsers.object import ParseObject
 from parsers.rarity import Rarity
 
-class ModuleRarity(Object):
+class ModuleRarity(ParseObject):
     objects = dict()  # Dictionary to hold all ModuleRarity instances
     
     def _parse(self):

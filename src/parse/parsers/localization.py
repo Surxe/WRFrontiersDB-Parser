@@ -7,9 +7,9 @@ import json
 
 from utils import OPTIONS, logger, get_json_data
 
-from parsers.object import Object
+from parsers.object import ParseObject
 
-class Localization(Object):
+class Localization(ParseObject):
     objects = dict()  # Dictionary to hold all Localization instances
 
     def _parse(self):

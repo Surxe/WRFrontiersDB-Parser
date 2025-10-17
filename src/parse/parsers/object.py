@@ -7,7 +7,7 @@ from utils import OPTIONS, path_to_id, asset_path_to_file_path_and_index, get_js
 
 import json
 
-class Object: #generic object that all classes extend
+class ParseObject: #generic object that all classes extend
     objects = dict()  # Dictionary to hold all object instances
 
     def __init__(self, id: str = "", source_data: dict = {}):

@@ -7,10 +7,10 @@ from utils import logger, get_json_data, asset_path_to_data, OPTIONS, merge_dict
 from parsers.ability import p_actor_class
 from parsers.image import parse_image_asset_path
 
-from parsers.object import Object
+from parsers.object import ParseObject
 from parsers.image import Image
 
-class Powerup(Object):
+class Powerup(ParseObject):
     objects = dict()
 
     def _parse(self):

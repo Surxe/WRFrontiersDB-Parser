@@ -3,12 +3,12 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from parsers.object import Object
+from parsers.object import ParseObject
 from parsers.localization import Localization
 
 from utils import path_to_file_name
 
-class LocalizationTable(Object):
+class LocalizationTable(ParseObject):
     objects = dict()  # Dictionary to hold all LocalizationTable instances
     
     def _parse(self):

@@ -5,13 +5,13 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils import logger, get_json_data, OPTIONS
 
-from parsers.object import Object
+from parsers.object import ParseObject
 from parsers.drop_team import DropTeam
 from parsers.character_preset import CharacterPreset
 from parsers.league import League
 from parsers.image import Image
 
-class BotPreset(Object):
+class BotPreset(ParseObject):
     objects = dict()
 
     def _parse(self):

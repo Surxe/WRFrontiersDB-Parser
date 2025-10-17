@@ -3,9 +3,9 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from parsers.object import Object
+from parsers.object import ParseObject
 
-class UpgradeCost(Object):
+class UpgradeCost(ParseObject):
     objects = dict()  # Dictionary to hold all UpgradeCost instances
 
     def __init__(self, module_id, level_num, currency_id, amount):

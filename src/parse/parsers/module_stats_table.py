@@ -3,10 +3,10 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from parsers.object import Object
+from parsers.object import ParseObject
 from parsers.module_stat import ModuleStat
 
-class ModuleStatsTable(Object):
+class ModuleStatsTable(ParseObject):
     objects = dict()  # Dictionary to hold all ModuleStat instances
     
     def _parse(self):

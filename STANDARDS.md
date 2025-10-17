@@ -4,7 +4,7 @@
 
 ### Case
 - **snake_case** - Used for variables and functions
-- **PascalCase** - Used for class names (e.g., `Options`, `Object`)
+- **PascalCase** - Used for class names (e.g., `Options`, `ParseObject`)
 - ***CREAMING_SNAKE_CASE** - Used for schema keys and environment variables (e.g., `LOG_LEVEL`, `SHOULD_PARSE`)
 
 ### Path Variable Naming

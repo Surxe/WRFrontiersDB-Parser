@@ -6,7 +6,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils import logger, path_to_id, get_json_data, asset_path_to_data, OPTIONS
 from parsers.localization_table import parse_localization
 
-from parsers.object import Object
+from parsers.object import ParseObject
 from parsers.faction import Faction
 from parsers.currency import Currency, parse_currency
 from parsers.image import Image, parse_image_asset_path
@@ -20,7 +20,7 @@ from parsers.pilot_talent import PilotTalent
 from parsers.module_stat import ModuleStat
 from parsers.module_tag import ModuleTag
 
-class Pilot(Object):
+class Pilot(ParseObject):
     objects = dict()
 
     def _parse(self):

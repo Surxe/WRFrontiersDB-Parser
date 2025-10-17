@@ -3,12 +3,12 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from parsers.object import Object
+from parsers.object import ParseObject
 
 from utils import parse_hex
 from parsers.localization_table import parse_localization
 
-class Rarity(Object):
+class Rarity(ParseObject):
     objects = dict()  # Dictionary to hold all Rarity instances
     
     def _parse(self):

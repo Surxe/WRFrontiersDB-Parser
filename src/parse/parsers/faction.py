@@ -3,13 +3,13 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from parsers.object import Object
+from parsers.object import ParseObject
 
 from utils import parse_hex
 from parsers.image import parse_badge_visual_info, parse_image_asset_path
 from parsers.localization_table import parse_localization
 
-class Faction(Object):
+class Faction(ParseObject):
     objects = dict()  # Dictionary to hold all Faction instances
 
     def _parse(self):
