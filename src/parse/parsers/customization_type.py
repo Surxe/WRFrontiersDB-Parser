@@ -3,12 +3,12 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from parsers.object import Object
+from parsers.object import ParseObject
 
 from parsers.localization_table import parse_localization
 from parsers.group_reward import GroupReward
 
-class CustomizationType(Object):
+class CustomizationType(ParseObject):
     objects = dict()  # Dictionary to hold all CustomizationType instances
 
     def _parse(self):

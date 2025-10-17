@@ -3,12 +3,12 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from parsers.object import Object
+from parsers.object import ParseObject
 
 from parsers.localization_table import parse_localization
 from parsers.image import parse_badge_visual_info
 
-class PilotClass(Object):
+class PilotClass(ParseObject):
     objects = dict()  # Dictionary to hold all PilotClass instances
 
     def _parse(self):

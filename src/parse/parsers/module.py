@@ -6,7 +6,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils import logger, path_to_id, get_json_data, asset_path_to_data, parse_colon_colon, OPTIONS
 from parsers.localization_table import parse_localization
 
-from parsers.object import Object
+from parsers.object import ParseObject
 from parsers.module_rarity import ModuleRarity
 from parsers.rarity import Rarity
 from parsers.character_module import CharacterModule
@@ -24,7 +24,7 @@ from parsers.currency import Currency
 from parsers.upgrade_cost import UpgradeCost
 from parsers.image import parse_image_asset_path, Image
 
-class Module(Object):
+class Module(ParseObject):
     objects = dict()
     
     def _parse(self): #Sparrow\Mechanics\Meta\Entities\Modules\DA_Module_ChassisRaven.json

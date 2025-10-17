@@ -3,12 +3,12 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from parsers.object import Object
+from parsers.object import ParseObject
 from parsers.module_category import ModuleCategory
 from utils import parse_hex, parse_colon_colon
 from parsers.localization_table import parse_localization
 
-class ModuleType(Object):
+class ModuleType(ParseObject):
     objects = dict()  # Dictionary to hold all ModuleType instances
     
     def _parse(self):

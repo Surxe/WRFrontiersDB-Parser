@@ -3,10 +3,10 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from parsers.object import Object
+from parsers.object import ParseObject
 from parsers.character_class import CharacterClass
 
-class ModuleClass(Object):
+class ModuleClass(ParseObject):
     objects = dict()  # Dictionary to hold all ModuleClass instances
     
     def _parse(self):

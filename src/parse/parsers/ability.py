@@ -3,13 +3,13 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from parsers.object import Object
+from parsers.object import ParseObject
 from utils import logger, ParseTarget, ParseAction, process_key_to_parser_function, asset_path_to_data, parse_colon_colon, parse_editor_curve_data, merge_dicts
 from parsers.image import parse_image_asset_path
 from parsers.localization_table import parse_localization
 from parsers.module_stat import ModuleStat
 
-class Ability(Object):
+class Ability(ParseObject):
     objects = dict()  # Dictionary to hold all Class instances
 
     def _parse(self):

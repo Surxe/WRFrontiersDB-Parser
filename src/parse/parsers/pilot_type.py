@@ -3,13 +3,13 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from parsers.object import Object
+from parsers.object import ParseObject
 
 from parsers.localization_table import parse_localization
 from parsers.rarity import Rarity
 from parsers.group_reward import GroupReward
 
-class PilotType(Object):
+class PilotType(ParseObject):
     objects = dict()  # Dictionary to hold all PilotType instances
 
     def _parse(self):

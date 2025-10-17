@@ -6,7 +6,7 @@ from loguru import logger
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils import path_to_id
-from parsers.object import Object
+from parsers.object import ParseObject
 from parsers.currency import Currency, parse_currency
 from parsers.content_unlock import ContentUnlock
 from parsers.decal import Decal
@@ -19,7 +19,7 @@ from parsers.material import Material
 from parsers.weathering import Weathering
 from parsers.skin import Skin
 
-class ProgressionTable(Object):
+class ProgressionTable(ParseObject):
     objects = dict()  # Dictionary to hold all ProgressionTable instances
 
     def _parse(self):
