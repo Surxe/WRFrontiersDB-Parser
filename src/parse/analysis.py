@@ -145,7 +145,7 @@ class Analysis:
             level_base, level_max = self._extract_base_and_max(module)
             diff = {}
             for key in level_base.keys():
-                if key in superficial_keys or key in ['ScrapRewards', 'upgrade_cost_id']:
+                if key in superficial_keys or key in ['scrap_rewards_ids', 'upgrade_cost_id']:
                     continue
                 base_value = level_base[key]
                 max_value = level_max[key]

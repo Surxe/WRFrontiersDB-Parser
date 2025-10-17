@@ -22,6 +22,7 @@ from parsers.module_stat import ModuleStat
 from parsers.module_stats_table import ModuleStatsTable
 from parsers.currency import Currency
 from parsers.upgrade_cost import UpgradeCost
+from parsers.scrap_reward import ScrapReward
 from parsers.image import parse_image_asset_path, Image
 
 class Module(ParseObject):
@@ -155,18 +156,20 @@ class Module(ParseObject):
                 "FirstScrapRewardCurrency": "DA_Meta_Currency_Alloys",
                 "SecondScrapRewardAmount": 0,
                 "SecondScrapRewardCurrency": "DA_Meta_Currency_Intel",
+
+                "Level": 1,
             }
             """
+            level_num = level["Level"]
 
             parsed_level = dict()
 
             # Parse upgrade and scrap currencies
             if "UpgradeCurrency" in level and "UpgradeCost" in level:
                 upgrade_currency = level["UpgradeCurrency"]
-                upgrade_cost = level["UpgradeCost"]
-                level_num = level["Level"]
-                if upgrade_currency is not None and upgrade_currency != "None": #it may be None if its say a torso ability module, as the ability is not what costs currency to upgrade, rather the module its attached to (torso) will have the cost
-                    upgrade_cost = UpgradeCost(level_num, upgrade_currency, upgrade_cost)
+                upgrade_cost_amount = level["UpgradeCost"]
+                if upgrade_currency is not None and upgrade_currency != "None" and upgrade_cost_amount > 0: #it may be None if its say a torso ability module, as the ability is not what costs currency to upgrade, rather the module its attached to (torso) will have the cost
+                    upgrade_cost = UpgradeCost(level_num, upgrade_currency, upgrade_cost_amount)
                     parsed_level["upgrade_cost_id"] = upgrade_cost.id
 
             def p_scrap_reward_amount(first_or_second):
@@ -178,13 +181,12 @@ class Module(ParseObject):
                 if scrap_reward_currency_key in level and scrap_reward_amount_key in level:
                     scrap_reward_currency = level[scrap_reward_currency_key]
                     scrap_reward_amount = level[scrap_reward_amount_key]
-                    if scrap_reward_currency is not None and scrap_reward_currency != "None":
-                        parsed_level['ScrapRewards'].append({
-                            "currency_id": scrap_reward_currency,
-                            "amount": scrap_reward_amount
-                        })
+                    if scrap_reward_currency is not None and scrap_reward_currency != "None" and scrap_reward_amount > 0:
+                        scrap_reward = ScrapReward(level_num, scrap_reward_currency, scrap_reward_amount)
+
+                        parsed_level['scrap_rewards_ids'].append(scrap_reward.id)
                 
-            parsed_level["ScrapRewards"] = []
+            parsed_level["scrap_rewards_ids"] = []
             p_scrap_reward_amount("First")
             p_scrap_reward_amount("Second")
 
@@ -352,6 +354,7 @@ def parse_modules(to_file=False):
         Currency.to_file()
         Ability.to_file()
         UpgradeCost.to_file()
+        ScrapReward.to_file()
         Image.to_file()
 
 if __name__ == "__main__":
