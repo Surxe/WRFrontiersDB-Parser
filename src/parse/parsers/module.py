@@ -166,8 +166,8 @@ class Module(ParseObject):
                 upgrade_cost = level["UpgradeCost"]
                 level_num = level["Level"]
                 if upgrade_currency is not None and upgrade_currency != "None": #it may be None if its say a torso ability module, as the ability is not what costs currency to upgrade, rather the module its attached to (torso) will have the cost
-                    upgrade_cost = UpgradeCost(self.id, level_num, upgrade_currency, upgrade_cost)
                     parsed_level["upgrade_currency_id"] = upgrade_cost.id
+                    upgrade_cost = UpgradeCost(level_num, upgrade_currency, upgrade_cost)
 
             def p_scrap_reward_amount(first_or_second):
                 """
