@@ -14,7 +14,7 @@ class ScrapReward(ParseObject):
             "level_num": level_num,
             "currency_id": currency_id,
             "amount": amount
-        })
+        }, can_override=False)
         
     def _parse(self):
         #self.module_rarity_id = self.source_data.get("module_rarity_id")

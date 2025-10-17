@@ -10,13 +10,18 @@ import json
 class ParseObject: #generic object that all classes extend
     objects = dict()  # Dictionary to hold all object instances
 
-    def __init__(self, id: str = "", source_data: dict = {}):
+    def __init__(self, id: str = "", source_data: dict = {}, can_override=True):
         self.source_data = source_data
         self.id = id
         if id == "" and source_data == {}:
             return
         self._parse()
 
+        if not can_override and id in self.objects:
+            current_obj = self.objects[id]
+            if current_obj.source_data == self.source_data:
+                return
+            raise ValueError(f"Object with id {id} already exists and can_override is set to False.")
         self.objects[id] = self  # Store the instance in the class dictionary
 
     def _parse(self):

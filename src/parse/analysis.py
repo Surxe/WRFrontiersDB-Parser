@@ -51,7 +51,7 @@ class Analysis:
         for level_index, level_data in enumerate(module_scalars['variables']):
             upgrade_cost_id = level_data.get('upgrade_cost_id')
             if upgrade_cost_id is None:
-                logger.debug(f"Warning: No upgrade cost ID found for module {getattr(module, 'id', None)} at level {level_index+1}")
+                logger.warning(f"No upgrade cost ID found for module {getattr(module, 'id', None)} at level {level_index+1}")
                 continue
             upgrade_cost = self.upgrade_cost_class.objects[upgrade_cost_id]
             currency_id = upgrade_cost.currency_id
