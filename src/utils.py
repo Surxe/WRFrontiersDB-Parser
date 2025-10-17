@@ -106,11 +106,11 @@ def path_to_file_name(asset_path) -> str:
         raise ValueError("Empty asset_path provided.")
     return asset_path.split('/')[-1].split('.')[0]
 
-def path_to_id(asset_path) -> str: # "/Game/DungeonCrawler/Data/Generated/V2/LootDrop/LootDropGroup/Id_LootDropGroup_GhostKing.Id_LootDropGroup_GhostKing" -> "Id_LootDropGroup_GhostKing"
+def path_to_id(asset_path) -> str: # "/Game/DungeonCrawler/Data/Generated/V2/LootDrop/LootDropGroup/Id_LootDropGroup_GhostKing.Id_LootDropGroup_GhostKing" -> "Id_LootDropGroup_GhostKing.0"
     # technically also works for file_path # "DungeonCrawler/ContentData/Generated/V2/LootDrop/LootDropGroup/Id_LootDropGroup_GhostKing.Id_LootDropGroup_GhostKing" -> "Id_LootDropGroup_GhostKing.0"
     file_name = path_to_file_name(asset_path)
     index = path_to_index(asset_path)
-    return f"{file_name}.{index}" # /path/to/DA_Thing.0 -> DA_Thing.0
+    return f"{file_name}.{index}" # /path/to/DA_Thing.1 -> DA_Thing.1 or DA_Thing.0 if no index
 
 ###############################
 # Frequent Structure Parsing  #

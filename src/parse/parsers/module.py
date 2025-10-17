@@ -28,37 +28,33 @@ class Module(Object):
     objects = dict()
     
     def _parse(self): #Sparrow\Mechanics\Meta\Entities\Modules\DA_Module_ChassisRaven.json
-        for elem in self.source_data:
-            if elem["Type"] != "SCharacterModuleDataAsset":
-                continue
+        # Parse properties
+        props = self.source_data["Properties"]
 
-            # Parse properties
-            props = elem["Properties"]
-
-            # {k: v} if k is a key in props, parse it with the corresponding function
-            key_to_parser_function = {
-                "ProductionStatus": (parse_colon_colon, "production_status"),
-                "IsUniversalMounted": None,
-                "InventoryIcon": (parse_image_asset_path, "inventory_icon_path"),
-                "ModuleRarity": (self._p_module_rarity, "module_rarity_id"),
-                "CharacterModules": (self._p_character_modules, "character_module_mounts"),
-                "ModuleTags": (self._p_module_tags, "module_tags_ids"),
-                "ModuleScaler": (self._p_module_scalar, None),
-                "AbilityScalers": (self._p_ability_scalars, None),
-                "Title": (parse_localization, "name"),
-                "Description": (parse_localization, "description"),
-                "TextTags": (self._p_text_tags, "text_tags"),
-                "Faction": (self._p_faction, "faction_id"),
-                "ModuleClasses": (self._p_module_classes, "module_classes_ids"),
-                "PreviewVideoPath": None,
-                "ModuleStatsTable": (self._p_module_stats_table, "module_stats_table_id"),
-                "ModuleType": (self._p_module_type, "module_type_id"),
-                "Sockets": (self._p_sockets, "module_socket_type_ids"),
-                "Levels": None,
-                "ID": None,
-            }
-            
-            self._process_key_to_parser_function(key_to_parser_function, props, tabs=2)
+        # {k: v} if k is a key in props, parse it with the corresponding function
+        key_to_parser_function = {
+            "ProductionStatus": (parse_colon_colon, "production_status"),
+            "IsUniversalMounted": None,
+            "InventoryIcon": (parse_image_asset_path, "inventory_icon_path"),
+            "ModuleRarity": (self._p_module_rarity, "module_rarity_id"),
+            "CharacterModules": (self._p_character_modules, "character_module_mounts"),
+            "ModuleTags": (self._p_module_tags, "module_tags_ids"),
+            "ModuleScaler": (self._p_module_scalar, None),
+            "AbilityScalers": (self._p_ability_scalars, None),
+            "Title": (parse_localization, "name"),
+            "Description": (parse_localization, "description"),
+            "TextTags": (self._p_text_tags, "text_tags"),
+            "Faction": (self._p_faction, "faction_id"),
+            "ModuleClasses": (self._p_module_classes, "module_classes_ids"),
+            "PreviewVideoPath": None,
+            "ModuleStatsTable": (self._p_module_stats_table, "module_stats_table_id"),
+            "ModuleType": (self._p_module_type, "module_type_id"),
+            "Sockets": (self._p_sockets, "module_socket_type_ids"),
+            "Levels": None,
+            "ID": None,
+        }
+        
+        self._process_key_to_parser_function(key_to_parser_function, props, tabs=2)
 
         if not hasattr(self, "production_status"):
             logger.debug(f"Module {self.id} is not ready for production")
@@ -316,16 +312,28 @@ class Module(Object):
             module_socket_type_ids.append(module_socket_type_id)
         return module_socket_type_ids
     
+def find_module_element(path):
+    """
+    From the path to a given DA_Module_*.json file, find and return the element in the file that contains the *root* module data.
+    """
+    module_data = get_json_data(path)
+    for i, elem in enumerate(module_data):
+        if elem["Type"] != "SCharacterModuleDataAsset":
+            continue
+        return i, elem
+    raise ValueError(f"Could not find module data in {path}")
 
 def parse_modules(to_file=False):
     modules_source_path = os.path.join(OPTIONS.export_dir, r"WRFrontiers\Content\Sparrow\Mechanics\Meta\Entities\Modules")
     for file in os.listdir(modules_source_path):
         if file.endswith(".json"):
             full_path = os.path.join(modules_source_path, file)
+            element_index, module_element_data = find_module_element(full_path)
+            # replace the index in module_id with the index of the meat and potatoes element
+            file = f"{file.split('.')[0]}.{element_index}" # Cyclops.0 -> Cyclops.3 if the module data is the 4th element in the file
             module_id = path_to_id(file)
             logger.debug(f"Parsing {Module.__name__} {module_id} from {full_path}")
-            module_data = get_json_data(full_path)
-            module = Module(module_id, module_data)
+            module = Module(module_id, module_element_data)
 
     if to_file: # Condition prevents needlessly saving the same data multiple times, as it will also be saved if ran thru parse.py
         Module.to_file()
