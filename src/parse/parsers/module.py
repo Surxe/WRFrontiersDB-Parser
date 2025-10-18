@@ -175,7 +175,7 @@ class Module(ParseObject):
                 upgrade_cost_amount = level["UpgradeCost"]
                 
                 if upgrade_currency is not None and upgrade_currency != "None": #it may be None if its say a torso ability module, as the ability is not what costs currency to upgrade, rather the module its attached to (torso) will have the cost
-                    upgrade_cost = UpgradeCost(level_num, upgrade_currency, upgrade_cost_amount) # consciously not excluding 0 amounts, as it messes up ability to check if its a constant or a variable
+                    upgrade_cost = UpgradeCost(level_num, module_rarity, upgrade_currency, upgrade_cost_amount) # consciously not excluding 0 amounts, as it messes up ability to check if its a constant or a variable
                     parsed_level["upgrade_cost_id"] = upgrade_cost.id
 
             def p_scrap_reward_amount(first_or_second):
@@ -189,7 +189,6 @@ class Module(ParseObject):
                     scrap_reward_amount = level[scrap_reward_amount_key]
                     if scrap_reward_currency is not None and scrap_reward_currency != "None": # consciously not excluding 0 amounts, as it messes up ability to check if its a constant or a variable
                         scrap_reward = ScrapReward(level_num, scrap_reward_currency, scrap_reward_amount)
-
                         parsed_level['scrap_rewards_ids'].append(scrap_reward.id)
                 
             parsed_level["scrap_rewards_ids"] = []

@@ -21,7 +21,7 @@ class ParseObject: #generic object that all classes extend
             current_obj = self.objects[id]
             if current_obj.source_data == self.source_data:
                 return
-            raise ValueError(f"Object with id {id} already exists and can_override is set to False.")
+            raise ValueError(f"Object with id {id} already exists with different source data and can_override is set to False.")
         self.objects[id] = self  # Store the instance in the class dictionary
 
     def _parse(self):
