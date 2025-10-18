@@ -10,59 +10,14 @@ import json
 class ParseObject: #generic object that all classes extend
     objects = dict()  # Dictionary to hold all object instances
 
-    def __init__(self, id: str = "", source_data: dict = {}, can_override=True):
+    def __init__(self, id: str = "", source_data: dict = {}):
         self.source_data = source_data
         self.id = id
         if id == "" and source_data == {}:
             return
         self._parse()
 
-        if not can_override and id in self.objects:
-            current_obj = self.objects[id]
-            if current_obj.source_data == self.source_data:
-                return
-            raise ValueError(f"Object with id {id} already exists with different source data and can_override is set to False.")
         self.objects[id] = self  # Store the instance in the class dictionary
-
-    def _make_unique_id(self, id_components: list, unique_fields: dict):
-        """
-        Generate a unique ID by progressively adding components until no conflict exists.
-        
-        Args:
-            id_components: List of ID components to try, in order from shortest to longest.
-                          Example: ["level_1_rare", "level_1_rare_credits", "level_1_rare_credits_100"]
-            unique_fields: Dictionary of field names and values that must match for objects to be considered identical.
-                          Example: {"currency_id": "credits", "amount": 100}
-        
-        Returns:
-            str: A unique ID that either doesn't exist yet, or exists with matching unique_fields.
-        
-        Raises:
-            ValueError: If all ID components result in conflicts with different data.
-        """
-        for id_to_try in id_components:
-            other_obj = self.objects.get(id_to_try, None)
-            
-            if other_obj is None:
-                # ID doesn't exist yet, use it
-                return id_to_try
-            
-            # ID exists, check if the unique fields match
-            all_match = all(
-                other_obj.source_data.get(field_name) == field_value
-                for field_name, field_value in unique_fields.items()
-            )
-            
-            if all_match:
-                # Existing object has matching data, reuse the ID
-                return id_to_try
-            # else: conflict with different data, try next component
-        
-        # All components tried and all had conflicts
-        raise ValueError(
-            f"Cannot generate unique ID. All attempted IDs {id_components} conflict with existing objects "
-            f"that have different values for unique fields {list(unique_fields.keys())}"
-        )
 
     def _parse(self):
         """
