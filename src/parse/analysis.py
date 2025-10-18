@@ -335,21 +335,25 @@ class Analysis:
     ##########################
     #          Other         #
     ##########################
-
-    def to_json(self):
-        """Return analysis data as pretty-printed JSON."""
-        data = round_dict_values({
+    def bundle_self(self):
+        """Return self as one dictionary, keyed by the future file name."""
+        return round_dict_values({
             'level_diffs_by_module': sort_dict(self.level_diffs_by_module, 1),
             'level_diffs_by_stat': sort_dict(self.level_diffs_by_stat, 1),
             'standard_cost_and_scrap': self.standard_cost_and_scrap
         })
-        return json.dumps(data, ensure_ascii=False, indent=4)
 
     def to_file(self):
         """Write analysis data to output file."""
-        file_path = os.path.join(OPTIONS.output_dir, f'{self.__class__.__name__}.json')
-        with open(file_path, 'w', encoding='utf-8') as f:
-            f.write(self.to_json())
+        # Create Analysis folder if it doesn't exist
+        analysis_dir = os.path.join(OPTIONS.output_dir, f'{self.__class__.__name__}')
+        os.makedirs(analysis_dir, exist_ok=True)
+        bundle = self.bundle_self()
+        for file_name, data in bundle.items():
+            file_path = os.path.join(analysis_dir, f'{file_name}.json')
+            logger.debug(f"Writing analysis data to {file_path}")
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=4)
 
 def round_dict_values(d):
     if isinstance(d, dict):
