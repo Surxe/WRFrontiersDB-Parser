@@ -188,7 +188,7 @@ class Module(ParseObject):
                     scrap_reward_currency = level[scrap_reward_currency_key]
                     scrap_reward_amount = level[scrap_reward_amount_key]
                     if scrap_reward_currency is not None and scrap_reward_currency != "None": # consciously not excluding 0 amounts, as it messes up ability to check if its a constant or a variable
-                        scrap_reward = ScrapReward(level_num, scrap_reward_currency, scrap_reward_amount)
+                        scrap_reward = ScrapReward(level_num, module_rarity, scrap_reward_currency, scrap_reward_amount)
                         parsed_level['scrap_rewards_ids'].append(scrap_reward.id)
                 
             parsed_level["scrap_rewards_ids"] = []
