@@ -71,7 +71,7 @@ class Analysis:
             if module_scalars is None:
                 return None
             for level_index, level_data in enumerate(module_scalars['variables']):
-                upgrade_cost_id = level_data.get('upgrade_currency_id')
+                upgrade_cost_id = level_data.get('upgrade_cost_id')
                 if upgrade_cost_id is None:
                     logger.warning(f"No upgrade cost ID found for module {getattr(module, 'id', None)} at level {level_index+1}")
                     continue
@@ -110,7 +110,7 @@ class Analysis:
 
             for key in level_base.keys():
                 logger.debug(f"Calculating diff for key: {key} in module: {module_id}")
-                if key in superficial_keys or key in {'ScrapRewards', 'upgrade_currency_id'}:
+                if key in superficial_keys or key in {'scrap_rewards_ids', 'upgrade_cost_id'}:
                     continue
                 else:
                     add_diff(key, calc_diff(level_base[key], level_max[key], module_id))
