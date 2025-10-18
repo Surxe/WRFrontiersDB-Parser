@@ -81,7 +81,8 @@ class Analysis:
         superficial_keys = {
             'Health', 'Level', 'Def', 'Atk', 'Mob', 'AbilityPower', 'Mobility',
             'ModuleClass_1', 'ModuleClass_2', 'ModuleTag_1', 'ModuleTag_2',
-            'ModuleFaction', 'FirePower', 'bIsPerk'
+            'ModuleFaction', 'FirePower', 'bIsPerk',
+            'ArmorDPS', 'ShieldDPS' #for now. these are UI numbers and are often wrong. will do real dps calcs later.
         }
 
         for module_id, module in module_class_objects.items():
