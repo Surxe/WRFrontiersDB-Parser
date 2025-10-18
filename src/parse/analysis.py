@@ -221,7 +221,7 @@ class Analysis:
             }
         """
 
-        # First, determine the highest frequency
+        # First, determine the frequency
         """
         {
             <module_rarity_id>: {
@@ -314,6 +314,20 @@ class Analysis:
                     if scrap_rewards_freq:
                         most_frequent_scrap_reward = max(scrap_rewards_freq.items(), key=lambda x: x[1])[0]
                         standard_cost_and_scrap[module_rarity_id][level][currency_id]['scrap_reward'] = most_frequent_scrap_reward
+
+        # Then, ensure upgrade_cost and scrap_reward in each entry, default to 0 otherwise
+        for module_rarity_id, levels_data in standard_cost_and_scrap.items():
+            for level, currency_data in levels_data.items():
+                for currency_id, cost_and_scrap in currency_data.items():
+                    if 'upgrade_cost' not in cost_and_scrap:
+                        cost_and_scrap['upgrade_cost'] = 0
+                    if 'scrap_reward' not in cost_and_scrap:
+                        cost_and_scrap['scrap_reward'] = 0
+
+        # Finally, sort each level's entry
+        for module_rarity_id, levels_data in standard_cost_and_scrap.items():
+            for level, currency_data in levels_data.items():
+                standard_cost_and_scrap[module_rarity_id][level] = sort_dict(dict(currency_data.items()))
 
         return standard_cost_and_scrap
 
