@@ -28,7 +28,9 @@ class Analysis:
         self.level_diffs_by_stat = self.get_level_diffs_per_stat(self.level_diffs_by_module, stat_ranks)
 
     #################################
-    #     Level Diffs/Upgrade Costs #
+    #      Level Diffs:
+    #          * Stat increases
+    #          * Upgrade costs
     #################################
     @staticmethod
     def get_level_diffs_per_module(module_class_objects, upgrade_cost_class_objects):
@@ -216,11 +218,11 @@ class Analysis:
 
     def to_json(self):
         """Return analysis data as pretty-printed JSON."""
-        data = {
+        data = round_dict_values({
             'level_diffs_by_module': sort_dict(self.level_diffs_by_module, 1),
             'level_diffs_by_stat': sort_dict(self.level_diffs_by_stat, 1),
             'total_upgrade_cost_for_all_modules': sort_dict(self.total_upgrade_cost_for_all_modules, 1)
-        }
+        })
         return json.dumps(data, ensure_ascii=False, indent=4)
 
     def to_file(self):
@@ -228,6 +230,19 @@ class Analysis:
         file_path = os.path.join(OPTIONS.output_dir, f'{self.__class__.__name__}.json')
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(self.to_json())
+
+def round_dict_values(d):
+    if isinstance(d, dict):
+        return {k: round_dict_values(v) for k, v in d.items()}
+    elif isinstance(d, list):
+        return [round_dict_values(item) for item in d]
+    else:
+        return round_val(d)
+
+def round_val(value):
+    if isinstance(value, str):
+        return value
+    return round(value, 5) #decimal places
 
 def analyze(module_class, module_stat_class, upgrade_cost_class):
     analysis = Analysis(module_class, module_stat_class, upgrade_cost_class)
