@@ -37,7 +37,7 @@ def main():
     parse_game_modes()
     parse_bot_presets()
     parse_powerups()
-    analyze(Module, ModuleStat, UpgradeCost)
+    analyze(Module, ModuleStat, UpgradeCost, ScrapReward)
 
 
     ProgressionTable.to_file()
