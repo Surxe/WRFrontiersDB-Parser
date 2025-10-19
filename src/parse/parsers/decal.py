@@ -28,7 +28,7 @@ class Decal(ParseObject):
             "ID": None,
         }
 
-        self._process_key_to_parser_function(key_to_parser_function, props, tabs=2)
+        self._process_key_to_parser_function(key_to_parser_function, props)
 
     def _p_type(self, data):
         return CustomizationType.get_from_asset_path(data["ObjectPath"])

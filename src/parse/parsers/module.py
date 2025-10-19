@@ -55,7 +55,7 @@ class Module(ParseObject):
             "ID": None,
         }
         
-        self._process_key_to_parser_function(key_to_parser_function, props, tabs=2)
+        self._process_key_to_parser_function(key_to_parser_function, props)
 
         if not hasattr(self, "production_status"):
             logger.debug(f"Module {self.id} is not ready for production")

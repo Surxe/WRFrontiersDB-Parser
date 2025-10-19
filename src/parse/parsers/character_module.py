@@ -87,7 +87,7 @@ class CharacterModule(ParseObject):
             "bShotMuzzleSwitch": None, #vfx horde
         }
 
-        parsed_data = self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="CharacterModule", set_attrs=False, tabs=1, default_configuration={
+        parsed_data = self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="CharacterModule", set_attrs=False, default_configuration={
             'target': ParseTarget.MATCH_KEY
         })
         
@@ -129,7 +129,6 @@ class CharacterModule(ParseObject):
                                                            props, 
                                                            log_descriptor="ModuleScalar", 
                                                            set_attrs=False, 
-                                                           tabs=2,
                                                            default_configuration={
                                                                'target': ParseTarget.MATCH_KEY
                                                            })
@@ -258,7 +257,7 @@ class CharacterModule(ParseObject):
                 base = {}
             result = dict(base)
 
-            overlay = self._process_key_to_parser_function(key_to_parser_function, data, log_descriptor="FiringBehavior", set_attrs=False, tabs=2, default_configuration={
+            overlay = self._process_key_to_parser_function(key_to_parser_function, data, log_descriptor="FiringBehavior", set_attrs=False, default_configuration={
                 'target': ParseTarget.MATCH_KEY
             })
 
@@ -274,7 +273,7 @@ class CharacterModule(ParseObject):
                 "bOneShotEffectPerBurst": "value",
             }
             
-            return self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="BurstBehavior", set_attrs=False, tabs=2, default_configuration={
+            return self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="BurstBehavior", set_attrs=False, default_configuration={
                 'target': ParseTarget.MATCH_KEY
             })
         
@@ -301,7 +300,7 @@ class CharacterModule(ParseObject):
                 "ChargedShotSound": None,
             }
 
-            return self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="ChargingBehavior", set_attrs=False, tabs=2, default_configuration={
+            return self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="ChargingBehavior", set_attrs=False, default_configuration={
                 'target': ParseTarget.MATCH_KEY
             })
 
@@ -312,7 +311,7 @@ class CharacterModule(ParseObject):
             "SwitchingType": parse_colon_colon
         }
         
-        return self._process_key_to_parser_function(key_to_parser_function, fire_mode_data["Properties"], log_descriptor="FireMode", set_attrs=False, tabs=1, default_configuration={
+        return self._process_key_to_parser_function(key_to_parser_function, fire_mode_data["Properties"], log_descriptor="FireMode", set_attrs=False, default_configuration={
             'target': ParseTarget.MATCH_KEY
         })
 
@@ -344,7 +343,7 @@ class CharacterModule(ParseObject):
                 "FireFX": None,
                 "FireSound": None,
             }
-            parsed_mapping = self._process_key_to_parser_function(key_to_parser_function, projectile_mapping, log_descriptor="ProjectileMapping", set_attrs=False, tabs=2, default_configuration={
+            parsed_mapping = self._process_key_to_parser_function(key_to_parser_function, projectile_mapping, log_descriptor="ProjectileMapping", set_attrs=False, default_configuration={
                 'target': ParseTarget.MATCH_KEY
             })
             parsed_mappings.append(parsed_mapping)
@@ -368,7 +367,7 @@ class CharacterModule(ParseObject):
             "RangeReserve": "value",
         }
 
-        return self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="BallisticBehavior", set_attrs=False, tabs=2, default_configuration={
+        return self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="BallisticBehavior", set_attrs=False, default_configuration={
             'target': ParseTarget.MATCH_KEY
         })
     
@@ -429,6 +428,6 @@ def p_this_distance_setting(data):
         "DirectDamageMultiplier": "value",
     }
 
-    return process_key_to_parser_function(key_to_parser_function, data, log_descriptor="DistanceSetting", set_attrs=False, tabs=2, default_configuration={
+    return process_key_to_parser_function(key_to_parser_function, data, log_descriptor="DistanceSetting", set_attrs=False, default_configuration={
         'target': ParseTarget.MATCH_KEY
     })

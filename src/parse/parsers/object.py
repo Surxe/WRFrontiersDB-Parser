@@ -25,7 +25,7 @@ class ParseObject: #generic object that all classes extend
         """
         raise NotImplementedError("Subclasses must implement this method.")
 
-    def _process_key_to_parser_function(self, key_to_parser_function_map, data, log_descriptor="", set_attrs=True, tabs=0, default_configuration={}):
+    def _process_key_to_parser_function(self, key_to_parser_function_map, data, log_descriptor="", set_attrs=True, default_configuration={}):
         """
         Wrapper method that calls the utility function with self as the object.
         """
@@ -35,7 +35,6 @@ class ParseObject: #generic object that all classes extend
             obj=self,
             log_descriptor=log_descriptor,
             set_attrs=set_attrs,
-            tabs=tabs,
             default_configuration=default_configuration
         )
 

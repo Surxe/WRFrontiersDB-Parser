@@ -30,7 +30,7 @@ class ProgressionTable(ParseObject):
             "ID": None,
         }
 
-        self._process_key_to_parser_function(key_to_parser_function, props, tabs=2)
+        self._process_key_to_parser_function(key_to_parser_function, props)
 
     def _p_levels(self, levels: list):
         parsed_levels = dict()
@@ -42,7 +42,7 @@ class ProgressionTable(ParseObject):
                 "Reward": (self._p_level_reward, "rewards")
             }
 
-            parsed_level = self._process_key_to_parser_function(key_to_parser_function, level, set_attrs=False, log_descriptor='_p_levels()', tabs=3)
+            parsed_level = self._process_key_to_parser_function(key_to_parser_function, level, set_attrs=False, log_descriptor='_p_levels()')
             parsed_levels[level_number] = parsed_level
 
         return parsed_levels
@@ -67,7 +67,7 @@ class ProgressionTable(ParseObject):
             "RobotVariantRewards": self._confirm_empty,
         }
 
-        parsed_reward = self._process_key_to_parser_function(key_to_parser_function, reward, set_attrs=False, log_descriptor='_p_level_reward()', tabs=4)
+        parsed_reward = self._process_key_to_parser_function(key_to_parser_function, reward, set_attrs=False, log_descriptor='_p_level_reward()')
         
         # Remove empty lists and dicts
         parsed_reward = {k: v for k, v in parsed_reward.items() if v not in ([], {}, None)}

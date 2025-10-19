@@ -31,7 +31,7 @@ class FactoryPreset(ParseObject):
             "ID": None,
         }
 
-        self._process_key_to_parser_function(key_to_parser_function, props, tabs=2)
+        self._process_key_to_parser_function(key_to_parser_function, props)
 
         # Default character_type to Mech
         if not hasattr(self, "character_type"):

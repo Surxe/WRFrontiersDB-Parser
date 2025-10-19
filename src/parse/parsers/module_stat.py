@@ -26,4 +26,4 @@ class ModuleStat(ParseObject):
             "MaxStatTitanValueUI": "value",
         }
 
-        self._process_key_to_parser_function(key_to_parser_function, props, tabs=2)
+        self._process_key_to_parser_function(key_to_parser_function, props)

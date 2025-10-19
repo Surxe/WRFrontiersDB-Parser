@@ -34,7 +34,7 @@ class Currency(ParseObject):
             "ID": None,
         }
 
-        self._process_key_to_parser_function(key_to_parser_function, props, tabs=2)
+        self._process_key_to_parser_function(key_to_parser_function, props)
 
     def _parse_localizations(self, list):
         parsed_localizations = []
@@ -65,7 +65,7 @@ def parse_currency(data):
     if currency_data is None and current_amount == 0:
         return
     elif currency_data is None:
-        raise Exception(f"Structure change: {Currency.__class__.__name__} {Currency.id} has currency data with no Currency but Amount is {current_amount} and length of array is {len(data)}.", tabs=1)
+        raise Exception(f"Structure change: {Currency.__class__.__name__} {Currency.id} has currency data with no Currency but Amount is {current_amount} and length of array is {len(data)}.")
     
     currency_asset_path = currency_data["ObjectPath"]
     currency_id = Currency.get_from_asset_path(currency_asset_path)
