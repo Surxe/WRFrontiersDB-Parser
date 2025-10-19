@@ -354,18 +354,6 @@ class TestProcessKeyToParserFunction(unittest.TestCase):
             log_descriptor="test_context"
         )
 
-    def test_tabs_option(self):
-        """Test tabs option for logging."""
-        key_map = {
-            "UnknownKey": "value",  # This will generate a warning
-        }
-        
-        # Test that tabs option is accepted (function should not crash)
-        process_key_to_parser_function(
-            key_map, {"UnknownKey": "test"}, self.mock_obj, 
-            tabs=2
-        )
-
     def test_mixed_configuration_formats(self):
         """Test mixing different configuration formats."""
         def custom_parser(value):

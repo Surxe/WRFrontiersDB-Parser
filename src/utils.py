@@ -258,7 +258,7 @@ class ParseTarget:
     MATCH_KEY = "match_key"           # Use the original key as-is
     MATCH_KEY_SNAKE = "match_key_snake"  # Convert key to snake_case
 
-def process_key_to_parser_function(key_to_parser_function_map, data, obj=None, log_descriptor="", set_attrs=True, tabs=0, default_configuration={}):
+def process_key_to_parser_function(key_to_parser_function_map, data, obj=None, log_descriptor="", set_attrs=True, default_configuration={}):
     """
     Enhanced version that supports flexible target destinations.
     
@@ -331,7 +331,7 @@ def process_key_to_parser_function(key_to_parser_function_map, data, obj=None, l
         if not key in key_to_parser_function_map:
             obj_id = getattr(obj, 'id', 'Error, no id found for obj') if obj else None
             obj_class_ref_str = f"{class_name} {obj_id} has unknown property" if class_name and obj_id else "Unknown property"
-            logger.warning(f"Warning: {obj_class_ref_str} '{key}'{log_descriptor}", tabs=tabs)
+            logger.warning(f"Warning: {obj_class_ref_str} '{key}'{log_descriptor}")
         
         else:
             config = key_to_parser_function_map[key]

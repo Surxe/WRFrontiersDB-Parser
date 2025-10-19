@@ -52,7 +52,7 @@ class Powerup(ParseObject):
             "ID": None,
         }
 
-        my_powerup_data = self._process_key_to_parser_function(key_to_parser_function, props, tabs=2)
+        my_powerup_data = self._process_key_to_parser_function(key_to_parser_function, props)
 
         overlayed_data = merge_dicts(template_ability_data, my_powerup_data)
 

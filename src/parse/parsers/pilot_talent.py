@@ -27,7 +27,7 @@ class PilotTalent(ParseObject):
             "ID": None,
         }
 
-        self._process_key_to_parser_function(key_to_parser_function, props, tabs=2)
+        self._process_key_to_parser_function(key_to_parser_function, props)
 
     def _p_bp(self, data: dict):
         bp_file_path = asset_path_to_file_path(data["AssetPathName"])
@@ -106,7 +106,7 @@ class PilotTalent(ParseObject):
             "ReactivationPolicy": parse_colon_colon,
         }
 
-        self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor=bp_file_path, tabs=2)
+        self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor=bp_file_path)
 
     def _p_stats(self, stats):
         parsed_stats = []

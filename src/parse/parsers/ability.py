@@ -293,7 +293,7 @@ class Ability(ParseObject):
         }
 
         my_ability_data = self._process_key_to_parser_function(
-            key_to_parser_function, props, tabs=3, set_attrs=False, default_configuration={
+            key_to_parser_function, props, set_attrs=False, default_configuration={
                 'action': ParseAction.DICT_ENTRY,
                 'target_dict_path': 'misc',
                 'target': ParseTarget.MATCH_KEY
@@ -345,7 +345,7 @@ class Ability(ParseObject):
         }
 
         parsed_spawn_data = self._process_key_to_parser_function(
-            key_to_parser_function, spawn_action_data["Properties"], log_descriptor="SpawnAction", tabs=4, set_attrs=False, default_configuration={
+            key_to_parser_function, spawn_action_data["Properties"], log_descriptor="SpawnAction", set_attrs=False, default_configuration={
                 'target': ParseTarget.MATCH_KEY
             }
         )
@@ -380,7 +380,7 @@ class Ability(ParseObject):
         }
 
         parsed_targeting_data = self._process_key_to_parser_function(
-            key_to_parser_function, targeting_action_data["Properties"], log_descriptor="ConfirmationAction", tabs=4, set_attrs=False
+            key_to_parser_function, targeting_action_data["Properties"], log_descriptor="ConfirmationAction", set_attrs=False
         )
 
         return parsed_targeting_data
@@ -477,7 +477,7 @@ class Ability(ParseObject):
             }
 
             parsed_proj = self._process_key_to_parser_function(
-                key_to_parser_function, props, log_descriptor="ProjectileType", tabs=4, set_attrs=False, default_configuration={
+                key_to_parser_function, props, log_descriptor="ProjectileType", set_attrs=False, default_configuration={
                     'target': ParseTarget.MATCH_KEY
                 })
             parsed_proj["SpawnSocketName"] = projectile_type["SpawnSocketName"]
@@ -491,7 +491,7 @@ class Ability(ParseObject):
             "PushingSettings": self._p_pushing_settings,
         }
         return self._process_key_to_parser_function(
-            key_to_parser_function, data, log_descriptor="ContinuousPushingSettings", tabs=5, set_attrs=False, default_configuration={
+            key_to_parser_function, data, log_descriptor="ContinuousPushingSettings", set_attrs=False, default_configuration={
                 'target': ParseTarget.MATCH_KEY
             }
         )
@@ -522,7 +522,7 @@ class Ability(ParseObject):
             }
 
             parsed_action = self._process_key_to_parser_function(
-                key_to_parser_function, action_data, log_descriptor="Action", tabs=4, set_attrs=False, default_configuration={
+                key_to_parser_function, action_data, log_descriptor="Action", set_attrs=False, default_configuration={
                     'target': ParseTarget.MATCH_KEY
                 }
             )
@@ -651,7 +651,7 @@ def p_expansion_template(data: dict):
         "InitialRadius": "value",
         "FinishRadius": "value",
     }
-    return process_key_to_parser_function(key_to_parser_function, props, log_descriptor="ExpansionTemplate", set_attrs=False, tabs=2, default_configuration={
+    return process_key_to_parser_function(key_to_parser_function, props, log_descriptor="ExpansionTemplate", set_attrs=False, default_configuration={
         'target': ParseTarget.MATCH_KEY
     })
 
@@ -695,7 +695,7 @@ def p_movement_component(data: dict):
         "bCruiseAvoidObstacles": "value",
         "bEnableCruiseMode": "value",
     }
-    return process_key_to_parser_function(key_to_parser_function, data["Properties"], log_descriptor="MovementComponent", set_attrs=False, tabs=2, default_configuration={
+    return process_key_to_parser_function(key_to_parser_function, data["Properties"], log_descriptor="MovementComponent", set_attrs=False, default_configuration={
         'target': ParseTarget.MATCH_KEY
     })
 
@@ -717,7 +717,7 @@ def p_damage_applier(data: dict):
     }
 
     parsed_data = process_key_to_parser_function(
-            key_to_parser_function, data, log_descriptor="ActorClass", tabs=6, set_attrs=False, default_configuration={
+            key_to_parser_function, data, log_descriptor="ActorClass", set_attrs=False, default_configuration={
                 'target': ParseTarget.MATCH_KEY
             }
         )
@@ -760,7 +760,7 @@ def p_collision_component(data):
         "bHiddenInGame": None,
     }
 
-    return process_key_to_parser_function(key_to_parser_function, props, log_descriptor="CollisionComponent", set_attrs=False, tabs=2, default_configuration={
+    return process_key_to_parser_function(key_to_parser_function, props, log_descriptor="CollisionComponent", set_attrs=False, default_configuration={
         'target': ParseTarget.MATCH_KEY
     })
 
@@ -804,7 +804,6 @@ def p_buff_area_component(data: dict):
         key_to_parser_function,
         props,
         log_descriptor="BuffAreaComponent",
-        tabs=6,
         set_attrs=False
     )
 
@@ -1092,7 +1091,7 @@ def p_actor_class(data: dict):
     }
 
     parsed_data = process_key_to_parser_function(
-        key_to_parser_function, props, log_descriptor="ActorClass", tabs=5, set_attrs=False, default_configuration={
+        key_to_parser_function, props, log_descriptor="ActorClass", set_attrs=False, default_configuration={
             'target': ParseTarget.MATCH_KEY
         }
     )

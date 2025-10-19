@@ -25,7 +25,7 @@ class GameMode(ParseObject):
             "ID": None
         }
 
-        self._process_key_to_parser_function(key_to_parser_function, props, tabs=2)
+        self._process_key_to_parser_function(key_to_parser_function, props)
 
     def _parse_bp(self, bp_path: str):
         bp_data = get_json_data(bp_path)
@@ -83,7 +83,7 @@ class GameMode(ParseObject):
             "InactivePlayerStateLifeSpan": "value", #spearhead
         }
 
-        parsed_data = self._process_key_to_parser_function(key_to_parser_function, props, tabs=2, log_descriptor="BP", set_attrs=False, default_configuration={
+        parsed_data = self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor="BP", set_attrs=False, default_configuration={
             'target': ParseTarget.MATCH_KEY
         })
         
@@ -132,7 +132,7 @@ class GameMode(ParseObject):
             "bCanSpawnTitanWhileAlive": "value",
         }
 
-        return self._process_key_to_parser_function(key_to_parser_function, data, tabs=2, set_attrs=False, default_configuration={
+        return self._process_key_to_parser_function(key_to_parser_function, data, set_attrs=False, default_configuration={
             'target': ParseTarget.MATCH_KEY
         })
 
@@ -148,7 +148,7 @@ class GameMode(ParseObject):
             "PointsForBeaconHold": "value",
         }
 
-        return self._process_key_to_parser_function(key_to_parser_function, data, tabs=2, set_attrs=False, default_configuration={
+        return self._process_key_to_parser_function(key_to_parser_function, data, set_attrs=False, default_configuration={
             'target': ParseTarget.MATCH_KEY
         })
 
