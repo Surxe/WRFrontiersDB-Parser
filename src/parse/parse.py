@@ -24,6 +24,7 @@ from parsers.pilot import *
 from parsers.progression_table import *
 from parsers.game_mode import *
 from parsers.bot_preset import *
+from parsers.factory_preset import *
 from parsers.powerup import *
 from analysis import *
 
@@ -36,6 +37,7 @@ def main():
     parse_progression_table()
     parse_game_modes()
     parse_bot_presets()
+    parse_factory_presets()
     parse_powerups()
     analyze(Module, ModuleStat, UpgradeCost, ScrapReward)
 
@@ -83,6 +85,8 @@ def main():
     DropTeam.to_file()
     CharacterPreset.to_file()
     League.to_file()
+
+    FactoryPreset.to_file()
 
     Powerup.to_file()
 
