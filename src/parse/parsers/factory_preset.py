@@ -33,6 +33,10 @@ class FactoryPreset(ParseObject):
 
         self._process_key_to_parser_function(key_to_parser_function, props, tabs=2)
 
+        # Default character_type to Mech
+        if not hasattr(self, "character_type"):
+            self.character_type = "Mech"
+
     def _p_modules(self, data):
         modules = {}
         for index, module_entry in enumerate(data):
