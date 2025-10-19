@@ -39,7 +39,7 @@ def main():
     parse_bot_presets()
     parse_factory_presets()
     parse_powerups()
-    analyze(Module, ModuleStat, UpgradeCost, ScrapReward)
+    analyze(Module, ModuleStat, UpgradeCost, ScrapReward, FactoryPreset)
 
 
     ProgressionTable.to_file()
