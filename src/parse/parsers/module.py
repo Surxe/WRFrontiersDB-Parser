@@ -9,7 +9,7 @@ from parsers.localization_table import parse_localization
 from parsers.object import ParseObject
 from parsers.module_rarity import ModuleRarity
 from parsers.rarity import Rarity
-from parsers.character_module import CharacterModule
+from parsers.character_module import CharacterModule, get_default_key_to_parser_function
 from parsers.ability import Ability
 from parsers.faction import Faction
 from parsers.module_class import ModuleClass
@@ -107,12 +107,11 @@ class Module(ParseObject):
 
     def _p_scalars(self, data):
         key_to_parser_function = {
-            "DefaultCooldown": None,
-            "DefaultClipSize": None,
             "LevelsData": (self._p_levels_data, "levels"),
             "PrimaryStatMetaInformation": (self._p_parameter, "primary_stat_id"),
             "SecondaryStatMetaInformation": (self._p_parameter, "secondary_stat_id"),
         }
+        key_to_parser_function.update(get_default_key_to_parser_function())
 
         ret = dict()
         parsed_scalars = self._process_key_to_parser_function(key_to_parser_function, data["Properties"], set_attrs=False, log_descriptor="Scalars")
@@ -120,6 +119,8 @@ class Module(ParseObject):
             if key in ["levels", "primary_stat_id", "secondary_stat_id"]:
                 ret[key] = value
             else:
+                if "default_scalars" not in ret:
+                    ret["default_scalars"] = dict()
                 ret["default_scalars"][key] = value
 
         return ret
