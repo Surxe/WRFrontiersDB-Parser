@@ -17,11 +17,12 @@ class Analysis:
         self.scrap_reward_class = scrap_reward_class
 
         # Upgrade cost & Scrap reward
-        self.standard_cost_and_scrap = self.determine_standard_cost_and_scrap(
+        self.frequency_map = self.get_frequency_map(
             self.module_class.objects,
             self.upgrade_cost_class.objects,
             self.scrap_reward_class.objects
         )
+        self.standard_cost_and_scrap = self.determine_standard_cost_and_scrap(self.frequency_map)
 
         # Level Diffs per module
         res = self.get_level_diffs_per_module(self.module_class.objects)
@@ -42,10 +43,81 @@ class Analysis:
     ########################################
     #      Upgrade Cost & Scrap Reward     #
     ########################################
+    """
+        {
+            <module_rarity_id>: {
+                <level>: {
+                    <currency_id>: {
+                        'upgrade_cost': {
+                            <upgrade_cost_amount>: count,
+                        },
+                        'scrap_reward': {
+                            <scrap_reward_amount>: count,
+                        }
+                    }
+                }
+            }
+        }
+    """
     @staticmethod
-    def determine_standard_cost_and_scrap(module_class_objects, 
-                                         upgrade_cost_class_objects, 
-                                         scrap_reward_class_objects):
+    def get_frequency_map(module_class_objects, 
+                          upgrade_cost_class_objects, 
+                          scrap_reward_class_objects):
+        frequency_map = {}
+        for module_id, module in module_class_objects.items():
+            logger.debug(f"Analyzing upgrade costs for module: {module_id}")
+
+            # Get module scalars
+            module_scalars = module.levels.get('module_scalars')
+            if module_scalars is None:
+                continue
+
+            # Ensure module rarity is added
+            module_rarity_id = module.module_rarity_id
+            if module_rarity_id not in frequency_map:
+                frequency_map[module_rarity_id] = {}
+
+            # Iterate levels
+            for level_index, level_data in enumerate(module_scalars['variables']):
+                level = level_index + 1
+                # Ensure level is added
+                if level not in frequency_map[module_rarity_id]:
+                    frequency_map[module_rarity_id][level] = {}
+                
+                def register_amount(_type: Literal['scrap_reward', 'upgrade_cost'], level, currency_id, amount):
+                    if currency_id not in frequency_map[module_rarity_id][level]:
+                        frequency_map[module_rarity_id][level][currency_id] = {}
+                    if _type not in frequency_map[module_rarity_id][level][currency_id]:
+                        frequency_map[module_rarity_id][level][currency_id][_type] = {}
+                    if amount not in frequency_map[module_rarity_id][level][currency_id][_type]:
+                        frequency_map[module_rarity_id][level][currency_id][_type][amount] = 0
+                    frequency_map[module_rarity_id][level][currency_id][_type][amount] += 1
+
+                # Register each scrap reward
+                scrap_rewards_ids = level_data.get('scrap_rewards_ids', [None])
+                for scrap_reward_id in scrap_rewards_ids:
+                    scrap_reward = scrap_reward_class_objects.get(scrap_reward_id)
+                    if scrap_reward is None:
+                        continue
+                    register_amount('scrap_reward', 
+                                    level, 
+                                    scrap_reward.currency_id, 
+                                    scrap_reward.amount
+                                    )
+                
+                # Register upgrade cost
+                upgrade_cost_id = level_data.get('upgrade_cost_id')
+                if upgrade_cost_id is None:
+                    continue
+                upgrade_cost = upgrade_cost_class_objects[upgrade_cost_id]
+                currency_id = upgrade_cost.currency_id
+                currency_amount = upgrade_cost.amount
+                register_amount('upgrade_cost', level, currency_id, currency_amount)
+
+        return frequency_map
+
+    @staticmethod
+    def determine_standard_cost_and_scrap(frequency_map):
         """
         For each module rarity & level & currency_id, determine the most frequent upgrade cost
         Assign that upgrade cost as the standard upgrade cost for that module rarity & level & currency_id
@@ -62,79 +134,6 @@ class Analysis:
                 }
             }
         """
-
-        # First, determine the frequency
-        """
-        {
-            <module_rarity_id>: {
-                <level>: {
-                    <currency_id>: {
-                        'upgrade_cost': {
-                            <upgrade_cost_amount>: count,
-                        },
-                        'scrap_reward': {
-                            <scrap_reward_amount>: count,
-                        }
-                    }
-                }
-            }
-        }
-        """
-        def get_frequency_map():
-            frequency_map = {}
-            for module_id, module in module_class_objects.items():
-                logger.debug(f"Analyzing upgrade costs for module: {module_id}")
-
-                # Get module scalars
-                module_scalars = module.levels.get('module_scalars')
-                if module_scalars is None:
-                    continue
-
-                # Ensure module rarity is added
-                module_rarity_id = module.module_rarity_id
-                if module_rarity_id not in frequency_map:
-                    frequency_map[module_rarity_id] = {}
-
-                # Iterate levels
-                for level_index, level_data in enumerate(module_scalars['variables']):
-                    level = level_index + 1
-                    # Ensure level is added
-                    if level not in frequency_map[module_rarity_id]:
-                        frequency_map[module_rarity_id][level] = {}
-                    
-                    def register_amount(_type: Literal['scrap_reward', 'upgrade_cost'], level, currency_id, amount):
-                        if currency_id not in frequency_map[module_rarity_id][level]:
-                            frequency_map[module_rarity_id][level][currency_id] = {}
-                        if _type not in frequency_map[module_rarity_id][level][currency_id]:
-                            frequency_map[module_rarity_id][level][currency_id][_type] = {}
-                        if amount not in frequency_map[module_rarity_id][level][currency_id][_type]:
-                            frequency_map[module_rarity_id][level][currency_id][_type][amount] = 0
-                        frequency_map[module_rarity_id][level][currency_id][_type][amount] += 1
-
-                    # Register each scrap reward
-                    scrap_rewards_ids = level_data.get('scrap_rewards_ids', [None])
-                    for scrap_reward_id in scrap_rewards_ids:
-                        scrap_reward = scrap_reward_class_objects.get(scrap_reward_id)
-                        if scrap_reward is None:
-                            continue
-                        register_amount('scrap_reward', 
-                                        level, 
-                                        scrap_reward.currency_id, 
-                                        scrap_reward.amount
-                                        )
-                    
-                    # Register upgrade cost
-                    upgrade_cost_id = level_data.get('upgrade_cost_id')
-                    if upgrade_cost_id is None:
-                        continue
-                    upgrade_cost = upgrade_cost_class_objects[upgrade_cost_id]
-                    currency_id = upgrade_cost.currency_id
-                    currency_amount = upgrade_cost.amount
-                    register_amount('upgrade_cost', level, currency_id, currency_amount)
-
-            return frequency_map
-        frequency_map = get_frequency_map()
-        logger.debug(f"Frequency map for upgrade costs & scrap rewards: {json.dumps(frequency_map, indent=4)}")
 
         def get_most_freq_amount(amount_freq_map):
             """
@@ -427,6 +426,7 @@ class Analysis:
         return round_dict_values({
             'level_diffs_by_module': sort_dict(self.level_diffs_by_module, 1),
             'level_diffs_by_stat': sort_dict(self.level_diffs_by_stat, 1),
+            'cost_scrap_frequency_map': self.frequency_map,
             'standard_cost_and_scrap': self.standard_cost_and_scrap
         })
 
