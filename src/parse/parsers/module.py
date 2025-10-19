@@ -87,61 +87,45 @@ class Module(ParseObject):
 
     def _p_module_scalar(self, data):
         module_scalar_data = asset_path_to_data(data["ObjectPath"])
-        if not hasattr(self, "levels"):
-            self.levels = dict()
-        self.levels["module_scalars"] = self._p_scalars(module_scalar_data)
+        scalars = self._p_scalars(module_scalar_data)
+        if not scalars:
+            return
+        self.module_scalars = scalars
         
+
     def _p_ability_scalars(self, data):
-        self.levels["abilities_scalars"] = []
         for elem in data:
             asset_path = elem["ObjectPath"]
             ability_scalar_data = asset_path_to_data(asset_path)
             scalars = self._p_scalars(ability_scalar_data)
             if not scalars:
                 continue
-            self.levels["abilities_scalars"].append(scalars)
+
+            if not hasattr(self, "abilities_scalars"):
+                self.abilities_scalars = []
+            self.abilities_scalars.append(scalars)
 
     def _p_scalars(self, data):
-        if "LevelsData" not in data["Properties"]:
-            return
-        
-        def _p_parameter(data, parameter_order):
-            """
-            data may contain 
-            {
-                "DefaultPrimaryParameter": float,
-                "PrimaryStatMetaInformation": { ObjectPath: object path to ModuleStat }
-            }
-            parameter_order = "Primary" or "Secondary"
-            """
-            default_x_parameter = f"Default{parameter_order}Parameter"
-            x_stat_meta_information = f"{parameter_order}StatMetaInformation"
-            if x_stat_meta_information in data:
-                asset_path = data[x_stat_meta_information]["ObjectPath"]
-                stat_id = ModuleStat.get_from_asset_path(asset_path)
-                return stat_id
-            
-        parsed_scalars = dict()
-        parsed_scalars["constants"] = dict()  # {constant_key: value}
-        stat1 = _p_parameter(data["Properties"], "Primary")
-        stat2 = _p_parameter(data["Properties"], "Secondary")
-        if stat1 is not None:
-            if hasattr(self, "primary_stat_id") and stat1 != self.primary_stat_id:
-                logger.error(f"Warning: {self.__class__.__name__} {self.id} has different primary stat ID {stat1} than previously parsed {self.primary_stat_id}.")
-            self.primary_stat_id = stat1
+        key_to_parser_function = {
+            "DefaultCooldown": None,
+            "DefaultClipSize": None,
+            "LevelsData": (self._p_levels_data, "levels"),
+            "PrimaryStatMetaInformation": (self._p_parameter, "primary_stat_id"),
+            "SecondaryStatMetaInformation": (self._p_parameter, "secondary_stat_id"),
+        }
 
-        if stat2 is not None:
-            if hasattr(self, "secondary_stat_id") and stat2 != self.secondary_stat_id:
-                logger.error(f"Warning: {self.__class__.__name__} {self.id} has different secondary stat ID {stat2} than previously parsed {self.secondary_stat_id}.")
-            self.secondary_stat_id = stat2
+        ret = dict()
+        parsed_scalars = self._process_key_to_parser_function(key_to_parser_function, data["Properties"], set_attrs=False, log_descriptor="Scalars")
+        for key, value in parsed_scalars.items():
+            if key in ["levels", "primary_stat_id", "secondary_stat_id"]:
+                ret[key] = value
+            else:
+                ret["default_scalars"][key] = value
 
-        parsed_levels_data = self._p_levels_data(data["Properties"]["LevelsData"])
+        return ret
 
-        constants_and_variables = self._separate_constants_and_variables(parsed_levels_data)
-        parsed_scalars["constants"] = constants_and_variables["constants"]
-        parsed_scalars["variables"] = constants_and_variables["variables"]
-
-        return parsed_scalars
+    def _p_parameter(self, data):
+        return ModuleStat.get_from_asset_path(data["ObjectPath"])
     
     def _p_levels_data(self, data):
         module_rarity = self.module_rarity_id if hasattr(self, "module_rarity_id") else None
@@ -262,8 +246,14 @@ class Module(ParseObject):
 
             parsed_levels.append(parsed_level)
 
-        return parsed_levels
+        # Categorize into constants and variables
+        categorized_parsed_levels = {}
+        constants_and_variables = self._separate_constants_and_variables(parsed_levels)
+        categorized_parsed_levels["constants"] = constants_and_variables["constants"]
+        categorized_parsed_levels["variables"] = constants_and_variables["variables"]
 
+        return categorized_parsed_levels
+    
     def _separate_constants_and_variables(self, levels_data):
         """
         Separates constants and variables from the data.
