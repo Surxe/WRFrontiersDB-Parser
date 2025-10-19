@@ -69,7 +69,10 @@ class Analysis:
             logger.debug(f"Analyzing upgrade costs for module: {module_id}")
 
             # Get module scalars
-            module_scalars = module.levels.get('module_scalars')
+            module_scalars = getattr(module, 'module_scalars', None)
+            if module_scalars is None:
+                continue
+            module_scalars = module_scalars.get("levels")
             if module_scalars is None:
                 continue
 
@@ -203,19 +206,39 @@ class Analysis:
         def extract_base_and_max(module):
             level_base = {}
             level_max = {}
-            for level_category, level_data in module.levels.items():
-                if level_category == 'scrap_rewards':
+
+            # Extract level data from both attrs
+            level_data_attrs = ['module_scalars', 'abilities_scalars']
+            for attr in level_data_attrs:
+                level_data = getattr(module, attr, None)
+                if level_data is None:
                     continue
+                if 'levels' not in level_data:
+                    continue
+                level_data = level_data['levels']
+
+                # Add to level base and max for each one
                 def add_category(data):
                     if not data or not data.get("variables"):
                         return
-                    level_base.update(data["variables"][0])
-                    level_max.update(data["variables"][-1])
+                    this_lvl_base = data["variables"][0]
+                    this_lvl_max = data["variables"][-1]
+
+                    def update_no_conflict(target_dict, source_dict):
+                        for key, value in source_dict.items():
+                            if key not in target_dict:
+                                target_dict[key] = value
+                            else:
+                                if target_dict[key] != value:
+                                    logger.error(f"Structure change: Conflict detected for module {module.id} key {key}: existing value {target_dict[key]}, new value {value}. Keeping existing value.")
+                    update_no_conflict(level_base, this_lvl_base)
+                    update_no_conflict(level_max, this_lvl_max)
                 if isinstance(level_data, list):
                     for item in level_data:
                         add_category(item)
                 elif isinstance(level_data, dict):
                     add_category(level_data)
+
             return level_base, level_max
         
         def calc_diff(val1, val2, module_id):
@@ -489,13 +512,13 @@ class Analysis:
                 this_module_upgrade_costs, _ = self.get_module_upgrade_costs(module_id, standard_cost_and_scrap)
                 logger.debug(f"Adding upgrade cost for factory preset: {fpreset_id}")
             
-            # For each currency_id, add to the fpreset's total
-            for currency_id, upgrade_cost_amount in this_module_upgrade_costs.items():
-                if fpreset_id not in factory_preset_costs:
-                    factory_preset_costs[fpreset_id] = {}
-                if currency_id not in factory_preset_costs[fpreset_id]:
-                    factory_preset_costs[fpreset_id][currency_id] = 0
-                factory_preset_costs[fpreset_id][currency_id] += upgrade_cost_amount
+                # For each currency_id, add to the fpreset's total
+                for currency_id, upgrade_cost_amount in this_module_upgrade_costs.items():
+                    if fpreset_id not in factory_preset_costs:
+                        factory_preset_costs[fpreset_id] = {}
+                    if currency_id not in factory_preset_costs[fpreset_id]:
+                        factory_preset_costs[fpreset_id][currency_id] = 0
+                    factory_preset_costs[fpreset_id][currency_id] += upgrade_cost_amount
 
         return factory_preset_costs
     

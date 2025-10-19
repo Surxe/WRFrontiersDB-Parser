@@ -5,7 +5,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import ParseObject
 from parsers.ability import Ability, p_movement_component, p_collision_component, p_actor_class
-from utils import ParseTarget, asset_path_to_data, parse_colon_colon, parse_editor_curve_data, merge_dicts
+from utils import ParseTarget, asset_path_to_data, parse_colon_colon, parse_editor_curve_data, merge_dicts, process_key_to_parser_function
+from loguru import logger
 
 class CharacterModule(ParseObject):
     objects = dict()  # Dictionary to hold all CharacterModule instances
@@ -120,29 +121,9 @@ class CharacterModule(ParseObject):
             "bReceivesDecals": "value",
             "BodyInstance": None,
             "AssetUserData": None,
-            "DefaultArmor": "value",
-            "DefaultShield": "value",
-            "DefaultDirectDamage": "value",
-            "DefaultAoeDamage": parse_editor_curve_data,
-            "DefaultClipSize": "value",
-            "DefaultProjectilesPerShot": "value",
-            "DefaultProjectileSpeed": "value",
-            "DefaultTimeToReload": "value",
-            "DefaultTimeBetweenShots": "value",
-            "DefaultDistanceSettings": self._p_distance_settings,
-            "DefaultFirePower": "value",
-            "DefaultSpread": "value",
-            "DefaultLegsArmor": "value",
-            "DefaultMaxSpeed": "value",
-            "DefaultMobility": "value",
-            "DefaultFuelCapacity": "value",
-            "DefaultShieldAmount": "value",
-            "DefaultShieldRegeneration": "value",
-            "DefaultShieldDelayReduction": "value",
             "ModuleName": None,
-            "DefaultHullShare": "value",
-            "DefaultPrimaryArmor": "value",
         }
+        key_to_parser_function.update(get_default_key_to_parser_function())
 
         parsed_data = self._process_key_to_parser_function(key_to_parser_function, 
                                                            props, 
@@ -227,7 +208,7 @@ class CharacterModule(ParseObject):
                 "TracerFX": None,
                 "WaveRadiusParam": None,
                 "bShowIncomingMissilesWarning": "value",
-                "ImportedDistanceSettings": (self._p_distance_settings, "DistanceSettings"),
+                "ImportedDistanceSettings": (p_distance_settings, "DistanceSettings"),
                 "RootComponent": None, #scatter, points to same CollisionComponent
                 "ExpansionDistanceSettingsDefault": None,
                 "EffectiveDistanceSettingsDefault": None,
@@ -391,32 +372,63 @@ class CharacterModule(ParseObject):
             'target': ParseTarget.MATCH_KEY
         })
     
-    def _p_distance_settings(self, data):
-        parsed_distance_settings = []
-        prev_interp_mode = None
-        for elem in data:
-            distance_state = parse_colon_colon(elem["Key"])
-            parsed_distance_setting = self._p_this_distance_setting(elem["Value"])
-            parsed_distance_setting["DistanceState"] = distance_state
-            interp_mode = parsed_distance_setting["InterpMode"]
-            if prev_interp_mode is not None and interp_mode != prev_interp_mode:
-                raise ValueError(f"Inconsistent InterpModes found in DistanceSettings for {self.__class__.__name__} {self.id}: {prev_interp_mode} and {interp_mode}")
-            prev_interp_mode = interp_mode
-            del parsed_distance_setting["InterpMode"]
-            parsed_distance_settings.append(parsed_distance_setting)
-        
-        return {
-            "InterpMode": prev_interp_mode,
-            "CurveData": parsed_distance_settings
-        }
+def get_default_key_to_parser_function():
+    return {
+        "DefaultArmor": "value",
+        "DefaultShield": "value",
+        "DefaultDirectDamage": "value",
+        "DefaultAoeDamage": parse_editor_curve_data,
+        "DefaultClipSize": "value",
+        "DefaultProjectilesPerShot": "value",
+        "DefaultProjectileSpeed": "value",
+        "DefaultTimeToReload": "value",
+        "DefaultTimeBetweenShots": "value",
+        "DefaultDistanceSettings": p_distance_settings,
+        "DefaultFirePower": None,
+        "DefaultSpread": "value",
+        "DefaultLegsArmor": "value",
+        "DefaultMaxSpeed": "value",
+        "DefaultMobility": None,
+        "DefaultFuelCapacity": "value",
+        "DefaultShieldAmount": "value",
+        "DefaultShieldRegeneration": "value",
+        "DefaultShieldDelayReduction": "value",
+        "DefaultHullShare": "value",
+        "DefaultPrimaryArmor": "value",
+        "DefaultCooldown": "value",
+        "DefaultMaxCharges": "value",
+        "DefaultPrimaryParameter": "value",
+        "DefaultSecondaryParameter": "value",
+        "DefaultAbilityPower": None,
+        "DefaultChargeRegenDuration": "value",
+    }
 
-    def _p_this_distance_setting(self, data):
-        key_to_parser_function = {
-            "Distance": "value",
-            "InterpolationMode": (parse_colon_colon, "InterpMode"),
-            "DirectDamageMultiplier": "value",
-        }
+def p_distance_settings(data):
+    parsed_distance_settings = []
+    prev_interp_mode = None
+    for elem in data:
+        distance_state = parse_colon_colon(elem["Key"])
+        parsed_distance_setting = p_this_distance_setting(elem["Value"])
+        parsed_distance_setting["DistanceState"] = distance_state
+        interp_mode = parsed_distance_setting["InterpMode"]
+        if prev_interp_mode is not None and interp_mode != prev_interp_mode:
+            logger.error(f"Error: Inconsistent InterpMode in DistanceSettings: previous {prev_interp_mode}, current {interp_mode}")
+        prev_interp_mode = interp_mode
+        del parsed_distance_setting["InterpMode"]
+        parsed_distance_settings.append(parsed_distance_setting)
+    
+    return {
+        "InterpMode": prev_interp_mode,
+        "CurveData": parsed_distance_settings
+    }
 
-        return self._process_key_to_parser_function(key_to_parser_function, data, log_descriptor="DistanceSetting", set_attrs=False, tabs=2, default_configuration={
-            'target': ParseTarget.MATCH_KEY
-        })
+def p_this_distance_setting(data):
+    key_to_parser_function = {
+        "Distance": "value",
+        "InterpolationMode": (parse_colon_colon, "InterpMode"),
+        "DirectDamageMultiplier": "value",
+    }
+
+    return process_key_to_parser_function(key_to_parser_function, data, log_descriptor="DistanceSetting", set_attrs=False, tabs=2, default_configuration={
+        'target': ParseTarget.MATCH_KEY
+    })
