@@ -136,6 +136,25 @@ class Analysis:
         frequency_map = get_frequency_map()
         logger.debug(f"Frequency map for upgrade costs & scrap rewards: {json.dumps(frequency_map, indent=4)}")
 
+        def get_most_freq_amount(amount_freq_map):
+            """
+            Args:
+                amount_freq_map: {
+                    <amount>: count,
+                }
+
+            Returns:
+                most frequent amount (int)
+            """
+            biggest_entry = (None, -1)  # (amount, count)
+            for amount_str, count in amount_freq_map.items():
+                amount = int(amount_str)
+                if count > biggest_entry[1]:
+                    biggest_entry = (amount, count)
+            if biggest_entry[1] <= 3:
+                return 0 # if there are only outliers or too few data points it should be treated as 0 cost
+            return biggest_entry[0]
+
         # Next, determine the most frequent upgrade cost & scrap reward
         standard_cost_and_scrap = {}
         for module_rarity_id, levels_data in frequency_map.items():
@@ -150,12 +169,12 @@ class Analysis:
                     # Determine most frequent upgrade cost
                     upgrade_costs_freq = type_data.get('upgrade_cost', {})
                     if upgrade_costs_freq:
-                        most_frequent_upgrade_cost = max(upgrade_costs_freq.items(), key=lambda x: x[1])[0]
+                        most_frequent_upgrade_cost = get_most_freq_amount(upgrade_costs_freq)
                         standard_cost_and_scrap[module_rarity_id][level][currency_id]['upgrade_cost'] = most_frequent_upgrade_cost
                     # Determine most frequent scrap reward
                     scrap_rewards_freq = type_data.get('scrap_reward', {})
                     if scrap_rewards_freq:
-                        most_frequent_scrap_reward = max(scrap_rewards_freq.items(), key=lambda x: x[1])[0]
+                        most_frequent_scrap_reward = get_most_freq_amount(scrap_rewards_freq)
                         standard_cost_and_scrap[module_rarity_id][level][currency_id]['scrap_reward'] = most_frequent_scrap_reward
 
         # Then, ensure upgrade_cost and scrap_reward in each entry, default to 0 otherwise
