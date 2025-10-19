@@ -28,12 +28,15 @@ class Analysis:
         self.level_diffs_by_module = res['level_diffs']
         distinct_stat_keys = res['distinct_stat_keys']
 
-        # Level Diffs per stat
+        # Ranking of diffs per module, level diff per stat
         stat_ranks = self.get_ranks_per_stat(self.level_diffs_by_module, self.module_stat_class.objects, distinct_stat_keys)
         ranks_per_module = self.get_ranks_per_module(stat_ranks, module_ids=self.level_diffs_by_module.keys())
         for module_id, rank in ranks_per_module.items():
             self.level_diffs_by_module[module_id]['stats_percentile'] = rank
         self.level_diffs_by_stat = self.get_level_diffs_per_stat(self.level_diffs_by_module, stat_ranks)
+
+        # Add upgrade cost to lvl diff per module, but not the ranking
+        self.level_diffs_by_module = self.add_upgrade_cost_to_level_diffs(self.level_diffs_by_module, self.standard_cost_and_scrap, self.module_class.objects)
 
 
     ########################################
@@ -131,6 +134,7 @@ class Analysis:
 
             return frequency_map
         frequency_map = get_frequency_map()
+        logger.debug(f"Frequency map for upgrade costs & scrap rewards: {json.dumps(frequency_map, indent=4)}")
 
         # Next, determine the most frequent upgrade cost & scrap reward
         standard_cost_and_scrap = {}
@@ -333,7 +337,68 @@ class Analysis:
             for stat_key, stat_rank in stat_ranks.items()
         }
         return verbose_stat_ranks
+    
+    ##########################################
+    #   Add Upgrade Cost to Module Lvl Diffs #
+    ##########################################
+    @staticmethod
+    def add_upgrade_cost_to_level_diffs(level_diffs_by_module, standard_cost_and_scrap, module_class_objects):
+        """
+        For each module, add non-zero upgrade cost to its level diffs
+        """
+        def get_upgrade_cost_from_standard(cost_scrap_data):
+            """
+            Args:
+                cost_scrap_data = {
+                    <currency_id>: {
+                        'upgrade_cost': <amount>,
+                        'scrap_reward': <amount>,
+                    }
+                }
 
+            Returns:
+                (<currency_id>, <upgrade_cost_amount>)
+
+                None if no non-zero upgrade cost found or multiple non-zero upgrade costs found
+            """
+
+            found_nonzero_pairs = []
+            for currency_id, cost_and_scrap in cost_scrap_data.items():
+                upgrade_cost = cost_and_scrap.get('upgrade_cost', 0)
+                if upgrade_cost > 0:
+                    found_nonzero_pairs.append((currency_id, upgrade_cost))
+            if len(found_nonzero_pairs) == 0:
+                return None
+            elif len(found_nonzero_pairs) == 1:
+                return found_nonzero_pairs[0]
+            else:
+                logger.error(f"Structure change: multiple non-zero upgrade costs found: {found_nonzero_pairs}")
+                return None
+
+        for module_id in level_diffs_by_module.keys():
+            # Determine the non-zero upgrade cost for this module
+            module_rarity_id = module_class_objects[module_id].module_rarity_id
+            rarity_standard_cost_and_scrap = standard_cost_and_scrap[module_rarity_id]
+
+            total_upgrade_cost = {} #<currency_id>: <upgrade_cost_amount>
+            for level, cost_scrap_data in rarity_standard_cost_and_scrap.items():
+                logger.debug(f"Adding upgrade cost for module: {module_id}, level: {level}")
+
+                # use the most frequent upgrade cost for this module rarity & level, as opposed to whats in data
+                upgrade_cost_pair = get_upgrade_cost_from_standard(cost_scrap_data)
+
+                # add to total
+                if upgrade_cost_pair is not None:
+                    currency_id, upgrade_cost_amount = upgrade_cost_pair
+                    total_upgrade_cost[currency_id] = upgrade_cost_amount
+
+            # add to level diffs
+            for currency_id, upgrade_cost_amount in total_upgrade_cost.items():
+                if 'total_upgrade_cost' not in level_diffs_by_module[module_id]:
+                    level_diffs_by_module[module_id]['total_upgrade_cost'] = {}
+                level_diffs_by_module[module_id]['total_upgrade_cost'][f'{currency_id}'] = upgrade_cost_amount
+
+        return level_diffs_by_module
 
     ##########################
     #          Other         #
