@@ -33,14 +33,16 @@ class Analysis:
             self.level_diffs_by_module[module_id]['stats_percentile'] = rank
         self.level_diffs_by_stat = self.get_level_diffs_per_stat(self.level_diffs_by_module, stat_ranks)
 
+        # Determine cost of each module
+        self.modules_upgrade_costs = self.get_modules_upgrade_costs(self.standard_cost_and_scrap)
         # Add upgrade cost to lvl diff per module, but not the ranking
-        self.level_diffs_by_module = self.add_upgrade_cost_to_level_diffs(self.level_diffs_by_module, self.standard_cost_and_scrap)
+        self.level_diffs_by_module = self.add_upgrade_cost_to_level_diffs(self.level_diffs_by_module, self.modules_upgrade_costs)
 
         # Determine upgrade costs of each factory preset
         self.factory_preset_upgrade_costs = self.calculate_factory_preset_upgrade_costs(self.standard_cost_and_scrap)
 
         # Determine grand total upgrade costs of production only modules, and 2 of each shoulder rather than 1
-        self.total_upgrade_costs = self.calculate_total_upgrade_costs(self.standard_cost_and_scrap)
+        self.total_upgrade_costs = self.calculate_total_upgrade_costs(self.modules_upgrade_costs)
 
     ########################################
     #      Upgrade Cost & Scrap Reward     #
@@ -355,9 +357,9 @@ class Analysis:
         }
         return verbose_stat_ranks
     
-    ##########################################
-    #   Add Upgrade Cost to Module Lvl Diffs #
-    ##########################################
+    ############################
+    #   Module Upgrade Costs   #
+    ############################
     def get_module_upgrade_costs(self, module_id, standard_cost_and_scrap):
         """
         Returns:
@@ -422,19 +424,46 @@ class Analysis:
                 module_upgrade_costs[currency_id] += upgrade_cost_amount
 
         return module_upgrade_costs, is_shoulder
+    
+    def get_modules_upgrade_costs(self, standard_cost_and_scrap):
+        """
+        Returns:
+            {
+                <module_id>: {
+                    "is_shoulder": bool,
+                    "upgrade_costs": {
+                        <currency_id>: <total_upgrade_cost_amount>,
+                    }
+                }
+            }
+        """
 
-    def add_upgrade_cost_to_level_diffs(self, level_diffs_by_module, standard_cost_and_scrap):
+        modules_upgrade_costs = {}
+        for module_id in self.module_class_objects.keys():
+            result = self.get_module_upgrade_costs(module_id, standard_cost_and_scrap)
+            if result is None:
+                continue
+            upgrade_costs, is_shoulder = result
+            modules_upgrade_costs[module_id] = {
+                "is_shoulder": is_shoulder,
+                "upgrade_costs": upgrade_costs
+            }
+        return modules_upgrade_costs
+
+    def add_upgrade_cost_to_level_diffs(self, level_diffs_by_module, modules_upgrade_costs):
         """
         For each module, add non-zero upgrade cost to its level diffs
         """
 
         for module_id in level_diffs_by_module.keys():
-            # Determine the non-zero upgrade cost for this module
-            total_upgrade_cost, _ = self.get_module_upgrade_costs(module_id, standard_cost_and_scrap)
             logger.debug(f"Adding upgrade cost to module: {module_id}")
 
             # add to level diffs
-            for currency_id, upgrade_cost_amount in total_upgrade_cost.items():
+            this_module_upgrade = modules_upgrade_costs.get(module_id)
+            if this_module_upgrade is None:
+                continue
+            this_module_upgrade_costs = this_module_upgrade["upgrade_costs"]
+            for currency_id, upgrade_cost_amount in this_module_upgrade_costs.items():
                 if 'total_upgrade_cost' not in level_diffs_by_module[module_id]:
                     level_diffs_by_module[module_id]['total_upgrade_cost'] = {}
                 level_diffs_by_module[module_id]['total_upgrade_cost'][f'{currency_id}'] = upgrade_cost_amount
@@ -474,7 +503,7 @@ class Analysis:
     ############################
     # Grand total upgrade cost #
     ############################
-    def calculate_total_upgrade_costs(self, standard_cost_and_scrap):
+    def calculate_total_upgrade_costs(self, modules_upgrade_costs):
         total_upgrade_costs = {}  # <currency_id>: <total_upgrade_cost_amount>
         for module_id, module in self.module_class_objects.items():
             # Ensure its production ready module
@@ -482,7 +511,9 @@ class Analysis:
                 continue
 
             # Determine the non-zero upgrade cost for this module
-            this_module_upgrade_costs, is_shoulder = self.get_module_upgrade_costs(module_id, standard_cost_and_scrap)
+            this_module_upgrade = modules_upgrade_costs[module_id]
+            this_module_upgrade_costs = this_module_upgrade["upgrade_costs"]
+            is_shoulder = this_module_upgrade["is_shoulder"]
             quantity = 2 if is_shoulder else 1
 
             # Add to grand total
