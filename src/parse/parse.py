@@ -37,7 +37,7 @@ def main():
     parse_game_modes()
     parse_bot_presets()
     parse_powerups()
-    analyze(Module, ModuleStat, UpgradeCost)
+    analyze(Module, ModuleStat, UpgradeCost, ScrapReward)
 
 
     ProgressionTable.to_file()
@@ -66,6 +66,7 @@ def main():
     ModuleStat.to_file()
     ModuleStatsTable.to_file()
     UpgradeCost.to_file()
+    ScrapReward.to_file()
 
     Pilot.to_file()
     PilotType.to_file()

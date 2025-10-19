@@ -5,8 +5,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import ParseObject
 
-class UpgradeCost(ParseObject):
-    objects = dict()  # Dictionary to hold all UpgradeCost instances
+class ScrapReward(ParseObject):
+    objects = dict()  # Dictionary to hold all ScrapReward instances
 
     def __init__(self, id, currency_id, amount):
         super().__init__(id, {

@@ -22,6 +22,7 @@ from parsers.module_stat import ModuleStat
 from parsers.module_stats_table import ModuleStatsTable
 from parsers.currency import Currency
 from parsers.upgrade_cost import UpgradeCost
+from parsers.scrap_reward import ScrapReward
 from parsers.image import parse_image_asset_path, Image
 
 class Module(ParseObject):
@@ -143,6 +144,10 @@ class Module(ParseObject):
         return parsed_scalars
     
     def _p_levels_data(self, data):
+        module_rarity = self.module_rarity_id if hasattr(self, "module_rarity_id") else None
+        if module_rarity is None:
+            logger.warning(f"Warning: Module {self.id} level {level_num} is missing module_rarity_id")
+
         parsed_levels = []
         for level in data:
             """
@@ -155,19 +160,25 @@ class Module(ParseObject):
                 "FirstScrapRewardCurrency": "DA_Meta_Currency_Alloys",
                 "SecondScrapRewardAmount": 0,
                 "SecondScrapRewardCurrency": "DA_Meta_Currency_Intel",
+
+                "Level": 1,
             }
             """
+            level_num = level["Level"]
 
             parsed_level = dict()
 
+
             # Parse upgrade and scrap currencies
+            module_lvl_id = f"{self.id}_lvl{level_num}"
             if "UpgradeCurrency" in level and "UpgradeCost" in level:
                 upgrade_currency = level["UpgradeCurrency"]
-                upgrade_cost = level["UpgradeCost"]
-                level_num = level["Level"]
+                upgrade_cost_amount = level["UpgradeCost"]
+                
+                # consciously not excluding 0 amounts, as it messes up ability to check if its a constant or a variable
                 if upgrade_currency is not None and upgrade_currency != "None": #it may be None if its say a torso ability module, as the ability is not what costs currency to upgrade, rather the module its attached to (torso) will have the cost
-                    upgrade_cost = UpgradeCost(self.id, level_num, upgrade_currency, upgrade_cost)
-                    parsed_level["upgrade_currency_id"] = upgrade_cost.id
+                    upgrade_cost = UpgradeCost(module_lvl_id, upgrade_currency, upgrade_cost_amount) 
+                    parsed_level["upgrade_cost_id"] = upgrade_cost.id
 
             def p_scrap_reward_amount(first_or_second):
                 """
@@ -178,13 +189,21 @@ class Module(ParseObject):
                 if scrap_reward_currency_key in level and scrap_reward_amount_key in level:
                     scrap_reward_currency = level[scrap_reward_currency_key]
                     scrap_reward_amount = level[scrap_reward_amount_key]
-                    if scrap_reward_currency is not None and scrap_reward_currency != "None":
-                        parsed_level['ScrapRewards'].append({
-                            "currency_id": scrap_reward_currency,
-                            "amount": scrap_reward_amount
-                        })
+                    if scrap_reward_currency is not None and scrap_reward_currency != "None": # consciously not excluding 0 amounts, as it messes up ability to check if its a constant or a variable
+                        scrap_num_id = len(parsed_level['scrap_rewards_ids']) + 1 #index the next scrap reward will be at, +1
+                        module_lvl_scrapindex_id = f"{module_lvl_id}_scrap{scrap_num_id}"
+                        scrap_reward = ScrapReward(module_lvl_scrapindex_id, scrap_reward_currency, scrap_reward_amount)
+                        parsed_level['scrap_rewards_ids'].append(scrap_reward.id)
+
+            # Since these are id'd this way, why not just have them referenced in the Module level directly?
+            # A few weeks before writing, every intel discount was reflected in the client-side costs of items
+            # At time of writing, it seems like they are now set server side. The last intel discount that was client side is how the data looks right now. 
+            #   Meaning, ghost turret, matriarch, harpy, fuel reserve, flash bang, nanite etc. from https://warrobotsfrontiers.com/en/news/268-patch-notes-september-9-2025 are the discounted items, despite there being 4 different intel discounts since then
+            # One upside of having them in their own file is for git diff categorization.
+            # Maybe when I can confirm for 100% that discounts are exclusively server side, it can be reworked.
+            # For now, I plan to determine the most likely upgrade costs/scrap rewards by module rarity using the most frequent values in Analysis.py
                 
-            parsed_level["ScrapRewards"] = []
+            parsed_level["scrap_rewards_ids"] = []
             p_scrap_reward_amount("First")
             p_scrap_reward_amount("Second")
 
@@ -352,6 +371,7 @@ def parse_modules(to_file=False):
         Currency.to_file()
         Ability.to_file()
         UpgradeCost.to_file()
+        ScrapReward.to_file()
         Image.to_file()
 
 if __name__ == "__main__":

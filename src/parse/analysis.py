@@ -7,33 +7,201 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils import OPTIONS, sort_dict
 from loguru import logger
+from typing import Literal
 
 class Analysis:
-    def __init__(self, module_class, module_stat_class, upgrade_cost_class):
+    def __init__(self, module_class, module_stat_class, upgrade_cost_class, scrap_reward_class):
         self.module_class = module_class
         self.module_stat_class = module_stat_class
         self.upgrade_cost_class = upgrade_cost_class
+        self.scrap_reward_class = scrap_reward_class
 
-        res = self.get_level_diffs_per_module(self.module_class.objects, self.upgrade_cost_class.objects)
+        # Upgrade cost & Scrap reward
+        self.frequency_map = self.get_frequency_map(
+            self.module_class.objects,
+            self.upgrade_cost_class.objects,
+            self.scrap_reward_class.objects
+        )
+        self.standard_cost_and_scrap = self.determine_standard_cost_and_scrap(self.frequency_map)
+
+        # Level Diffs per module
+        res = self.get_level_diffs_per_module(self.module_class.objects)
         self.level_diffs_by_module = res['level_diffs']
         distinct_stat_keys = res['distinct_stat_keys']
-        self.total_upgrade_cost_for_all_modules = res['total_upgrade_costs']
 
+        # Ranking of diffs per module, level diff per stat
         stat_ranks = self.get_ranks_per_stat(self.level_diffs_by_module, self.module_stat_class.objects, distinct_stat_keys)
-
         ranks_per_module = self.get_ranks_per_module(stat_ranks, module_ids=self.level_diffs_by_module.keys())
         for module_id, rank in ranks_per_module.items():
             self.level_diffs_by_module[module_id]['stats_percentile'] = rank
-
         self.level_diffs_by_stat = self.get_level_diffs_per_stat(self.level_diffs_by_module, stat_ranks)
 
-    #################################
-    #      Level Diffs:
-    #          * Stat increases
-    #          * Upgrade costs
-    #################################
+        # Add upgrade cost to lvl diff per module, but not the ranking
+        self.level_diffs_by_module = self.add_upgrade_cost_to_level_diffs(self.level_diffs_by_module, self.standard_cost_and_scrap, self.module_class.objects)
+
+        # Determine grand total upgrade costs of production only modules, and 2 of each shoulder rather than 1
+        self.total_upgrade_costs = self.calculate_total_upgrade_costs(self.module_class.objects, self.standard_cost_and_scrap)
+
+    ########################################
+    #      Upgrade Cost & Scrap Reward     #
+    ########################################
+    """
+        {
+            <module_rarity_id>: {
+                <level>: {
+                    <currency_id>: {
+                        'upgrade_cost': {
+                            <upgrade_cost_amount>: count,
+                        },
+                        'scrap_reward': {
+                            <scrap_reward_amount>: count,
+                        }
+                    }
+                }
+            }
+        }
+    """
     @staticmethod
-    def get_level_diffs_per_module(module_class_objects, upgrade_cost_class_objects):
+    def get_frequency_map(module_class_objects, 
+                          upgrade_cost_class_objects, 
+                          scrap_reward_class_objects):
+        frequency_map = {}
+        for module_id, module in module_class_objects.items():
+            logger.debug(f"Analyzing upgrade costs for module: {module_id}")
+
+            # Get module scalars
+            module_scalars = module.levels.get('module_scalars')
+            if module_scalars is None:
+                continue
+
+            # Ensure module rarity is added
+            module_rarity_id = module.module_rarity_id
+            if module_rarity_id not in frequency_map:
+                frequency_map[module_rarity_id] = {}
+
+            # Iterate levels
+            for level_index, level_data in enumerate(module_scalars['variables']):
+                level = level_index + 1
+                # Ensure level is added
+                if level not in frequency_map[module_rarity_id]:
+                    frequency_map[module_rarity_id][level] = {}
+                
+                def register_amount(_type: Literal['scrap_reward', 'upgrade_cost'], level, currency_id, amount):
+                    if currency_id not in frequency_map[module_rarity_id][level]:
+                        frequency_map[module_rarity_id][level][currency_id] = {}
+                    if _type not in frequency_map[module_rarity_id][level][currency_id]:
+                        frequency_map[module_rarity_id][level][currency_id][_type] = {}
+                    if amount not in frequency_map[module_rarity_id][level][currency_id][_type]:
+                        frequency_map[module_rarity_id][level][currency_id][_type][amount] = 0
+                    frequency_map[module_rarity_id][level][currency_id][_type][amount] += 1
+
+                # Register each scrap reward
+                scrap_rewards_ids = level_data.get('scrap_rewards_ids', [None])
+                for scrap_reward_id in scrap_rewards_ids:
+                    scrap_reward = scrap_reward_class_objects.get(scrap_reward_id)
+                    if scrap_reward is None:
+                        continue
+                    register_amount('scrap_reward', 
+                                    level, 
+                                    scrap_reward.currency_id, 
+                                    scrap_reward.amount
+                                    )
+                
+                # Register upgrade cost
+                upgrade_cost_id = level_data.get('upgrade_cost_id')
+                if upgrade_cost_id is None:
+                    continue
+                upgrade_cost = upgrade_cost_class_objects[upgrade_cost_id]
+                currency_id = upgrade_cost.currency_id
+                currency_amount = upgrade_cost.amount
+                register_amount('upgrade_cost', level, currency_id, currency_amount)
+
+        return frequency_map
+
+    @staticmethod
+    def determine_standard_cost_and_scrap(frequency_map):
+        """
+        For each module rarity & level & currency_id, determine the most frequent upgrade cost
+        Assign that upgrade cost as the standard upgrade cost for that module rarity & level & currency_id
+
+        Returns:
+            {
+                <module_rarity>: {
+                    <level>: {
+                        <currency_id>: {
+                            'upgrade_cost': <amount>,
+                            'scrap_rewards': <amount>,
+                        }
+                    }
+                }
+            }
+        """
+
+        def get_most_freq_amount(amount_freq_map):
+            """
+            Args:
+                amount_freq_map: {
+                    <amount>: count,
+                }
+
+            Returns:
+                most frequent amount (int)
+            """
+            biggest_entry = (None, -1)  # (amount, count)
+            for amount_str, count in amount_freq_map.items():
+                amount = int(amount_str)
+                if count > biggest_entry[1]:
+                    biggest_entry = (amount, count)
+            if biggest_entry[1] <= 3:
+                return 0 # if there are only outliers or too few data points it should be treated as 0 cost
+            return biggest_entry[0]
+
+        # Next, determine the most frequent upgrade cost & scrap reward
+        standard_cost_and_scrap = {}
+        for module_rarity_id, levels_data in frequency_map.items():
+            if module_rarity_id not in standard_cost_and_scrap:
+                standard_cost_and_scrap[module_rarity_id] = {}
+            for level, currency_data in levels_data.items():
+                if level not in standard_cost_and_scrap[module_rarity_id]:
+                    standard_cost_and_scrap[module_rarity_id][level] = {}
+                for currency_id, type_data in currency_data.items():
+                    if currency_id not in standard_cost_and_scrap[module_rarity_id][level]:
+                        standard_cost_and_scrap[module_rarity_id][level][currency_id] = {}
+
+                    # Determine most frequent scrap reward
+                    scrap_rewards_freq = type_data.get('scrap_reward', {})
+                    if scrap_rewards_freq:
+                        most_frequent_scrap_reward = get_most_freq_amount(scrap_rewards_freq)
+                        standard_cost_and_scrap[module_rarity_id][level][currency_id]['scrap_reward'] = most_frequent_scrap_reward
+                    
+                    # Determine most frequent upgrade cost
+                    upgrade_costs_freq = type_data.get('upgrade_cost', {})
+                    if upgrade_costs_freq:
+                        most_frequent_upgrade_cost = get_most_freq_amount(upgrade_costs_freq)
+                        standard_cost_and_scrap[module_rarity_id][level][currency_id]['upgrade_cost'] = most_frequent_upgrade_cost
+
+        # Then, ensure upgrade_cost and scrap_reward in each entry, default to 0 otherwise
+        for module_rarity_id, levels_data in standard_cost_and_scrap.items():
+            for level, currency_data in levels_data.items():
+                for currency_id, cost_and_scrap in currency_data.items():
+                    if 'upgrade_cost' not in cost_and_scrap:
+                        cost_and_scrap['upgrade_cost'] = 0
+                    if 'scrap_reward' not in cost_and_scrap:
+                        cost_and_scrap['scrap_reward'] = 0
+
+        # Finally, sort each level's entry
+        for module_rarity_id, levels_data in standard_cost_and_scrap.items():
+            for level, currency_data in levels_data.items():
+                standard_cost_and_scrap[module_rarity_id][level] = sort_dict(dict(currency_data.items()))
+
+        return standard_cost_and_scrap
+        
+
+    ####################################################
+    #      Level Diffs, per module and per stat        #
+    ####################################################
+    @staticmethod
+    def get_level_diffs_per_module(module_class_objects):
         def extract_base_and_max(module):
             level_base = {}
             level_max = {}
@@ -64,25 +232,7 @@ class Analysis:
             if diff_value == 0:
                 return None
             return diff_value
-        
-        def calculate_upgrade_costs(module, upgrade_cost_class_objects, total_upgrade_costs):
-            module_upgrade_costs = {}
-            module_scalars = module.levels.get('module_scalars')
-            if module_scalars is None:
-                return None
-            for level_index, level_data in enumerate(module_scalars['variables']):
-                upgrade_cost_id = level_data.get('upgrade_currency_id')
-                if upgrade_cost_id is None:
-                    logger.warning(f"No upgrade cost ID found for module {getattr(module, 'id', None)} at level {level_index+1}")
-                    continue
-                upgrade_cost = upgrade_cost_class_objects[upgrade_cost_id]
-                currency_id = upgrade_cost.currency_id
-                currency_amount = upgrade_cost.amount
-                module_upgrade_costs[currency_id] = module_upgrade_costs.get(currency_id, 0) + currency_amount
-                total_upgrade_costs[currency_id] = total_upgrade_costs.get(currency_id, 0) + currency_amount
-            return module_upgrade_costs
 
-        total_upgrade_costs = {}
         distinct_stat_keys = set()
         level_diffs = {}
 
@@ -93,7 +243,8 @@ class Analysis:
         superficial_keys = {
             'Health', 'Level', 'Def', 'Atk', 'Mob', 'AbilityPower', 'Mobility',
             'ModuleClass_1', 'ModuleClass_2', 'ModuleTag_1', 'ModuleTag_2',
-            'ModuleFaction', 'FirePower', 'bIsPerk'
+            'ModuleFaction', 'FirePower', 'bIsPerk',
+            'ArmorDPS', 'ShieldDPS' #for now. these are UI numbers and are often wrong. will do real dps calcs later.
         }
 
         for module_id, module in module_class_objects.items():
@@ -110,22 +261,19 @@ class Analysis:
 
             for key in level_base.keys():
                 logger.debug(f"Calculating diff for key: {key} in module: {module_id}")
-                if key in superficial_keys or key in {'ScrapRewards', 'upgrade_currency_id'}:
+                if key in superficial_keys or key in {'scrap_rewards_ids', 'upgrade_cost_id'}:
                     continue
                 else:
                     add_diff(key, calc_diff(level_base[key], level_max[key], module_id))
 
-            module_upgrade_costs = calculate_upgrade_costs(module, upgrade_cost_class_objects, total_upgrade_costs)
+            
             level_diffs[module_id] = {
                 'stats_percent_increase': dict(sorted(diff.items()))
             }
-            if module_upgrade_costs:
-                level_diffs[module_id]['total_upgrade_cost'] = module_upgrade_costs
 
         return {
             'level_diffs': level_diffs,
-            'distinct_stat_keys': distinct_stat_keys,
-            'total_upgrade_costs': total_upgrade_costs
+            'distinct_stat_keys': distinct_stat_keys
         }
 
     @staticmethod
@@ -211,25 +359,132 @@ class Analysis:
             for stat_key, stat_rank in stat_ranks.items()
         }
         return verbose_stat_ranks
+    
+    ##########################################
+    #   Add Upgrade Cost to Module Lvl Diffs #
+    ##########################################
+    @staticmethod
+    def add_upgrade_cost_to_level_diffs(level_diffs_by_module, standard_cost_and_scrap, module_class_objects):
+        """
+        For each module, add non-zero upgrade cost to its level diffs
+        """
+        def get_upgrade_cost_from_standard(cost_scrap_data):
+            """
+            Args:
+                cost_scrap_data = {
+                    <currency_id>: {
+                        'upgrade_cost': <amount>,
+                        'scrap_reward': <amount>,
+                    }
+                }
+
+            Returns:
+                (<currency_id>, <upgrade_cost_amount>)
+
+                None if no non-zero upgrade cost found or multiple non-zero upgrade costs found
+            """
+
+            found_nonzero_pairs = []
+            for currency_id, cost_and_scrap in cost_scrap_data.items():
+                upgrade_cost = cost_and_scrap.get('upgrade_cost', 0)
+                if upgrade_cost > 0:
+                    found_nonzero_pairs.append((currency_id, upgrade_cost))
+            if len(found_nonzero_pairs) == 0:
+                return None
+            elif len(found_nonzero_pairs) == 1:
+                return found_nonzero_pairs[0]
+            else:
+                logger.error(f"Structure change: multiple non-zero upgrade costs found: {found_nonzero_pairs}")
+                return None
+
+        for module_id in level_diffs_by_module.keys():
+            # Determine the non-zero upgrade cost for this module
+            module_rarity_id = module_class_objects[module_id].module_rarity_id
+            rarity_standard_cost_and_scrap = standard_cost_and_scrap[module_rarity_id]
+
+            total_upgrade_cost = {} #<currency_id>: <upgrade_cost_amount>
+            for level, cost_scrap_data in rarity_standard_cost_and_scrap.items():
+                logger.debug(f"Adding upgrade cost for module: {module_id}, level: {level}")
+
+                # use the most frequent upgrade cost for this module rarity & level, as opposed to whats in data
+                upgrade_cost_pair = get_upgrade_cost_from_standard(cost_scrap_data)
+
+                # add to total
+                if upgrade_cost_pair is not None:
+                    currency_id, upgrade_cost_amount = upgrade_cost_pair
+                    total_upgrade_cost[currency_id] = upgrade_cost_amount
+
+            # add to level diffs
+            for currency_id, upgrade_cost_amount in total_upgrade_cost.items():
+                if 'total_upgrade_cost' not in level_diffs_by_module[module_id]:
+                    level_diffs_by_module[module_id]['total_upgrade_cost'] = {}
+                level_diffs_by_module[module_id]['total_upgrade_cost'][f'{currency_id}'] = upgrade_cost_amount
+
+        return level_diffs_by_module
+    
+
+    ############################
+    # Grand total upgrade cost #
+    ############################
+    @staticmethod
+    def calculate_total_upgrade_costs(module_class_objects, standard_cost_and_scrap):
+        total_upgrade_costs = {}  # <currency_id>: <total_upgrade_cost_amount>
+        for module_id, module in module_class_objects.items():
+            # Ensure its production ready module
+            if getattr(module, 'production_status', None) != 'Ready':
+                continue
+
+            # Determine quantity of the module to count.
+            #  Shoulder: 2
+            #  Others: 1
+            module_type_id = getattr(module, 'module_type_id', '')
+            quantity = 2 if module_type_id == 'DA_ModuleType_Shoulder.0' else 1
+
+            # Determine the non-zero upgrade cost for this module
+            module_rarity_id = module.module_rarity_id
+            rarity_standard_cost_and_scrap = standard_cost_and_scrap[module_rarity_id]
+            this_module_total_upgrade_cost = {}  # <currency_id>: <total_upgrade_cost_amount> for this module
+            for level, currency_cost_scrap_data in rarity_standard_cost_and_scrap.items():
+                # level1 doesn't upgrade, but, it seems to represent the cost to craft it (different to daily deals price)
+                for currency_id, cost_and_scrap in currency_cost_scrap_data.items():
+                    upgrade_cost = cost_and_scrap['upgrade_cost']
+                    if currency_id not in this_module_total_upgrade_cost:
+                        this_module_total_upgrade_cost[currency_id] = 0
+                    this_module_total_upgrade_cost[currency_id] += upgrade_cost * quantity
+
+            # Add to grand total
+            for currency_id, upgrade_cost_amount in this_module_total_upgrade_cost.items():
+                if currency_id not in total_upgrade_costs:
+                    total_upgrade_costs[currency_id] = 0
+                total_upgrade_costs[currency_id] += upgrade_cost_amount
+
+        return total_upgrade_costs
+
 
     ##########################
     #          Other         #
     ##########################
-
-    def to_json(self):
-        """Return analysis data as pretty-printed JSON."""
-        data = round_dict_values({
+    def bundle_self(self):
+        """Return self as one dictionary, keyed by the future file name."""
+        return round_dict_values({
             'level_diffs_by_module': sort_dict(self.level_diffs_by_module, 1),
             'level_diffs_by_stat': sort_dict(self.level_diffs_by_stat, 1),
-            'total_upgrade_cost_for_all_modules': sort_dict(self.total_upgrade_cost_for_all_modules, 1)
+            'cost_scrap_frequency_map': self.frequency_map,
+            'standard_cost_and_scrap': self.standard_cost_and_scrap,
+            'total_upgrade_costs': self.total_upgrade_costs,
         })
-        return json.dumps(data, ensure_ascii=False, indent=4)
 
     def to_file(self):
         """Write analysis data to output file."""
-        file_path = os.path.join(OPTIONS.output_dir, f'{self.__class__.__name__}.json')
-        with open(file_path, 'w', encoding='utf-8') as f:
-            f.write(self.to_json())
+        # Create Analysis folder if it doesn't exist
+        analysis_dir = os.path.join(OPTIONS.output_dir, f'{self.__class__.__name__}')
+        os.makedirs(analysis_dir, exist_ok=True)
+        bundle = self.bundle_self()
+        for file_name, data in bundle.items():
+            file_path = os.path.join(analysis_dir, f'{file_name}.json')
+            logger.debug(f"Writing analysis data to {file_path}")
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=4)
 
 def round_dict_values(d):
     if isinstance(d, dict):
@@ -244,6 +499,6 @@ def round_val(value):
         return value
     return round(value, 5) #decimal places
 
-def analyze(module_class, module_stat_class, upgrade_cost_class):
-    analysis = Analysis(module_class, module_stat_class, upgrade_cost_class)
+def analyze(module_class, module_stat_class, upgrade_cost_class, scrap_reward_class):
+    analysis = Analysis(module_class, module_stat_class, upgrade_cost_class, scrap_reward_class)
     analysis.to_file()
