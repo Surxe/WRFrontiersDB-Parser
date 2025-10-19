@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import logger, get_json_data, OPTIONS
+from utils import get_json_data, OPTIONS, parse_colon_colon
 
 from parsers.object import ParseObject
 from parsers.image import Image, parse_image_asset_path
@@ -22,9 +22,11 @@ class FactoryPreset(ParseObject):
             "Icon": parse_image_asset_path,
             "Name": parse_localization,
             "bShowInProgressDiscover": ("value", "production_status"),
+            "RobotAIDataAsset": None, #voiceline
             "TemplateType": None,
             "CharacterTypeAsset": None,
-            "Modules": (self._p_modules, "modules_ids"),
+            "CharacterType": parse_colon_colon,
+            "Modules": self._p_modules,
             "Pilot": (self._p_pilot, "pilot_id"),
             "ID": None,
         }
@@ -32,12 +34,24 @@ class FactoryPreset(ParseObject):
         self._process_key_to_parser_function(key_to_parser_function, props, tabs=2)
 
     def _p_modules(self, data):
-        ids = []
-        for module_entry in data:
-            module = Module.get_from_asset_path(module_entry["Module"]["ObjectPath"], sub_index=False)
-            ids.append(module)
-        return ids
+        modules = {}
+        for index, module_entry in enumerate(data):
+            module_id = Module.get_from_asset_path(module_entry["Module"]["ObjectPath"], sub_index=False)
+            socket_name = module_entry["ParentSocket"]
+            parent_socket_index = module_entry["ParentModuleIndex"]
+            # determine parent_socket_name by using the parent_socket_index lookup in modules
+            if parent_socket_index == -1:
+                parent_socket_name = None
+            else:
+                parent_socket_name = list(modules.keys())[parent_socket_index]
+            modules[socket_name] = {
+                "id": module_id,
+                "parent_socket_name": parent_socket_name,
+                "level": module_entry["Level"]
+            }
 
+
+        return modules
     def _p_pilot(self, data):
         pilot = Pilot.get_from_asset_path(data["PilotAsset"]["ObjectPath"])
         return pilot
