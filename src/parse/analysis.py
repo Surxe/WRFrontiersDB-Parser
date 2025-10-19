@@ -41,7 +41,7 @@ class Analysis:
         self.level_diffs_by_module = self.add_upgrade_cost_to_level_diffs(self.level_diffs_by_module, self.standard_cost_and_scrap, self.module_class.objects)
 
         # Determine upgrade costs of each factory preset
-        self.factory_preset_upgrade_costs = self.calculate_factory_preset_upgrade_costs(self.factory_preset_class.objects, self.standard_cost_and_scrap)
+        self.factory_preset_upgrade_costs = self.calculate_factory_preset_upgrade_costs(self.module_class.objects, self.factory_preset_class.objects, self.standard_cost_and_scrap)
 
         # Determine grand total upgrade costs of production only modules, and 2 of each shoulder rather than 1
         self.total_upgrade_costs = self.calculate_total_upgrade_costs(self.module_class.objects, self.standard_cost_and_scrap)
@@ -426,8 +426,10 @@ class Analysis:
             # add to total
             if upgrade_cost_pair is not None:
                 currency_id, upgrade_cost_amount = upgrade_cost_pair
-                module_upgrade_costs[currency_id] = upgrade_cost_amount
-        
+                if currency_id not in module_upgrade_costs:
+                    module_upgrade_costs[currency_id] = 0
+                module_upgrade_costs[currency_id] += upgrade_cost_amount
+
         return module_upgrade_costs, is_shoulder
 
     def add_upgrade_cost_to_level_diffs(self, level_diffs_by_module, standard_cost_and_scrap, module_class_objects):
@@ -451,9 +453,7 @@ class Analysis:
     ################################
     # Factory preset upgrade costs #
     ################################
-    @staticmethod
-    def calculate_factory_preset_upgrade_costs(factory_preset_class_objects, standard_cost_and_scrap):
-        return {}
+    def calculate_factory_preset_upgrade_costs(self, module_class_objects, factory_preset_class_objects, standard_cost_and_scrap):
         """
         Returns:
             {
@@ -466,10 +466,16 @@ class Analysis:
         for fpreset_id, fpreset in factory_preset_class_objects.items():
             for module_socket_name, module_data in fpreset.modules.items():
                 module_id = module_data['id']
-
+                this_module_upgrade_costs, _ = self.get_module_upgrade_costs(module_id, module_class_objects, standard_cost_and_scrap)
+                logger.debug(f"Adding upgrade cost for factory preset: {fpreset_id}, module: {module_id}, upgrade_costs: {this_module_upgrade_costs}")
             
-
-            factory_preset_costs[fpreset_id] = total_upgrade_costs
+            # For each currency_id, add to the fpreset's total
+            for currency_id, upgrade_cost_amount in this_module_upgrade_costs.items():
+                if fpreset_id not in factory_preset_costs:
+                    factory_preset_costs[fpreset_id] = {}
+                if currency_id not in factory_preset_costs[fpreset_id]:
+                    factory_preset_costs[fpreset_id][currency_id] = 0
+                factory_preset_costs[fpreset_id][currency_id] += upgrade_cost_amount
 
         return factory_preset_costs
     
