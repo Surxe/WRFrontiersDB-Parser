@@ -512,13 +512,13 @@ class Analysis:
                 this_module_upgrade_costs, _ = self.get_module_upgrade_costs(module_id, standard_cost_and_scrap)
                 logger.debug(f"Adding upgrade cost for factory preset: {fpreset_id}")
             
-            # For each currency_id, add to the fpreset's total
-            for currency_id, upgrade_cost_amount in this_module_upgrade_costs.items():
-                if fpreset_id not in factory_preset_costs:
-                    factory_preset_costs[fpreset_id] = {}
-                if currency_id not in factory_preset_costs[fpreset_id]:
-                    factory_preset_costs[fpreset_id][currency_id] = 0
-                factory_preset_costs[fpreset_id][currency_id] += upgrade_cost_amount
+                # For each currency_id, add to the fpreset's total
+                for currency_id, upgrade_cost_amount in this_module_upgrade_costs.items():
+                    if fpreset_id not in factory_preset_costs:
+                        factory_preset_costs[fpreset_id] = {}
+                    if currency_id not in factory_preset_costs[fpreset_id]:
+                        factory_preset_costs[fpreset_id][currency_id] = 0
+                    factory_preset_costs[fpreset_id][currency_id] += upgrade_cost_amount
 
         return factory_preset_costs
     
