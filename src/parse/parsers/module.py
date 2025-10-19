@@ -110,6 +110,8 @@ class Module(ParseObject):
             "LevelsData": (self._p_levels_data, "levels"),
             "PrimaryStatMetaInformation": (self._p_parameter, "primary_stat_id"),
             "SecondaryStatMetaInformation": (self._p_parameter, "secondary_stat_id"),
+            "ModuleName": None,
+            "bAllowStatsReporting": None,
         }
         key_to_parser_function.update(get_default_key_to_parser_function())
 
