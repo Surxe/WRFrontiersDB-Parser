@@ -254,8 +254,12 @@ class Module(ParseObject):
         # Categorize into constants and variables
         categorized_parsed_levels = {}
         constants_and_variables = self._separate_constants_and_variables(parsed_levels)
-        categorized_parsed_levels["constants"] = constants_and_variables["constants"]
-        categorized_parsed_levels["variables"] = constants_and_variables["variables"]
+        constants = constants_and_variables.get("constants")
+        variables = constants_and_variables.get("variables")
+        if constants:
+            categorized_parsed_levels["constants"] = constants
+        if variables:
+            categorized_parsed_levels["variables"] = variables
 
         return categorized_parsed_levels
     
@@ -284,12 +288,16 @@ class Module(ParseObject):
                 if key in non_constants: # if it's not a constant, add it to parsed_level_variable_stats
                     parsed_level_variable_stats[key] = level[key]
 
-            parsed_levels_variable_stats.append(parsed_level_variable_stats)
+            if parsed_level_variable_stats:
+                parsed_levels_variable_stats.append(parsed_level_variable_stats)
 
-        return {
-            "variables": parsed_levels_variable_stats,
-            "constants": parsed_constant_stats
-        }
+        ret = {}
+        if parsed_levels_variable_stats:
+            ret["variables"] = parsed_levels_variable_stats
+        if parsed_constant_stats:
+            ret["constants"] = parsed_constant_stats
+        
+        return ret
 
     def _p_text_tags(self, data):
         text_tags = []
