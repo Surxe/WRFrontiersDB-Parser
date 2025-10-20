@@ -156,11 +156,12 @@ class PilotTalent(ParseObject):
                         module_tag_id = ModuleTag.get_from_asset_path(mtag["ObjectPath"])
                         module_tags.append({"module_tag_id": module_tag_id})
                     
-                    ability_selectors.append({
-                        "allowed_placement_types": allowed_placement_types,
-                        "module_tags": module_tags
-                    })
-
+                    ability_selector = {}
+                    if allowed_placement_types:
+                        ability_selector["allowed_placement_types"] = allowed_placement_types
+                    if module_tags:
+                        ability_selector["module_tags"] = module_tags
+                    ability_selectors.append(ability_selector)
                 if ability_selectors:
                     parsed_buff["ability_selectors"] = ability_selectors
 

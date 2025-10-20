@@ -87,7 +87,9 @@ class Pilot(ParseObject):
             self.levels[i]["talent_type_id"] = PilotTalentType.get_from_asset_path(props["TalentType"]["ObjectPath"])
             if "ReputationCost" in props:
                 self.levels[i]["reputation_cost"] = props["ReputationCost"]
-            self.levels[i]["upgrade_cost"] = parse_currency(props["CurrencyCost"])
+            upgrade_cost = parse_currency(props["CurrencyCost"])
+            if upgrade_cost:
+                self.levels[i]["upgrade_cost"] = upgrade_cost
             talents = props["Talents"]
             self.levels[i]["talents"] = []
             for talent in talents:

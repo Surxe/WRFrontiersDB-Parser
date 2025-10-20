@@ -82,7 +82,8 @@ class Analysis:
                 frequency_map[module_rarity_id] = {}
 
             # Iterate levels
-            for level_index, level_data in enumerate(module_scalars['variables']):
+            level_variables = module_scalars.get('variables', [])
+            for level_index, level_data in enumerate(level_variables):
                 level = level_index + 1
                 # Ensure level is added
                 if level not in frequency_map[module_rarity_id]:

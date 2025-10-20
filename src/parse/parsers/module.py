@@ -167,6 +167,7 @@ class Module(ParseObject):
                     upgrade_cost = UpgradeCost(module_lvl_id, upgrade_currency, upgrade_cost_amount) 
                     parsed_level["upgrade_cost_id"] = upgrade_cost.id
 
+            scrap_rewards_ids = []
             def p_scrap_reward_amount(first_or_second):
                 """
                 first_or_second: "First" or "Second"
@@ -177,10 +178,10 @@ class Module(ParseObject):
                     scrap_reward_currency = level[scrap_reward_currency_key]
                     scrap_reward_amount = level[scrap_reward_amount_key]
                     if scrap_reward_currency is not None and scrap_reward_currency != "None": # consciously not excluding 0 amounts, as it messes up ability to check if its a constant or a variable
-                        scrap_num_id = len(parsed_level['scrap_rewards_ids']) + 1 #index the next scrap reward will be at, +1
+                        scrap_num_id = len(scrap_rewards_ids) + 1 #index the next scrap reward will be at, +1
                         module_lvl_scrapindex_id = f"{module_lvl_id}_scrap{scrap_num_id}"
                         scrap_reward = ScrapReward(module_lvl_scrapindex_id, scrap_reward_currency, scrap_reward_amount)
-                        parsed_level['scrap_rewards_ids'].append(scrap_reward.id)
+                        scrap_rewards_ids.append(scrap_reward.id)
 
             # Since these are id'd this way, why not just have them referenced in the Module level directly?
             # A few weeks before writing, every intel discount was reflected in the client-side costs of items
@@ -190,9 +191,10 @@ class Module(ParseObject):
             # Maybe when I can confirm for 100% that discounts are exclusively server side, it can be reworked.
             # For now, I plan to determine the most likely upgrade costs/scrap rewards by module rarity using the most frequent values in Analysis.py
                 
-            parsed_level["scrap_rewards_ids"] = []
             p_scrap_reward_amount("First")
             p_scrap_reward_amount("Second")
+            if scrap_rewards_ids:
+                parsed_level["scrap_rewards_ids"] = scrap_rewards_ids
 
 
             # Parse module class and tags
@@ -252,8 +254,12 @@ class Module(ParseObject):
         # Categorize into constants and variables
         categorized_parsed_levels = {}
         constants_and_variables = self._separate_constants_and_variables(parsed_levels)
-        categorized_parsed_levels["constants"] = constants_and_variables["constants"]
-        categorized_parsed_levels["variables"] = constants_and_variables["variables"]
+        constants = constants_and_variables.get("constants")
+        variables = constants_and_variables.get("variables")
+        if constants:
+            categorized_parsed_levels["constants"] = constants
+        if variables:
+            categorized_parsed_levels["variables"] = variables
 
         return categorized_parsed_levels
     
@@ -282,12 +288,16 @@ class Module(ParseObject):
                 if key in non_constants: # if it's not a constant, add it to parsed_level_variable_stats
                     parsed_level_variable_stats[key] = level[key]
 
-            parsed_levels_variable_stats.append(parsed_level_variable_stats)
+            if parsed_level_variable_stats:
+                parsed_levels_variable_stats.append(parsed_level_variable_stats)
 
-        return {
-            "variables": parsed_levels_variable_stats,
-            "constants": parsed_constant_stats
-        }
+        ret = {}
+        if parsed_levels_variable_stats:
+            ret["variables"] = parsed_levels_variable_stats
+        if parsed_constant_stats:
+            ret["constants"] = parsed_constant_stats
+        
+        return ret
 
     def _p_text_tags(self, data):
         text_tags = []
