@@ -167,6 +167,7 @@ class Module(ParseObject):
                     upgrade_cost = UpgradeCost(module_lvl_id, upgrade_currency, upgrade_cost_amount) 
                     parsed_level["upgrade_cost_id"] = upgrade_cost.id
 
+            scrap_rewards_ids = []
             def p_scrap_reward_amount(first_or_second):
                 """
                 first_or_second: "First" or "Second"
@@ -177,10 +178,10 @@ class Module(ParseObject):
                     scrap_reward_currency = level[scrap_reward_currency_key]
                     scrap_reward_amount = level[scrap_reward_amount_key]
                     if scrap_reward_currency is not None and scrap_reward_currency != "None": # consciously not excluding 0 amounts, as it messes up ability to check if its a constant or a variable
-                        scrap_num_id = len(parsed_level['scrap_rewards_ids']) + 1 #index the next scrap reward will be at, +1
+                        scrap_num_id = len(scrap_rewards_ids) + 1 #index the next scrap reward will be at, +1
                         module_lvl_scrapindex_id = f"{module_lvl_id}_scrap{scrap_num_id}"
                         scrap_reward = ScrapReward(module_lvl_scrapindex_id, scrap_reward_currency, scrap_reward_amount)
-                        parsed_level['scrap_rewards_ids'].append(scrap_reward.id)
+                        scrap_rewards_ids.append(scrap_reward.id)
 
             # Since these are id'd this way, why not just have them referenced in the Module level directly?
             # A few weeks before writing, every intel discount was reflected in the client-side costs of items
@@ -190,9 +191,10 @@ class Module(ParseObject):
             # Maybe when I can confirm for 100% that discounts are exclusively server side, it can be reworked.
             # For now, I plan to determine the most likely upgrade costs/scrap rewards by module rarity using the most frequent values in Analysis.py
                 
-            parsed_level["scrap_rewards_ids"] = []
             p_scrap_reward_amount("First")
             p_scrap_reward_amount("Second")
+            if scrap_rewards_ids:
+                parsed_level["scrap_rewards_ids"] = scrap_rewards_ids
 
 
             # Parse module class and tags
