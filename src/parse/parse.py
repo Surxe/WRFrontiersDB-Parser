@@ -11,12 +11,8 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:
     sys.path.append(current_dir)
 
-from dotenv import load_dotenv
 from utils import clear_dir
-from options import init_options, Options
-
-# Force reload .env file, overriding any existing environment variables
-load_dotenv(override=True)
+from optionsconfig import Options
 
 from parsers.module import *
 from parsers.localization import *
@@ -28,7 +24,7 @@ from parsers.factory_preset import *
 from parsers.powerup import *
 from analysis import *
 
-def main():
+def main(options: Options):
     clear_dir("output")  # Clear the data directory before parsing
 
     parse_localizations()
@@ -92,7 +88,3 @@ def main():
 
     Localization.to_file()
     Image.to_file()
-
-if __name__ == "__main__":
-    init_options()
-    main()

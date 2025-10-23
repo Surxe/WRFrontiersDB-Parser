@@ -5,18 +5,13 @@ import os
 import stat
 import shutil
 import subprocess
-import tempfile
 from pathlib import Path
 
 # Add parent dirs to sys path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from dotenv import load_dotenv
-from options import init_options, Options
+from optionsconfig import Options
 from loguru import logger
-
-# Force reload .env file, overriding any existing environment variables
-load_dotenv(override=True)
 
 
 def run_git_command(cmd, cwd=None, capture_output=True, check=True, log_output=False):
@@ -353,7 +348,3 @@ def main(OPTIONS: Options):
         if os.path.exists(data_repo_dir):
             logger.debug(f"Cleaning up {data_repo_dir}...")
             shutil.rmtree(data_repo_dir, ignore_errors=True)
-
-
-if __name__ == "__main__":
-    main(init_options())
