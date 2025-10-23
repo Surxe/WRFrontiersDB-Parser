@@ -6,6 +6,7 @@ import argparse
 from argparse import Namespace
 from typing import Optional
 from optionsconfig import init_options, ArgumentWriter
+from options import set_options
 from parse.parse import main as parse_main
 from push.push import main as push_main
 
@@ -52,16 +53,18 @@ def main():
 
     log_file_path = get_log_file_path(args)
 
-    OPTIONS = init_options(args, log_file=log_file_path)
+    options = init_options(args, log_file=log_file_path)
+    set_options(options)
+
     global logger
     from optionsconfig import logger
 
-    if OPTIONS.should_parse:
-        logger.debug(f"should_parse is set to {OPTIONS.should_parse}, proceeding with parsing.")
-        parse_main(OPTIONS)
-    if OPTIONS.should_push_data:
-        logger.debug(f"should_push_data is set to {OPTIONS.should_push_data}, proceeding with pushing data.")
-        push_main(OPTIONS)
+    if options.should_parse:
+        logger.debug(f"should_parse is set to {options.should_parse}, proceeding with parsing.")
+        parse_main(options)
+    if options.should_push_data:
+        logger.debug(f"should_push_data is set to {options.should_push_data}, proceeding with pushing data.")
+        push_main(options)
 
 if __name__ == "__main__":
     main()

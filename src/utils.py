@@ -6,9 +6,7 @@ import os
 from loguru import logger
 import shutil
 import re
-
-OPTIONS = None  # Initialize OPTIONS here to ensure it's available for functions below
-# will be overridden by init_options from run.py
+from options import OPTIONS
 
 ###############################
 #             FILE            #
