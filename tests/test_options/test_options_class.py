@@ -11,13 +11,9 @@ from pathlib import Path
 src_path = os.path.join(os.path.dirname(__file__), '..', '..', 'src')
 sys.path.insert(0, src_path)
 
-# Import directly from the src.options module to avoid conflicts with tests.utils
-import importlib.util
-spec = importlib.util.spec_from_file_location("src_options", os.path.join(src_path, "options.py"))
-src_options = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(src_options)
-
-Options = src_options.Options
+# Import Options from optionsconfig package
+import optionsconfig
+from optionsconfig import Options
 
 def create_args(**kwargs):
     """Helper function to create argparse Namespace with given arguments."""
@@ -55,7 +51,7 @@ class TestOptions(unittest.TestCase):
         if os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)
 
-    @patch.object(src_options, 'logger')
+    @patch.object(optionsconfig, 'logger')
     def test_options_init_with_no_args(self, mock_logger):
         """Test Options initialization with no arguments (should raise validation error)."""
         # Mock logger.add and logger.remove to avoid actual logging setup
@@ -77,7 +73,7 @@ class TestOptions(unittest.TestCase):
             f"Expected one of the required options in error message: {error_message}"
         )
 
-    @patch.object(src_options, 'logger')
+    @patch.object(optionsconfig, 'logger')
     def test_options_init_with_args(self, mock_logger):
         """Test Options initialization with argparse arguments."""
         # Mock logger methods
@@ -110,7 +106,7 @@ class TestOptions(unittest.TestCase):
         self.assertEqual(options.target_branch, "main")
         self.assertEqual(options.gh_data_repo_pat, "test_token")
 
-    @patch.object(src_options, 'logger')
+    @patch.object(optionsconfig, 'logger')
     def test_options_environment_variable_fallback(self, mock_logger):
         """Test Options falls back to environment variables when args not provided."""
         mock_logger.add = Mock()
@@ -142,7 +138,7 @@ class TestOptions(unittest.TestCase):
         self.assertEqual(options.target_branch, "testing-grounds")
         self.assertEqual(options.gh_data_repo_pat, "env_token")
 
-    @patch.object(src_options, 'logger')
+    @patch.object(optionsconfig, 'logger')
     def test_options_args_override_environment(self, mock_logger):
         """Test that command line arguments override environment variables."""
         mock_logger.add = Mock()
@@ -183,7 +179,7 @@ class TestOptions(unittest.TestCase):
         self.assertEqual(options.target_branch, "arg-branch")  # Overridden
         self.assertEqual(options.gh_data_repo_pat, "arg-token")  # Overridden
 
-    @patch.object(src_options, 'logger')
+    @patch.object(optionsconfig, 'logger')
     def test_options_type_conversion_from_env(self, mock_logger):
         """Test proper type conversion from environment variables."""
         mock_logger.add = Mock()
@@ -212,7 +208,7 @@ class TestOptions(unittest.TestCase):
         self.assertEqual(options.log_level, "DEBUG")
         self.assertEqual(options.game_name, "WRFrontiers")
 
-    @patch.object(src_options, 'logger')
+    @patch.object(optionsconfig, 'logger')
     def test_options_literal_type_validation(self, mock_logger):
         """Test Literal type validation for log level."""
         mock_logger.add = Mock()
@@ -243,7 +239,7 @@ class TestOptions(unittest.TestCase):
             options = Options()
             self.assertEqual(options.log_level, "DEBUG")  # Should fall back to default
 
-    @patch.object(src_options, 'logger')
+    @patch.object(optionsconfig, 'logger')
     def test_options_missing_required_dependent_options_raises_error(self, mock_logger):
         """Test that missing required dependent options raise ValueError."""
         mock_logger.add = Mock()
@@ -270,7 +266,7 @@ class TestOptions(unittest.TestCase):
                 f"Expected EXPORT_DIR or OUTPUT_DIR in error message: {error_message}"
             )
 
-    @patch.object(src_options, 'logger')
+    @patch.object(optionsconfig, 'logger')
     def test_options_should_flags_explicit_false(self, mock_logger):
         """Test that should_* options can be explicitly set to False."""
         mock_logger.add = Mock()
@@ -290,7 +286,7 @@ class TestOptions(unittest.TestCase):
         self.assertFalse(options.should_parse)
         self.assertFalse(options.should_push_data)
 
-    @patch.object(src_options, 'logger')
+    @patch.object(optionsconfig, 'logger')
     @patch('builtins.print')
     def test_options_behavior_with_minimal_args(self, mock_print, mock_logger):
         """Test Options behavior with minimal arguments provided."""
@@ -313,7 +309,7 @@ class TestOptions(unittest.TestCase):
         self.assertFalse(options.should_parse)
         self.assertFalse(options.should_push_data)
 
-    @patch.object(src_options, 'logger')
+    @patch.object(optionsconfig, 'logger')
     @patch('builtins.print')
     def test_options_attribute_name_conversion(self, mock_print, mock_logger):
         """Test that schema keys are converted to lowercase attribute names."""
@@ -336,7 +332,7 @@ class TestOptions(unittest.TestCase):
         self.assertTrue(hasattr(options, 'should_parse'))  # SHOULD_PARSE -> should_parse
         self.assertTrue(hasattr(options, 'game_name'))  # GAME_NAME -> game_name
 
-    @patch.object(src_options, 'logger')
+    @patch.object(optionsconfig, 'logger')
     @patch('builtins.print')
     def test_options_validate_method_called(self, mock_print, mock_logger):
         """Test that validate method is called during initialization."""
@@ -356,7 +352,7 @@ class TestOptions(unittest.TestCase):
                 options = Options(args)
                 mock_validate.assert_called_once()
 
-    @patch.object(src_options, 'logger')
+    @patch.object(optionsconfig, 'logger')
     @patch('builtins.print')
     def test_options_log_method_called(self, mock_print, mock_logger):
         """Test that log method is called during initialization."""
@@ -376,7 +372,7 @@ class TestOptions(unittest.TestCase):
                 options = Options(args)
                 mock_log.assert_called_once()
 
-    @patch.object(src_options, 'logger')
+    @patch.object(optionsconfig, 'logger')
     @patch('builtins.print')
     def test_options_logger_setup(self, mock_print, mock_logger):
         """Test that logger is properly set up during initialization."""
@@ -402,7 +398,7 @@ class TestOptions(unittest.TestCase):
         # Verify log level was set correctly
         self.assertEqual(options.log_level, "INFO")
 
-    @patch.object(src_options, 'logger')
+    @patch.object(optionsconfig, 'logger')
     @patch('builtins.print')
     def test_options_sensitive_data_logging(self, mock_print, mock_logger):
         """Test that sensitive data is hidden in logs."""
@@ -431,7 +427,7 @@ class TestOptions(unittest.TestCase):
         # Username should be visible
         self.assertIn("testuser", log_call_args)
 
-    @patch.object(src_options, 'logger')
+    @patch.object(optionsconfig, 'logger')
     @patch('builtins.print')
     def test_options_empty_string_handling(self, mock_print, mock_logger):
         """Test handling of empty strings from environment variables."""
@@ -451,7 +447,7 @@ class TestOptions(unittest.TestCase):
         # Empty strings should fallback to defaults for options with defaults
         self.assertEqual(options.game_name, "WRFrontiers")
 
-    @patch.object(src_options, 'logger')
+    @patch.object(optionsconfig, 'logger')
     @patch('builtins.print')
     def test_options_process_schema_method(self, mock_print, mock_logger):
         """Test the _process_schema method functionality."""

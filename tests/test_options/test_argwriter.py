@@ -10,13 +10,9 @@ from pathlib import Path
 src_path = os.path.join(os.path.dirname(__file__), '..', '..', 'src')
 sys.path.insert(0, src_path)
 
-# Import directly from the src.options module to avoid conflicts with tests.utils
-import importlib.util
-spec = importlib.util.spec_from_file_location("src_options", os.path.join(src_path, "options.py"))
-src_options = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(src_options)
-
-ArgumentWriter = src_options.ArgumentWriter
+# Import from optionsconfig package
+import optionsconfig
+from optionsconfig import ArgumentWriter
 
 
 class TestArgumentWriter(unittest.TestCase):
@@ -31,15 +27,15 @@ class TestArgumentWriter(unittest.TestCase):
         self.writer = ArgumentWriter()
         self.parser = argparse.ArgumentParser()
 
-    @patch.object(src_options, 'logger')
+    @patch.object(optionsconfig, 'logger')
     def test_argument_writer_initialization(self, mock_logger):
         """Test ArgumentWriter initializes with OPTIONS_SCHEMA."""
         writer = ArgumentWriter()
-        self.assertEqual(writer.schema, src_options.OPTIONS_SCHEMA)
+        self.assertEqual(writer.schema, optionsconfig.OPTIONS_SCHEMA)
         self.assertIsNotNone(writer.schema)
         self.assertIsInstance(writer.schema, dict)
 
-    @patch.object(src_options, 'logger')
+    @patch.object(optionsconfig, 'logger')
     def test_add_boolean_argument(self, mock_logger):
         """Test adding boolean arguments to parser."""
         # Use actual boolean option from schema
@@ -66,7 +62,7 @@ class TestArgumentWriter(unittest.TestCase):
         # Verify logger was called
         mock_logger.debug.assert_called()
 
-    @patch.object(src_options, 'logger')
+    @patch.object(optionsconfig, 'logger')
     def test_add_literal_argument(self, mock_logger):
         """Test adding Literal type arguments to parser."""
         # Use actual Literal option from schema
@@ -93,7 +89,7 @@ class TestArgumentWriter(unittest.TestCase):
         # Verify logger was called
         mock_logger.debug.assert_called()
 
-    @patch.object(src_options, 'logger')
+    @patch.object(optionsconfig, 'logger')
     def test_add_path_argument(self, mock_logger):
         """Test adding Path type arguments to parser."""
         # Create a mock schema with a Path option
@@ -117,7 +113,7 @@ class TestArgumentWriter(unittest.TestCase):
         # Verify logger was called
         mock_logger.debug.assert_called()
 
-    @patch.object(src_options, 'logger')
+    @patch.object(optionsconfig, 'logger')
     def test_add_string_argument(self, mock_logger):
         """Test adding string type arguments to parser."""
         # Create a mock schema with a string option
@@ -140,7 +136,7 @@ class TestArgumentWriter(unittest.TestCase):
         # Verify logger was called
         mock_logger.debug.assert_called()
 
-    @patch.object(src_options, 'logger')
+    @patch.object(optionsconfig, 'logger')
     def test_add_integer_argument(self, mock_logger):
         """Test adding integer type arguments to parser."""
         # Create a mock schema with an integer option
@@ -165,7 +161,7 @@ class TestArgumentWriter(unittest.TestCase):
         with self.assertRaises(SystemExit):
             self.parser.parse_args(['--test-int', 'not_a_number'])
 
-    @patch.object(src_options, 'logger')
+    @patch.object(optionsconfig, 'logger')
     def test_help_text_includes_default(self, mock_logger):
         """Test that help text includes the default value."""
         test_schema = {
@@ -184,7 +180,7 @@ class TestArgumentWriter(unittest.TestCase):
         help_text = self.parser.format_help()
         self.assertIn("Test option help (default: test_default)", help_text)
 
-    @patch.object(src_options, 'logger')
+    @patch.object(optionsconfig, 'logger')
     def test_dependent_options_are_added(self, mock_logger):
         """Test that dependent options are added to the parser."""
         test_schema = {
@@ -224,7 +220,7 @@ class TestArgumentWriter(unittest.TestCase):
         self.assertEqual(args.sub_option_1, 'test_value')
         self.assertEqual(args.sub_option_2, 25)
 
-    @patch.object(src_options, 'logger')
+    @patch.object(optionsconfig, 'logger')
     def test_multi_level_dependencies(self, mock_logger):
         """Test options with dependencies on multiple other options are handled correctly."""
         test_schema = {
@@ -264,7 +260,7 @@ class TestArgumentWriter(unittest.TestCase):
         self.assertEqual(args.level_2, 'nested_value')
         self.assertEqual(args.level_3, 99)
 
-    @patch.object(src_options, 'logger')
+    @patch.object(optionsconfig, 'logger')
     def test_real_schema_integration(self, mock_logger):
         """Test ArgumentWriter works with the real OPTIONS_SCHEMA."""
         # Use the actual schema
@@ -281,7 +277,7 @@ class TestArgumentWriter(unittest.TestCase):
         self.assertTrue(args.should_parse)
         self.assertEqual(args.game_name, 'testuser')
 
-    @patch.object(src_options, 'logger')
+    @patch.object(optionsconfig, 'logger')
     def test_argument_name_conversion(self, mock_logger):
         """Test that argument names are properly converted from dashes to underscores."""
         test_schema = {
@@ -301,7 +297,7 @@ class TestArgumentWriter(unittest.TestCase):
         self.assertEqual(args.dash_option_name, 'test_value')
         self.assertTrue(hasattr(args, 'dash_option_name'))
 
-    @patch.object(src_options, 'logger')
+    @patch.object(optionsconfig, 'logger')
     def test_missing_help_text(self, mock_logger):
         """Test handling of options without help text."""
         test_schema = {
@@ -324,7 +320,7 @@ class TestArgumentWriter(unittest.TestCase):
         help_text = self.parser.format_help()
         self.assertIn("(default: default)", help_text)
 
-    @patch.object(src_options, 'logger')
+    @patch.object(optionsconfig, 'logger')
     def test_empty_schema(self, mock_logger):
         """Test ArgumentWriter handles empty schema gracefully."""
         empty_schema = {}
@@ -350,7 +346,7 @@ class TestArgumentWriter(unittest.TestCase):
         self.assertIn('usage:', help_text)
         self.assertIn('Test parser', help_text)
 
-    @patch.object(src_options, 'logger')
+    @patch.object(optionsconfig, 'logger')
     def test_duplicate_argument_names(self, mock_logger):
         """Test handling of potential duplicate argument names."""
         # This shouldn't happen with a well-formed schema, but test resilience

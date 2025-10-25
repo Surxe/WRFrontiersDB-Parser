@@ -10,14 +10,9 @@ from unittest.mock import patch, Mock
 src_path = os.path.join(os.path.dirname(__file__), '..', '..', 'src')
 sys.path.insert(0, src_path)
 
-# Import directly from the src.options module to avoid conflicts with tests.utils
-import importlib.util
-spec = importlib.util.spec_from_file_location("src_options", os.path.join(src_path, "options.py"))
-src_options = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(src_options)
-
-Options = src_options.Options
-init_options = src_options.init_options
+# Import from optionsconfig package
+import optionsconfig
+from optionsconfig import Options, init_options
 
 def create_args(**kwargs):
     """Helper function to create argparse Namespace with given arguments."""
@@ -156,7 +151,7 @@ class TestInitOptions(unittest.TestCase):
         options = init_options(args)
         
         # Check that global OPTIONS is set
-        self.assertEqual(src_options.OPTIONS, options)
+        self.assertEqual(optionsconfig.OPTIONS, options)
 
     @patch.dict(os.environ, {}, clear=True)  # Clear environment to test pure defaults
     def test_init_options_with_none_values(self):
