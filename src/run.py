@@ -56,15 +56,14 @@ def main():
     options = init_options(args, log_file=log_file_path)
     set_options(options)
 
-    global logger
     from optionsconfig import logger
 
     if options.should_parse:
         logger.debug(f"should_parse is set to {options.should_parse}, proceeding with parsing.")
-        parse_main(options)
+        parse_main()
     if options.should_push_data:
         logger.debug(f"should_push_data is set to {options.should_push_data}, proceeding with pushing data.")
-        push_main(options)
+        push_main()
 
 if __name__ == "__main__":
     main()

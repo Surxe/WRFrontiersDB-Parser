@@ -12,7 +12,7 @@ if current_dir not in sys.path:
     sys.path.append(current_dir)
 
 from utils import clear_dir
-from optionsconfig import Options
+from options import OPTIONS
 
 from parsers.module import *
 from parsers.localization import *
@@ -24,8 +24,9 @@ from parsers.factory_preset import *
 from parsers.powerup import *
 from analysis import *
 
-def main(options: Options):
-    clear_dir("output")  # Clear the data directory before parsing
+def main():
+    """Main parsing function - uses global OPTIONS singleton."""
+    clear_dir(OPTIONS.output_dir)  # Clear the data directory before parsing
 
     parse_localizations()
     parse_modules() #module relies on english localization being added to each key just as a helpful Ctrl+F reference

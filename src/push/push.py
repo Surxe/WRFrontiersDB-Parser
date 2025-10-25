@@ -10,7 +10,7 @@ from pathlib import Path
 # Add parent dirs to sys path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from optionsconfig import Options
+from options import OPTIONS
 from loguru import logger
 
 
@@ -291,8 +291,8 @@ def push_changes(repo_dir, target_branch):
     logger.info(f"All changes committed and pushed successfully to branch '{target_branch}'.")
 
 
-def main(OPTIONS: Options):
-    """Main function that orchestrates the data pushing process."""
+def main():
+    """Main function that orchestrates the data pushing process. Uses global OPTIONS singleton."""
     # Validate required options
     if not OPTIONS.game_version:
         raise ValueError("GAME_VERSION is required for pushing data")
