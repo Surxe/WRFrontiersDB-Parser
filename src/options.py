@@ -2,7 +2,7 @@
 Global configuration singleton
 Import and use OPTIONS directly from this module:
 
-    from config import OPTIONS
+    from options import OPTIONS
     
     def my_function():
         print(OPTIONS.export_dir)
