@@ -6,11 +6,7 @@ import os
 from loguru import logger
 import shutil
 import re
-load_dotenv()
-from options import init_options
-
-OPTIONS = init_options()  # Initialize OPTIONS here to ensure it's available for functions below
-# will be overridden by init_options from run.py if the args are used in addition to just env params
+from options import OPTIONS
 
 ###############################
 #             FILE            #

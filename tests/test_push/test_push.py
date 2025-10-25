@@ -242,19 +242,26 @@ class TestMainFunction(unittest.TestCase):
             # Fallback - skip these tests since they require complex setup
             self.skipTest("Cannot import push.push module for testing")
             
-        with patch.object(push_module, 'init_options') as mock_init_options:
-            mock_opts = MagicMock()
-            mock_opts.gh_data_repo_pat = None
-            mock_opts.game_version = "1.0.0"  # Valid game version
-            mock_init_options.return_value = mock_opts
-            
-            # Set the OPTIONS global variable directly
-            push_module.OPTIONS = mock_opts
-            
+        # Create a mock options object and set it in the OPTIONS proxy
+        mock_opts = MagicMock()
+        mock_opts.gh_data_repo_pat = None
+        mock_opts.game_version = "1.0.0"  # Valid game version
+        
+        # Set the mock in the OPTIONS proxy's internal _options
+        original_options = push_module.OPTIONS._options
+        push_module.OPTIONS._set(mock_opts)
+        
+        try:
             with self.assertRaises(ValueError) as context:
-                main(mock_opts)
+                main()
             
             self.assertIn("GH_DATA_REPO_PAT", str(context.exception))
+        finally:
+            # Restore original OPTIONS
+            if original_options is not None:
+                push_module.OPTIONS._set(original_options)
+            else:
+                push_module.OPTIONS._options = None
 
     def test_main_missing_game_version(self):
         """Test main function with missing game version."""
@@ -265,19 +272,26 @@ class TestMainFunction(unittest.TestCase):
             # Fallback - skip these tests since they require complex setup
             self.skipTest("Cannot import push.push module for testing")
             
-        with patch.object(push_module, 'init_options') as mock_init_options:
-            mock_opts = MagicMock()
-            mock_opts.gh_data_repo_pat = "fake_token"
-            mock_opts.game_version = None
-            mock_init_options.return_value = mock_opts
-            
-            # Set the OPTIONS global variable directly
-            push_module.OPTIONS = mock_opts
-            
+        # Create a mock options object and set it in the OPTIONS proxy
+        mock_opts = MagicMock()
+        mock_opts.gh_data_repo_pat = "fake_token"
+        mock_opts.game_version = None
+        
+        # Set the mock in the OPTIONS proxy's internal _options
+        original_options = push_module.OPTIONS._options
+        push_module.OPTIONS._set(mock_opts)
+        
+        try:
             with self.assertRaises(ValueError) as context:
-                main(mock_opts)
+                main()
             
             self.assertIn("GAME_VERSION", str(context.exception))
+        finally:
+            # Restore original OPTIONS
+            if original_options is not None:
+                push_module.OPTIONS._set(original_options)
+            else:
+                push_module.OPTIONS._options = None
 
 
 if __name__ == '__main__':
