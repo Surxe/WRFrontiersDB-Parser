@@ -1,13 +1,15 @@
 # Add parent dirs to sys path
 import sys
 import os
+
+from loguru import logger
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from parse.parsers.ability import p_actor_class
 from parsers.object import ParseObject
 from parsers.localization_table import parse_localization
 from parsers.image import parse_image_asset_path
 from parsers.module_stat import ModuleStat
-from parsers.module_tag import ModuleTag
 
 from utils import ParseTarget, ParseAction, asset_path_to_data, asset_path_to_file_path, get_json_data, parse_colon_colon
 
@@ -27,7 +29,7 @@ class PilotTalent(ParseObject):
             "ID": None,
         }
 
-        self._process_key_to_parser_function(key_to_parser_function, props)
+        self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor='PilotTalent')
 
     def _p_bp(self, data: dict):
         bp_file_path = asset_path_to_file_path(data["AssetPathName"])
@@ -102,6 +104,7 @@ class PilotTalent(ParseObject):
             # Regular attributes
             "Stats": self._p_stats,
             "Buffs": self._p_buffs,
+            "TargetBuffs": self._p_buffs,
 
             "ReactivationPolicy": parse_colon_colon,
         }
@@ -123,6 +126,7 @@ class PilotTalent(ParseObject):
         return
 
     def _p_buffs(self, buffs: list):
+        logger.debug(f"Parsing {len(buffs)} buffs for {self.id}")
         parsed_buffs = []
         
         for buff in buffs:
@@ -130,40 +134,8 @@ class PilotTalent(ParseObject):
 
             buff_asset_path = buff["ObjectPath"]
             buff_data = asset_path_to_data(buff_asset_path)
-            buff_cdo_data = asset_path_to_data(buff_data["ClassDefaultObject"]["ObjectPath"])
-            buff_props = buff_cdo_data["Properties"]
 
-            weapon_selectors = []
-            if 'WeaponSelectors' in buff_props:
-                for ws in buff_props["WeaponSelectors"]:
-                    tag = ws["ModuleTag"]
-                    if tag is None:
-                        continue
-                    module_tag_id = ModuleTag.get_from_asset_path(tag["ObjectPath"])
-                    weapon_selectors.append({"module_tag_id": module_tag_id})
-
-                if weapon_selectors:
-                    parsed_buff["weapon_selectors"] = weapon_selectors
-
-            ability_selectors = []
-            if 'AbilitySelectors' in buff_props:
-                for aselector in buff_props["AbilitySelectors"]:
-                    allowed_placement_types = []
-                    for aptype in aselector["AllowedPlacementTypes"]:
-                        allowed_placement_types.append(parse_colon_colon(aptype))
-                    module_tags = []
-                    for mtag in aselector["ModuleTags"]:
-                        module_tag_id = ModuleTag.get_from_asset_path(mtag["ObjectPath"])
-                        module_tags.append({"module_tag_id": module_tag_id})
-                    
-                    ability_selector = {}
-                    if allowed_placement_types:
-                        ability_selector["allowed_placement_types"] = allowed_placement_types
-                    if module_tags:
-                        ability_selector["module_tags"] = module_tags
-                    ability_selectors.append(ability_selector)
-                if ability_selectors:
-                    parsed_buff["ability_selectors"] = ability_selectors
+            parsed_buff = p_actor_class(buff_data["ClassDefaultObject"])
 
             if parsed_buff:
                 parsed_buffs.append(parsed_buff)

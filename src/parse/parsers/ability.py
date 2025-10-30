@@ -3,6 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from parse.parsers.module_tag import ModuleTag
 from parsers.object import ParseObject
 from utils import logger, ParseTarget, ParseAction, process_key_to_parser_function, asset_path_to_data, parse_colon_colon, parse_editor_curve_data, merge_dicts
 from parsers.image import parse_image_asset_path
@@ -64,6 +65,7 @@ class Ability(ParseObject):
             "ProjectileTypes": {"parser": self._p_projectile_types, "action": ParseAction.ATTRIBUTE, "target": ParseTarget.MATCH_KEY_SNAKE},
             "AIConditionOperator": {"parser": parse_colon_colon, "action": ParseAction.DICT_ENTRY, "target_dict_path": "ai", "target": "condition_operator"},
             "AIConditions": {"parser": self._p_ai_conditions, "action": ParseAction.DICT_ENTRY, "target_dict_path": "ai", "target": "conditions"},
+            "ActivationChargePoints": "value",
             "Name": {"parser": parse_localization, "action": ParseAction.ATTRIBUTE, "target": ParseTarget.MATCH_KEY_SNAKE},
             "Description": {"parser": parse_localization, "action": ParseAction.ATTRIBUTE, "target": ParseTarget.MATCH_KEY_SNAKE},
             "PrimaryParameter": "value",
@@ -810,12 +812,15 @@ def p_buff_area_component(data: dict):
 def p_prevent_focus(data: dict):
     return [parse_colon_colon(elem) for elem in data]
 
-def p_modifier(data: dict):
-    data = asset_path_to_data(data["ObjectPath"])
-    if 'Properties' not in data:
-        return
-    props = data["Properties"]
-    return props["Value"]
+def p_modifier(data):
+    if isinstance(data, dict):
+        data = asset_path_to_data(data["ObjectPath"])
+        if 'Properties' not in data:
+            return
+        props = data["Properties"]
+        return props["Value"]
+    else:
+        return data
 
 def p_ability_classes(data: dict):
     ids = []
@@ -823,6 +828,51 @@ def p_ability_classes(data: dict):
         ability_id = Ability.get_from_asset_path(ability_class["ObjectPath"])
         ids.append(ability_id)
     return ids
+
+def p_weapon_selectors(data: list):
+    weapon_selectors = []
+    for ws in data:
+        tag = ws["ModuleTag"]
+        if tag is None:
+            continue
+        module_tag_id = ModuleTag.get_from_asset_path(tag["ObjectPath"])
+        weapon_selectors.append({"module_tag_id": module_tag_id})
+
+    if weapon_selectors:
+        return weapon_selectors
+    
+def p_ability_selectors(data: list):
+    ability_selectors = []
+    for aselector in data:
+        allowed_placement_types = []
+        for aptype in aselector["AllowedPlacementTypes"]:
+            allowed_placement_types.append(parse_colon_colon(aptype))
+        module_tags = []
+        for mtag in aselector["ModuleTags"]:
+            module_tag_id = ModuleTag.get_from_asset_path(mtag["ObjectPath"])
+            module_tags.append({"module_tag_id": module_tag_id})
+        
+        ability_selector = {}
+        if allowed_placement_types:
+            ability_selector["allowed_placement_types"] = allowed_placement_types
+        if module_tags:
+            ability_selector["module_tags"] = module_tags
+        ability_selectors.append(ability_selector)
+
+    if ability_selectors:
+        return ability_selectors
+    
+def p_module_tag_selector(data: list):
+    module_tags = []
+    for elem in data:
+        module_tag_id = ModuleTag.get_from_asset_path(elem["ObjectPath"])
+        module_tags.append({"module_tag_id": module_tag_id})
+    return module_tags
+    
+def p_module_tag_selector_or(data: list):
+    module_tags = p_module_tag_selector(data)
+    if module_tags:
+        return {"list_operator": "Or", "module_tags": module_tags}
 
 def p_actor_class(data: dict):
     if type(data) is list:
@@ -843,6 +893,28 @@ def p_actor_class(data: dict):
     props = data["Properties"]
 
     key_to_parser_function = {
+        "MuzzleSocketName": None,
+        "OverlayFx": None,
+        "Fade Out Time": None, #implied for vfx
+        "Overlay Mesh Fx": None,
+        "AmmoPartToAdd": "value",
+        "CounterattackAkEvent": None, #sound
+        "PrimaryChannelModificator": "value",
+        "CriticalDamageChance": "value",
+        "CriticalDamage": "value",
+        "AdditionalProgress": "value", #red alert 7%
+        "bRemoveOnDestruction": None, #+5% shield boost Flanker2
+        "ShieldHealth": "value",
+        "ModifierFactor": "value",
+        "EffectParams": None, #vfx
+        "bPrivateSpotting": "value", #emma james ult
+        "SpottedSoundEvent": None, #voiceline
+        "bPlayActiveSoundOnSourceActor": None, #vl
+        "ModuleTagsOr": (p_module_tag_selector_or, "module_tag_selector"),
+        "WeaponSelectors": p_weapon_selectors,
+        "AbilitySelectors": p_ability_selectors,
+        "AbilityGearGrowModifier": "value",
+        "Stream": "value",
         "UltimateChargeAddition": "value",
         "NiagaraSystemInstance": None,
         "NiagaraVarName_FadeOut": None,
