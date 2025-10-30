@@ -93,8 +93,8 @@ class Ability(ParseObject):
             "InitialDuration": "value",
             "AttachSocketName": None,
             "ActiveStateBuffs": self._p_actor_class,
-            "PrimaryStatMetaInformation": {"parser": self._p_stat, "action": ParseAction.ATTRIBUTE, "target": "primary_stat_id"},
-            "SecondaryStatMetaInformation": {"parser": self._p_stat, "action": ParseAction.ATTRIBUTE, "target": "secondary_stat_id"},
+            "PrimaryStatMetaInformation": None, #already included in Module
+            "SecondaryStatMetaInformation": None, #already included in Module. Supply Surge for example in ability file says primary is Duration, secondary is SpeedBoost. In DA module file, primary is Duration, secondary is *ActEfficiency(correct)*
             "bHasIndefiniteDuration": "value",
             "AbilityScaler": None, # interestingly, contains blank information. ability scalers are specified in the original module file
             "IsHidden": "value",
