@@ -385,6 +385,9 @@ class Ability(ParseObject):
             key_to_parser_function, targeting_action_data["Properties"], log_descriptor="ConfirmationAction", set_attrs=False
         )
 
+        if self.id == 'BP_Module_Kernel_Torso.1':
+            logger.debug(f"Parsed targeting data for {self.id}: {parsed_targeting_data}")
+
         return parsed_targeting_data
 
     def _p_confirmation_action(self, data: dict):
