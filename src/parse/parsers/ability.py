@@ -358,7 +358,7 @@ class Ability(ParseObject):
         logger.debug(f"Parsing targeting action for {self.id}")
         targeting_action_data = asset_path_to_data(data["ObjectPath"])
 
-        if data is None or data == [] or 'Properties' not in data:
+        if targeting_action_data is None or targeting_action_data == [] or 'Properties' not in targeting_action_data:
             return
 
         key_to_parser_function = {
