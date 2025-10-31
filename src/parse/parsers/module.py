@@ -117,13 +117,13 @@ class Module(ParseObject):
         parsed_scalars = self._process_key_to_parser_function(key_to_parser_function, data["Properties"], set_attrs=False, log_descriptor="Scalars")
         
         # Determine which stats need to be inverted (reciprocal taken of) based on if the stat has unit_exponent -1
-        primary_stat_id = parsed_scalars.pop("primary_stat_id", None)
+        primary_stat_id = parsed_scalars.get("primary_stat_id", None)
         invert_primary = False
         invert_secondary = False
         if primary_stat_id is not None:
             primary_stat = ModuleStat.get_from_id(primary_stat_id)
             invert_primary = primary_stat is not None and getattr(primary_stat, "unit_exponent", None) == -1
-        secondary_stat_id = parsed_scalars.pop("secondary_stat_id", None)
+        secondary_stat_id = parsed_scalars.get("secondary_stat_id", None)
         if secondary_stat_id is not None:
             secondary_stat = ModuleStat.get_from_id(secondary_stat_id)
             invert_secondary = secondary_stat is not None and getattr(secondary_stat, "unit_exponent", None) == -1
