@@ -358,7 +358,7 @@ class Ability(ParseObject):
         logger.debug(f"Parsing targeting action for {self.id}")
         targeting_action_data = asset_path_to_data(data["ObjectPath"])
 
-        if data is None or data == [] or 'Properties' not in data:
+        if targeting_action_data is None or targeting_action_data == [] or 'Properties' not in targeting_action_data:
             return
 
         key_to_parser_function = {
@@ -384,6 +384,9 @@ class Ability(ParseObject):
         parsed_targeting_data = self._process_key_to_parser_function(
             key_to_parser_function, targeting_action_data["Properties"], log_descriptor="ConfirmationAction", set_attrs=False
         )
+
+        if self.id == 'BP_Module_Kernel_Torso.1':
+            logger.debug(f"Parsed targeting data for {self.id}: {parsed_targeting_data}")
 
         return parsed_targeting_data
 
