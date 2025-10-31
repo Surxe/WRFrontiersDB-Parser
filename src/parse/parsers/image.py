@@ -21,7 +21,7 @@ class Image():
         # Write json file of image_paths to output
         output_dir = os.path.join(OPTIONS.output_dir, f"{cls.__name__}.json")
         with open(output_dir, 'w') as f:
-            json.dump(list(cls.image_paths.keys()), f, indent=4)
+            json.dump(list(sorted(cls.image_paths.keys())), f, indent=4)
 
 
 def parse_image_asset_path(data: dict) -> str:
