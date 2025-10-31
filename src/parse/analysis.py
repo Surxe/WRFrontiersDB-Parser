@@ -554,14 +554,14 @@ class Analysis:
     ##########################
     def bundle_self(self):
         """Return self as one dictionary, keyed by the future file name."""
-        return round_dict_values({
-            'level_diffs_by_module': sort_dict(self.level_diffs_by_module, 1),
-            'level_diffs_by_stat': sort_dict(self.level_diffs_by_stat, 1),
+        return sort_dict(round_dict_values({
+            'level_diffs_by_module': self.level_diffs_by_module,
+            'level_diffs_by_stat': self.level_diffs_by_stat,
             'cost_scrap_frequency_map': self.frequency_map,
             'standard_cost_and_scrap': self.standard_cost_and_scrap,
             'total_upgrade_costs': self.total_upgrade_costs,
             'factory_preset_upgrade_costs': self.factory_preset_upgrade_costs,
-        })
+        }), 2)
 
     def to_file(self):
         """Write analysis data to output file."""

@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import OPTIONS, path_to_id, asset_path_to_file_path_and_index, get_json_data, logger, merge_dicts, asset_path_to_data, process_key_to_parser_function
+from utils import OPTIONS, path_to_id, asset_path_to_file_path_and_index, get_json_data, logger, merge_dicts, asset_path_to_data, process_key_to_parser_function, sort_dict
 
 import json
 
@@ -104,7 +104,7 @@ class ParseObject: #generic object that all classes extend
         Returns a dictionary representation of all objects
         """
 
-        new_dict = {obj_id: obj.to_dict() for obj_id, obj in cls.objects.items()}
+        new_dict = sort_dict({obj_id: obj.to_dict() for obj_id, obj in cls.objects.items()}, 1) #sort the root layer only
 
         return new_dict
     
