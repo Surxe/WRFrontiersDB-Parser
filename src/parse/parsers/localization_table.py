@@ -42,7 +42,7 @@ def parse_localization(data: dict):
         if localization_obj_english is None:
             localization_english = None
         else:
-            localization_english = localization_obj_english._localize(localization_table_namespace, localization_key)
+            localization_english = localization_obj_english.localize(localization_table_namespace, localization_key)
             if localization_english is None:
                 localization_english = localization_key
 
