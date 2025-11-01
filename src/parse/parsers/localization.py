@@ -27,16 +27,29 @@ class Localization(ParseObject):
         with open(file_path, 'w', encoding='utf-8') as f:
             json.dump(self.source_data, f, indent=4, ensure_ascii=False)
 
-    def _localize(self, table_namespace, key):
+    def localize_from_name(self, name_dict: dict):
+        """
+        Localizes a name given a dictionary with 'TableNamespace' and 'Key'.
+        """
+        table_namespace = name_dict.get("TableNamespace")
+        key = name_dict.get("Key")
+        if not table_namespace or not key:
+            logger.warning(f"Invalid name dictionary for localization: {name_dict}")
+            return ""
+        return self.localize(table_namespace, key, fallback_str=name_dict.get('en', key))
+
+    def localize(self, table_namespace, key, fallback_str=-1):
         """
         Localizes a given key using the localization table namespace.
         """
+        if fallback_str == -1:
+            fallback_str = key
         if table_namespace not in self.source_data:
-            logger.warning(f"Localization table namespace not found: {table_namespace}")
-            return key
+            logger.debug(f"Localization table namespace not found: {table_namespace}")
+            return fallback_str
         if key not in self.source_data[table_namespace]:
-            logger.warning(f"Localization key not found: {key} in namespace: {table_namespace}")
-            return key
+            logger.debug(f"Localization key not found for lang_code {self.id}: {key} in namespace: {table_namespace}")
+            return fallback_str
         return self.source_data[table_namespace][key]
     
     @classmethod

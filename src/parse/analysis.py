@@ -8,14 +8,18 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils import OPTIONS, sort_dict
 from loguru import logger
 from typing import Literal
+from parsers.localization import Localization
 
 class Analysis:
-    def __init__(self, module_class, module_stat_class, upgrade_cost_class, scrap_reward_class, factory_preset_class):
+    def __init__(self, module_class, module_type_class, character_module_class, module_stat_class, upgrade_cost_class, scrap_reward_class, factory_preset_class, ability_class):
         self.module_class_objects = module_class.objects
+        self.module_type_class_objects = module_type_class.objects
+        self.character_module_class_objects = character_module_class.objects
         self.module_stat_class_objects = module_stat_class.objects
         self.upgrade_cost_class_objects = upgrade_cost_class.objects
         self.scrap_reward_class_objects = scrap_reward_class.objects
         self.factory_preset_class_objects = factory_preset_class.objects
+        self.ability_class_objects = ability_class.objects
 
         # Upgrade cost & Scrap reward
         self.frequency_map = self.get_frequency_map()
@@ -43,6 +47,10 @@ class Analysis:
 
         # Determine grand total upgrade costs of production only modules, and 2 of each shoulder rather than 1
         self.total_upgrade_costs = self.calculate_total_upgrade_costs(self.modules_upgrade_costs)
+
+        # Embed "Primary" and "Secondary" in ability descriptions to know which is which
+        self.ability_primary_secondary_descriptions = self.analyze_ability_descriptions(self.module_class_objects, self.module_type_class_objects, self.character_module_class_objects, self.module_stat_class_objects, self.ability_class_objects)
+        self.ability_primary_secondary_descriptions_md = self.generate_ability_descriptions_md(self.ability_primary_secondary_descriptions)
 
     ########################################
     #      Upgrade Cost & Scrap Reward     #
@@ -547,33 +555,245 @@ class Analysis:
                 total_upgrade_costs[currency_id] += upgrade_cost_amount * quantity
 
         return total_upgrade_costs
+    
 
+    #####################################
+    # Primary & SecondaryParameter Gear #
+    #####################################
+    def get_pattern_string(self, module_stat, stat_type: Literal['primary', 'secondary'], localization):
+        """
+        Example:
+            unit_pattern: {Amount}{Unit}
+            unit_name: %
+            unit_exponent: -1.0
+        ->
+            {Primary-}%
+        """
+        stat_type_to_localization_key = {
+            'primary': 'ModuleInfo_Primary',
+            'secondary': 'ModuleInfo_Secondary',
+        }
+        stat_type_localized = localization.localize(table_namespace='ModuleStatKeys',
+                                                    key=stat_type_to_localization_key[stat_type])
 
+        unit_name = getattr(module_stat, 'unit_name', None)
+        if unit_name:
+            unit_name_str = localization.localize_from_name(unit_name) # "%"
+        else:
+            unit_name_str = ""
+
+        unit_pattern = getattr(module_stat, 'unit_pattern', None)
+        if unit_pattern:
+            unit_pattern_str = localization.localize_from_name(unit_pattern)
+        else:
+            unit_pattern_str = "" # "{Amount}{Unit}"
+        unit_exponent = getattr(module_stat, 'unit_exponent', 1.0) # -1.0 or None(1.0)
+        unit_exponent_str = "+" if unit_exponent == 1.0 else "-" if unit_exponent == -1.0 else ""
+        more_is_better = getattr(module_stat, 'more_is_better', True) # True or False(None means true)
+        if not more_is_better:
+            logger.debug(f"Stat {module_stat.id} is used in ability and is more_is_better == False. Update handling.")
+
+        stat_type_exp_str = "{**" + stat_type_localized + unit_exponent_str + "**}" # 'primary' or 'secondary'
+
+        if unit_pattern_str:
+            pattern_string = unit_pattern_str.replace("{Amount}", stat_type_exp_str)
+        else:
+            pattern_string = stat_type_exp_str
+        pattern_string = pattern_string.replace("{Unit}", unit_name_str)
+        return pattern_string
+
+    def format_description(self, desc: str, primary_module_stat, secondary_module_stat, localization):
+        """
+        Example:
+            Deploys a device that reduces damage by {Resist} for {Duration}
+            ->
+            Deploys a device that reduces damage by {Primary}% for {Secondary}s
+
+        Terms:
+            pattern_string: example "
+        """
+
+        primary_short_key = primary_module_stat.short_key # "Resist"
+        secondary_short_key = secondary_module_stat.short_key # "Duration"
+        primary_pattern = self.get_pattern_string(primary_module_stat, 'primary', localization)
+        secondary_pattern = self.get_pattern_string(secondary_module_stat, 'secondary', localization)
+        desc = desc.replace(f"{{{primary_short_key}}}", primary_pattern)
+        desc = desc.replace(f"{{{secondary_short_key}}}", secondary_pattern)
+        return desc
+    
+    # For a given ability scalar index, get the primary or secondary stat object
+    def get_ability_stat(self, module, i, stat_type: Literal['primary', 'secondary']):
+        ability_scalars = module.abilities_scalars[i]
+        stat_id_key = f'{stat_type}_stat_id'
+        stat_id = ability_scalars.get(stat_id_key)
+        if stat_id is None:
+            return None
+        module_stat = self.module_stat_class_objects.get(stat_id)
+        return module_stat
+
+    def analyze_ability_descriptions(self, 
+                                     module_class_objects, 
+                                     module_type_class_objects,
+                                     character_module_class_objects, 
+                                     module_stat_class_objects,
+                                     ability_class_objects):
+        """
+        See scalar_linking.md
+
+        Returns:
+            {
+                "<lang_code>": {
+                    "<module_category_id>": {
+                        "<ability_name_str>": "Deploys a device that reduces the reload time of allies within `Primary`m by `Secondary`%.
+                    }
+                }
+            }
+        """
+        logger.debug("Analyzing Primary & SecondaryParameter gear modules")
+        result = {}
+        
+        for lang_code, localization in Localization.objects.items():
+            result[lang_code] = {}
+
+            for module_id, module in module_class_objects.items():
+                # Skip if missing critical attributes
+                if not hasattr(module, 'production_status') or module.production_status != 'Ready':
+                    continue
+                if not hasattr(module, 'module_type_id'):
+                    continue
+
+                # Determine module category
+                module_type = module_type_class_objects.get(module.module_type_id)
+                category = localization.localize_from_name(module_type.name)
+                module_type_character_type = getattr(module_type, 'character_type', "Robot")
+                if module_type_character_type != "Robot":
+                    continue # skip Titan abilities as theres presently no param buffs for them
+
+                def add_category_if_missing():
+                    if category not in result[lang_code]:
+                        result[lang_code][category] = {}
+
+                def validate_param_presence(primary_stat, secondary_stat):
+                    # Make sure both are defined. Jump for example has no primary/secondary stats, and there are lots of jump variants
+                    if primary_stat is None and secondary_stat is None:
+                        return False
+                    if primary_stat is None or secondary_stat is None:
+                        logger.error(f"Structure change: Ability has only one of Primary or SecondaryParameter set in module {module_id}.")
+                        return False
+                    return True
+                
+                module_name_str = localization.localize_from_name(module.name)
+
+                # Determine from abilities_scalars and character_module_mounts
+                if hasattr(module, 'abilities_scalars') and hasattr(module, 'character_module_mounts'):
+                    # Get ability ids from character module. Verify only one character module mount
+                    character_module_mounts = module.character_module_mounts
+                    if len(character_module_mounts) > 1:
+                        logger.error(f"Structure change: Module {module_id} with abilities_scalars has multiple character module mounts.")
+                    character_module_id = character_module_mounts[0]['character_module_id']
+                    character_module = character_module_class_objects[character_module_id]
+                    abilities_ids = character_module.abilities_ids
+
+                    # Add each ability's formatted description
+                    for i, ability_id in enumerate(abilities_ids):
+                        ability = ability_class_objects[ability_id]
+                        abi_name = localization.localize_from_name(ability.name)
+                        abi_desc = localization.localize_from_name(ability.description) # "Deploys a device that reduces damage by {Resist} for {Duration}"
+                        
+                        # Get primary and secondary stat's short key, which is whats referenced in the description
+                        primary_stat = self.get_ability_stat(module, i, 'primary')
+                        secondary_stat = self.get_ability_stat(module, i, 'secondary')
+                        if not validate_param_presence(primary_stat, secondary_stat):
+                            continue
+
+                        abi_name_str = f"{module_name_str}'s {abi_name}"
+                        
+                        logger.debug(f"Creating parameterized description for ability {ability_id} for module {module_id} from abilities_scalars")
+                        add_category_if_missing()
+                        result[lang_code][category][abi_name_str] = self.format_description(abi_desc, primary_stat, secondary_stat, localization)
+
+                # Determine from module alone
+                elif module.module_type_id in ['DA_ModuleType_Ability3.0', 'DA_ModuleType_Ability4.0']: #skip shoulder type
+                    abi_name = module_name_str
+                    abi_desc = localization.localize_from_name(module.description)
+                    
+                    module_scalars = module.module_scalars
+                    primary_stat = module_stat_class_objects[module_scalars["primary_stat_id"]]
+                    secondary_stat = module_stat_class_objects[module_scalars["secondary_stat_id"]]
+                    if not validate_param_presence(primary_stat, secondary_stat):
+                        continue
+
+                    logger.debug(f"Creating parameterized description for ability module {module_id} from module alone")
+                    add_category_if_missing()
+                    result[lang_code][category][abi_name] = self.format_description(abi_desc, primary_stat, secondary_stat, localization)
+
+        return result
+    
+    def generate_ability_descriptions_md(self, ability_descriptions):
+        """
+        ability_descriptions = {
+            "<lang_code>": {
+                "<module_category_id>": {
+                    "<ability_name_str>": "Deploys a device that reduces the reload time of allies within `Primary`m by `Secondary`%.
+                }
+            }
+
+        Returns:
+            # Primary and Secondary Parameters in Ability Descriptions ({lang_code})
+            # string lines
+        """
+        result = ""
+        for lang_code, categories in ability_descriptions.items():
+            md_lines = [f"# Primary and Secondary Parameters in Ability Descriptions ({lang_code})\n"]
+            for category_name, abilities in categories.items():
+                md_lines.append(f"## {category_name}\n")
+                for ability_name, description in abilities.items():
+                    md_lines.append(f"* {ability_name}: {description}")
+                md_lines.append("") #blank line between categories
+            result += "\n".join(md_lines)+"\n\n"
+        return result.rstrip() #trim trailing newlines
+
+    
+    
     ##########################
     #          Other         #
     ##########################
-    def bundle_self(self):
+    def _bundle_self(self):
         """Return self as one dictionary, keyed by the future file name."""
-        return sort_dict(round_dict_values({
+        res = {}
+
+        res["json"] =sort_dict(round_dict_values({
             'level_diffs_by_module': self.level_diffs_by_module,
             'level_diffs_by_stat': self.level_diffs_by_stat,
             'cost_scrap_frequency_map': self.frequency_map,
             'standard_cost_and_scrap': self.standard_cost_and_scrap,
             'total_upgrade_costs': self.total_upgrade_costs,
             'factory_preset_upgrade_costs': self.factory_preset_upgrade_costs,
+            'ability_primary_secondary_descriptions': self.ability_primary_secondary_descriptions,
         }), 2)
+
+        res["md"] = {
+            'ability_primary_secondary_descriptions': self.ability_primary_secondary_descriptions_md,
+        }
+
+        return res
 
     def to_file(self):
         """Write analysis data to output file."""
         # Create Analysis folder if it doesn't exist
         analysis_dir = os.path.join(OPTIONS.output_dir, f'{self.__class__.__name__}')
         os.makedirs(analysis_dir, exist_ok=True)
-        bundle = self.bundle_self()
-        for file_name, data in bundle.items():
+        bundle = self._bundle_self()
+        for file_name, data in bundle["json"].items():
             file_path = os.path.join(analysis_dir, f'{file_name}.json')
             logger.debug(f"Writing analysis data to {file_path}")
             with open(file_path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=4)
+        for file_name, data in bundle["md"].items():
+            file_path = os.path.join(analysis_dir, f'{file_name}.md')
+            logger.debug(f"Writing analysis data to {file_path}")
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(data)
 
 def round_dict_values(d):
     if isinstance(d, dict):

@@ -253,6 +253,7 @@ class ParseAction:
 class ParseTarget:
     MATCH_KEY = "match_key"           # Use the original key as-is
     MATCH_KEY_SNAKE = "match_key_snake"  # Convert key to snake_case
+    MATCH_KEY_NO_DEFAULT = "match_key_no_default"  # Use original key as-is, without the 'Default' prefix
 
 def process_key_to_parser_function(key_to_parser_function_map, data, obj=None, log_descriptor="", set_attrs=True, default_configuration={}):
     """
@@ -382,6 +383,8 @@ def process_key_to_parser_function(key_to_parser_function_map, data, obj=None, l
                 target_name = key
             elif target == ParseTarget.MATCH_KEY_SNAKE:
                 target_name = to_snake_case(key)
+            elif target == ParseTarget.MATCH_KEY_NO_DEFAULT:
+                target_name = key.replace('Default', '', 1) if key.startswith('Default') else key
             elif isinstance(target, str):
                 # Custom string target
                 target_name = target

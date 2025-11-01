@@ -121,7 +121,7 @@ class CharacterModule(ParseObject):
             "bReceivesDecals": "value",
             "BodyInstance": None,
             "AssetUserData": None,
-            "ModuleName": None,
+            "ModuleName": "value",
         }
         key_to_parser_function.update(get_default_key_to_parser_function())
 
@@ -130,12 +130,18 @@ class CharacterModule(ParseObject):
                                                            log_descriptor="ModuleScalar", 
                                                            set_attrs=False, 
                                                            default_configuration={
-                                                               'target': ParseTarget.MATCH_KEY
+                                                               'target': ParseTarget.MATCH_KEY_NO_DEFAULT
                                                            })
+        parsed_module_scalers = {}
+        if 'ModuleName' in parsed_data:
+            parsed_module_scalers['module_name'] = parsed_data['ModuleName']
+            del parsed_data['ModuleName']
+        
+        default_scalars = dict()
         for key, value in parsed_data.items():
-            key_to_store_value_in = key if 'Default' not in key else key.split('Default')[1]
-            parsed_module_scalers[key_to_store_value_in] = value
+            default_scalars[key] = value
 
+        parsed_module_scalers["default_scalars"] = default_scalars
         return parsed_module_scalers
     
     def _p_obstacle_dmg_modifier(self, data):
