@@ -382,7 +382,10 @@ class Ability(ParseObject):
         }
 
         parsed_targeting_data = self._process_key_to_parser_function(
-            key_to_parser_function, targeting_action_data["Properties"], log_descriptor="ConfirmationAction", set_attrs=False
+            key_to_parser_function, targeting_action_data["Properties"], log_descriptor="ConfirmationAction", set_attrs=False,
+            default_configuration={
+                'target': ParseTarget.MATCH_KEY
+            }
         )
 
         if self.id == 'BP_Module_Kernel_Torso.1':
