@@ -11,10 +11,9 @@ from typing import Literal
 from parsers.localization import Localization
 
 class Analysis:
-    def __init__(self, module_class, module_type_class, module_category_class, character_module_class, module_stat_class, upgrade_cost_class, scrap_reward_class, factory_preset_class, ability_class):
+    def __init__(self, module_class, module_type_class, character_module_class, module_stat_class, upgrade_cost_class, scrap_reward_class, factory_preset_class, ability_class):
         self.module_class_objects = module_class.objects
         self.module_type_class_objects = module_type_class.objects
-        self.module_category_class_objects = module_category_class.objects
         self.character_module_class_objects = character_module_class.objects
         self.module_stat_class_objects = module_stat_class.objects
         self.upgrade_cost_class_objects = upgrade_cost_class.objects
@@ -50,7 +49,7 @@ class Analysis:
         self.total_upgrade_costs = self.calculate_total_upgrade_costs(self.modules_upgrade_costs)
 
         # Embed "Primary" and "Secondary" in ability descriptions to know which is which
-        self.ability_primary_secondary_descriptions = self.analyze_ability_descriptions(self.module_class_objects, self.module_type_class_objects, self.module_category_class_objects, self.character_module_class_objects, self.module_stat_class_objects, self.ability_class_objects)
+        self.ability_primary_secondary_descriptions = self.analyze_ability_descriptions(self.module_class_objects, self.module_type_class_objects, self.character_module_class_objects, self.module_stat_class_objects, self.ability_class_objects)
         self.ability_primary_secondary_descriptions_md = self.generate_ability_descriptions_md(self.ability_primary_secondary_descriptions)
 
     ########################################
@@ -594,7 +593,7 @@ class Analysis:
         if not more_is_better:
             logger.debug(f"Stat {module_stat.id} is used in ability and is more_is_better == False. Update handling.")
 
-        stat_type_exp_str = "{" + stat_type_localized + unit_exponent_str + "}" # 'primary' or 'secondary'
+        stat_type_exp_str = "{**" + stat_type_localized + unit_exponent_str + "**}" # 'primary' or 'secondary'
 
         if unit_pattern_str:
             pattern_string = unit_pattern_str.replace("{Amount}", stat_type_exp_str)
@@ -635,7 +634,6 @@ class Analysis:
     def analyze_ability_descriptions(self, 
                                      module_class_objects, 
                                      module_type_class_objects,
-                                     module_category_class_objects,
                                      character_module_class_objects, 
                                      module_stat_class_objects,
                                      ability_class_objects):
@@ -666,23 +664,14 @@ class Analysis:
 
                 # Determine module category
                 module_type = module_type_class_objects.get(module.module_type_id)
-                module_category_id = getattr(module_type, 'module_category_id', None)
-                if module_category_id is None:
-                    logger.error(f"Structure change: Module type {module.module_type_id} missing module_category_id for module {module_id}.")
-                    continue
-                module_category = module_category_class_objects.get(module_category_id)
-                module_category_name = getattr(module_category, 'name', {})
-                if module_category_name is None:
-                    logger.error(f"Structure change: Module category {module_category_id} missing name for language {lang_code}.")
-                    continue
-                module_category_name_str = localization.localize_from_name(module_category_name)
+                category = localization.localize_from_name(module_type.name)
                 module_type_character_type = getattr(module_type, 'character_type', "Robot")
                 if module_type_character_type != "Robot":
                     continue # skip Titan abilities as theres presently no param buffs for them
 
                 def add_category_if_missing():
-                    if module_category_name_str not in result[lang_code]:
-                        result[lang_code][module_category_name_str] = {}
+                    if category not in result[lang_code]:
+                        result[lang_code][category] = {}
 
                 def validate_param_presence(primary_stat, secondary_stat):
                     # Make sure both are defined. Jump for example has no primary/secondary stats, and there are lots of jump variants
@@ -721,7 +710,7 @@ class Analysis:
                         
                         logger.debug(f"Creating parameterized description for ability {ability_id} for module {module_id} from abilities_scalars")
                         add_category_if_missing()
-                        result[lang_code][module_category_name_str][abi_name_str] = self.format_description(abi_desc, primary_stat, secondary_stat, localization)
+                        result[lang_code][category][abi_name_str] = self.format_description(abi_desc, primary_stat, secondary_stat, localization)
 
                 # Determine from module alone
                 elif module.module_type_id in ['DA_ModuleType_Ability3.0', 'DA_ModuleType_Ability4.0']: #skip shoulder type
@@ -736,7 +725,7 @@ class Analysis:
 
                     logger.debug(f"Creating parameterized description for ability module {module_id} from module alone")
                     add_category_if_missing()
-                    result[lang_code][module_category_name_str][abi_name] = self.format_description(abi_desc, primary_stat, secondary_stat, localization)
+                    result[lang_code][category][abi_name] = self.format_description(abi_desc, primary_stat, secondary_stat, localization)
 
         return result
     
