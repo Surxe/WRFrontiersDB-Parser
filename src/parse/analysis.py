@@ -10,12 +10,13 @@ from loguru import logger
 from typing import Literal
 
 class Analysis:
-    def __init__(self, module_class, module_stat_class, upgrade_cost_class, scrap_reward_class, factory_preset_class):
+    def __init__(self, module_class, module_stat_class, upgrade_cost_class, scrap_reward_class, factory_preset_class, ability_class):
         self.module_class_objects = module_class.objects
         self.module_stat_class_objects = module_stat_class.objects
         self.upgrade_cost_class_objects = upgrade_cost_class.objects
         self.scrap_reward_class_objects = scrap_reward_class.objects
         self.factory_preset_class_objects = factory_preset_class.objects
+        self.ability_class_objects = ability_class.objects
 
         # Upgrade cost & Scrap reward
         self.frequency_map = self.get_frequency_map()
@@ -43,6 +44,8 @@ class Analysis:
 
         # Determine grand total upgrade costs of production only modules, and 2 of each shoulder rather than 1
         self.total_upgrade_costs = self.calculate_total_upgrade_costs(self.modules_upgrade_costs)
+
+        self.x2 = self.x(self.module_class_objects, self.module_stat_class_objects, self.module_class_objects)
 
     ########################################
     #      Upgrade Cost & Scrap Reward     #
@@ -547,6 +550,27 @@ class Analysis:
                 total_upgrade_costs[currency_id] += upgrade_cost_amount * quantity
 
         return total_upgrade_costs
+    
+
+    #####################################
+    # Primary & SecondaryParameter Gear #
+    #####################################
+    def x(self, module_class_objects, module_stat_class_objects, ability_class_objects):
+        """
+        See scalar_linking.md
+
+        Returns:
+            {
+                "<module_id>": "Deploys a device that reduces the reload time of allies within `Primary`m by `Secondary`%.
+            }
+        """
+        logger.debug("Analyzing Primary & SecondaryParameter gear modules")
+        result = {}
+        for module_id, module in module_class_objects.items():
+            # Determine primary and secondary stat id
+            pass
+
+
 
 
     ##########################
