@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import logger, path_to_id, get_json_data, asset_path_to_data, parse_colon_colon, OPTIONS
+from utils import ParseTarget, logger, path_to_id, get_json_data, asset_path_to_data, parse_colon_colon, OPTIONS
 from parsers.localization_table import parse_localization
 
 from parsers.object import ParseObject
@@ -110,11 +110,13 @@ class Module(ParseObject):
             "LevelsData": (self._p_levels_data, "levels"),
             "PrimaryStatMetaInformation": (self._p_parameter, "primary_stat_id"),
             "SecondaryStatMetaInformation": (self._p_parameter, "secondary_stat_id"),
-            "ModuleName": None,
+            "ModuleName": ("value", "module_name"),
             "bAllowStatsReporting": None,
         }
         key_to_parser_function.update(get_default_key_to_parser_function())
-        parsed_scalars = self._process_key_to_parser_function(key_to_parser_function, data["Properties"], set_attrs=False, log_descriptor="Scalars")
+        parsed_scalars = self._process_key_to_parser_function(key_to_parser_function, data["Properties"], set_attrs=False, log_descriptor="Scalars", default_configuration={
+            'target': ParseTarget.MATCH_KEY_NO_DEFAULT
+        })
         
         # Determine which stats need to be inverted (reciprocal taken of) based on if the stat has unit_exponent -1
         primary_stat_id = parsed_scalars.get("primary_stat_id", None)
@@ -140,11 +142,15 @@ class Module(ParseObject):
                 invert(level)
             if "constants" in levels_data:
                 invert(levels_data["constants"])
+
+        module_name = parsed_scalars.get("module_name", None)
+        if module_name is not None:
+            parsed_scalars["module_name"] = module_name
             
 
         ret = dict()
         for key, value in parsed_scalars.items():
-            if key in ["levels", "primary_stat_id", "secondary_stat_id"]:
+            if key in ["levels", "primary_stat_id", "secondary_stat_id", "module_name"]:
                 ret[key] = value
             else:
                 if "default_scalars" not in ret:
@@ -274,7 +280,7 @@ class Module(ParseObject):
                     pass
                 else:
                     parsed_level[key] = value
-
+                    
             parsed_levels.append(parsed_level)
 
         # Categorize into constants and variables
