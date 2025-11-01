@@ -625,40 +625,56 @@ class Analysis:
         result = {}
         for module_id, module in module_class_objects.items():
             # Skip if missing critical attributes
-            if not hasattr(module, 'abilities_scalars'):
-                continue
-            if not hasattr(module, 'character_module_mounts'):
-                continue
             if not hasattr(module, 'production_status') or module.production_status != 'Ready':
                 continue
 
-
-            # Get ability ids from character module. Verify only one character module mount
-            character_module_mounts = module.character_module_mounts
-            if len(character_module_mounts) > 1:
-                logger.error(f"Structure change: Module {module_id} with abilities_scalars has multiple character module mounts.")
-            character_module_id = character_module_mounts[0]['character_module_id']
-            character_module = character_module_class_objects[character_module_id]
-            abilities_ids = character_module.abilities_ids
-
-            # Add each ability's formatted description
-            for i, ability_id in enumerate(abilities_ids):
-                ability = ability_class_objects[ability_id]
-                abi_name = ability.name[lang_code]
-                abi_desc = ability.description[lang_code] # "Deploys a device that reduces damage by {Resist} for {Duration}"
-                
-                # Get primary and secondary stat's short key, which is whats referenced in the description
-                primary_stat_short_key = self.get_ability_stat(module, i, 'primary')
-                secondary_stat_short_key = self.get_ability_stat(module, i, 'secondary')
-
+            def validate_param_presence(primary_stat, secondary_stat):
                 # Make sure both are defined. Jump for example has no primary/secondary stats, and there are lots of jump variants
-                if primary_stat_short_key is None and secondary_stat_short_key is None:
-                    continue
-                if primary_stat_short_key is None or secondary_stat_short_key is None:
-                    logger.error(f"Structure change: Ability {ability_id} has only one of Primary or SecondaryParameter set in module {module_id}.")
+                if primary_stat is None and secondary_stat is None:
+                    return False
+                if primary_stat is None or secondary_stat is None:
+                    logger.error(f"Structure change: Ability has only one of Primary or SecondaryParameter set in module {module_id}.")
+                    return False
+                return True
+
+            # Determine from abilities_scalars and character_module_mounts
+            if hasattr(module, 'abilities_scalars') and hasattr(module, 'character_module_mounts'):
+                # Get ability ids from character module. Verify only one character module mount
+                character_module_mounts = module.character_module_mounts
+                if len(character_module_mounts) > 1:
+                    logger.error(f"Structure change: Module {module_id} with abilities_scalars has multiple character module mounts.")
+                character_module_id = character_module_mounts[0]['character_module_id']
+                character_module = character_module_class_objects[character_module_id]
+                abilities_ids = character_module.abilities_ids
+
+                # Add each ability's formatted description
+                for i, ability_id in enumerate(abilities_ids):
+                    ability = ability_class_objects[ability_id]
+                    abi_name = ability.name[lang_code]
+                    abi_desc = ability.description[lang_code] # "Deploys a device that reduces damage by {Resist} for {Duration}"
+                    
+                    # Get primary and secondary stat's short key, which is whats referenced in the description
+                    primary_stat = self.get_ability_stat(module, i, 'primary')
+                    secondary_stat = self.get_ability_stat(module, i, 'secondary')
+                    if not validate_param_presence(primary_stat, secondary_stat):
+                        continue
+                    
+                    logger.debug(f"Creating parameterized description for ability {ability_id} for module {module_id} from abilities_scalars")
+                    result[abi_name] = self.format_description(abi_desc, primary_stat, secondary_stat, lang_code)
+
+            # Determine from module alone
+            elif module.module_type_id in ['DA_ModuleType_Ability3.0', 'DA_ModuleType_Ability4.0']: #skip shoulder type
+                abi_name = module.name.get(lang_code, "")
+                abi_desc = module.description.get(lang_code, "")
                 
-                logger.debug(f"Creating parameterized description for ability {ability_id} for module {module_id}")
-                result[abi_name] = self.format_description(abi_desc, primary_stat_short_key, secondary_stat_short_key, lang_code)
+                module_scalars = module.module_scalars
+                primary_stat = module_stat_class_objects[module_scalars["primary_stat_id"]]
+                secondary_stat = module_stat_class_objects[module_scalars["secondary_stat_id"]]
+                if not validate_param_presence(primary_stat, secondary_stat):
+                    continue
+
+                logger.debug(f"Creating parameterized description for ability module {module_id} from module alone")
+                result[abi_name] = self.format_description(abi_desc, primary_stat, secondary_stat, lang_code)
 
         return result
     
