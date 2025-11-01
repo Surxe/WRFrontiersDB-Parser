@@ -51,7 +51,7 @@ class Analysis:
 
         # Embed "Primary" and "Secondary" in ability descriptions to know which is which
         self.ability_primary_secondary_descriptions = self.analyze_ability_descriptions(self.module_class_objects, self.module_type_class_objects, self.module_category_class_objects, self.character_module_class_objects, self.module_stat_class_objects, self.ability_class_objects)
-
+        self.ability_primary_secondary_descriptions_md = self.generate_ability_descriptions_md(self.ability_primary_secondary_descriptions)
 
     ########################################
     #      Upgrade Cost & Scrap Reward     #
@@ -600,8 +600,7 @@ class Analysis:
             pattern_string = unit_pattern_str.replace("{Amount}", stat_type_exp_str)
         else:
             pattern_string = stat_type_exp_str
-        if unit_name_str:
-            pattern_string = pattern_string.replace("{Unit}", unit_name_str)
+        pattern_string = pattern_string.replace("{Unit}", unit_name_str)
         return pattern_string
 
     def format_description(self, desc: str, primary_module_stat, secondary_module_stat, localization):
@@ -647,7 +646,7 @@ class Analysis:
             {
                 "<lang_code>": {
                     "<module_category_id>": {
-                        "<ability_name>": "Deploys a device that reduces the reload time of allies within `Primary`m by `Secondary`%.
+                        "<ability_name_str>": "Deploys a device that reduces the reload time of allies within `Primary`m by `Secondary`%.
                     }
                 }
             }
@@ -741,13 +740,40 @@ class Analysis:
 
         return result
     
+    def generate_ability_descriptions_md(self, ability_descriptions):
+        """
+        ability_descriptions = {
+            "<lang_code>": {
+                "<module_category_id>": {
+                    "<ability_name_str>": "Deploys a device that reduces the reload time of allies within `Primary`m by `Secondary`%.
+                }
+            }
+
+        Returns:
+            # Primary and Secondary Parameters in Ability Descriptions ({lang_code})
+            # string lines
+        """
+        result = ""
+        for lang_code, categories in ability_descriptions.items():
+            md_lines = [f"# Primary and Secondary Parameters in Ability Descriptions ({lang_code})\n"]
+            for category_name, abilities in categories.items():
+                md_lines.append(f"## {category_name}\n")
+                for ability_name, description in abilities.items():
+                    md_lines.append(f"* {ability_name}: {description}")
+                md_lines.append("") #blank line between categories
+            result += "\n".join(md_lines)+"\n\n"
+        return result.rstrip() #trim trailing newlines
+
+    
     
     ##########################
     #          Other         #
     ##########################
-    def bundle_self(self):
+    def _bundle_self(self):
         """Return self as one dictionary, keyed by the future file name."""
-        return sort_dict(round_dict_values({
+        res = {}
+
+        res["json"] =sort_dict(round_dict_values({
             'level_diffs_by_module': self.level_diffs_by_module,
             'level_diffs_by_stat': self.level_diffs_by_stat,
             'cost_scrap_frequency_map': self.frequency_map,
@@ -757,17 +783,28 @@ class Analysis:
             'ability_primary_secondary_descriptions': self.ability_primary_secondary_descriptions,
         }), 2)
 
+        res["md"] = {
+            'ability_primary_secondary_descriptions': self.ability_primary_secondary_descriptions_md,
+        }
+
+        return res
+
     def to_file(self):
         """Write analysis data to output file."""
         # Create Analysis folder if it doesn't exist
         analysis_dir = os.path.join(OPTIONS.output_dir, f'{self.__class__.__name__}')
         os.makedirs(analysis_dir, exist_ok=True)
-        bundle = self.bundle_self()
-        for file_name, data in bundle.items():
+        bundle = self._bundle_self()
+        for file_name, data in bundle["json"].items():
             file_path = os.path.join(analysis_dir, f'{file_name}.json')
             logger.debug(f"Writing analysis data to {file_path}")
             with open(file_path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=4)
+        for file_name, data in bundle["md"].items():
+            file_path = os.path.join(analysis_dir, f'{file_name}.md')
+            logger.debug(f"Writing analysis data to {file_path}")
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(data)
 
 def round_dict_values(d):
     if isinstance(d, dict):
