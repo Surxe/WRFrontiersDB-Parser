@@ -561,7 +561,7 @@ class Analysis:
 
         Returns:
             {
-                "<module_id>": "Deploys a device that reduces the reload time of allies within `Primary`m by `Secondary`%.
+                "<ability_id>": "Deploys a device that reduces the reload time of allies within `Primary`m by `Secondary`%.
             }
         """
         logger.debug("Analyzing Primary & SecondaryParameter gear modules")

@@ -98,8 +98,6 @@ class Module(ParseObject):
             asset_path = elem["ObjectPath"]
             ability_scalar_data = asset_path_to_data(asset_path)
             scalars = self._p_scalars(ability_scalar_data)
-            if not scalars:
-                continue
 
             if not hasattr(self, "abilities_scalars"):
                 self.abilities_scalars = []
