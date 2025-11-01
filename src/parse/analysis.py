@@ -49,7 +49,9 @@ class Analysis:
         # Determine grand total upgrade costs of production only modules, and 2 of each shoulder rather than 1
         self.total_upgrade_costs = self.calculate_total_upgrade_costs(self.modules_upgrade_costs)
 
+        # Embed "Primary" and "Secondary" in ability descriptions to know which is which
         self.ability_primary_secondary_descriptions = self.analyze_ability_descriptions(self.module_class_objects, self.module_type_class_objects, self.module_category_class_objects, self.character_module_class_objects, self.module_stat_class_objects, self.ability_class_objects)
+
 
     ########################################
     #      Upgrade Cost & Scrap Reward     #
@@ -559,7 +561,7 @@ class Analysis:
     #####################################
     # Primary & SecondaryParameter Gear #
     #####################################
-    def get_pattern_string(self, module_stat, stat_type: Literal['primary', 'secondary'], lang_code):
+    def get_pattern_string(self, module_stat, stat_type: Literal['primary', 'secondary'], localization):
         """
         Example:
             unit_pattern: {Amount}{Unit}
@@ -568,25 +570,41 @@ class Analysis:
         ->
             {Primary-}%
         """
-        unit_name = getattr(module_stat, 'unit_name', {}).get(lang_code, "") # "%"
-        unit_pattern = getattr(module_stat, 'unit_pattern', {}).get(lang_code, "") # "{Amount}{Unit}"
+        stat_type_to_localization_key = {
+            'primary': 'ModuleInfo_Primary',
+            'secondary': 'ModuleInfo_Secondary',
+        }
+        stat_type_localized = localization.localize(table_namespace='ModuleStatKeys',
+                                                    key=stat_type_to_localization_key[stat_type])
+
+        unit_name = getattr(module_stat, 'unit_name', None)
+        if unit_name:
+            unit_name_str = localization.localize_from_name(unit_name) # "%"
+        else:
+            unit_name_str = ""
+
+        unit_pattern = getattr(module_stat, 'unit_pattern', None)
+        if unit_pattern:
+            unit_pattern_str = localization.localize_from_name(unit_pattern)
+        else:
+            unit_pattern_str = "" # "{Amount}{Unit}"
         unit_exponent = getattr(module_stat, 'unit_exponent', 1.0) # -1.0 or None(1.0)
         unit_exponent_str = "+" if unit_exponent == 1.0 else "-" if unit_exponent == -1.0 else ""
         more_is_better = getattr(module_stat, 'more_is_better', True) # True or False(None means true)
         if not more_is_better:
             logger.debug(f"Stat {module_stat.id} is used in ability and is more_is_better == False. Update handling.")
 
-        stat_type_exp_str = "{" + stat_type.capitalize() + unit_exponent_str + "}" # 'primary' or 'secondary'
+        stat_type_exp_str = "{" + stat_type_localized + unit_exponent_str + "}" # 'primary' or 'secondary'
 
-        if unit_pattern:
-            pattern_string = unit_pattern.replace("{Amount}", stat_type_exp_str)
+        if unit_pattern_str:
+            pattern_string = unit_pattern_str.replace("{Amount}", stat_type_exp_str)
         else:
             pattern_string = stat_type_exp_str
-        if unit_name:
-            pattern_string = pattern_string.replace("{Unit}", unit_name)
+        if unit_name_str:
+            pattern_string = pattern_string.replace("{Unit}", unit_name_str)
         return pattern_string
 
-    def format_description(self, desc: str, primary_module_stat, secondary_module_stat, lang_code):
+    def format_description(self, desc: str, primary_module_stat, secondary_module_stat, localization):
         """
         Example:
             Deploys a device that reduces damage by {Resist} for {Duration}
@@ -599,8 +617,8 @@ class Analysis:
 
         primary_short_key = primary_module_stat.short_key # "Resist"
         secondary_short_key = secondary_module_stat.short_key # "Duration"
-        primary_pattern = self.get_pattern_string(primary_module_stat, 'primary', lang_code)
-        secondary_pattern = self.get_pattern_string(secondary_module_stat, 'secondary', lang_code)
+        primary_pattern = self.get_pattern_string(primary_module_stat, 'primary', localization)
+        secondary_pattern = self.get_pattern_string(secondary_module_stat, 'secondary', localization)
         desc = desc.replace(f"{{{primary_short_key}}}", primary_pattern)
         desc = desc.replace(f"{{{secondary_short_key}}}", secondary_pattern)
         return desc
@@ -704,7 +722,7 @@ class Analysis:
                         
                         logger.debug(f"Creating parameterized description for ability {ability_id} for module {module_id} from abilities_scalars")
                         add_category_if_missing()
-                        result[lang_code][module_category_name_str][abi_name_str] = self.format_description(abi_desc, primary_stat, secondary_stat, lang_code)
+                        result[lang_code][module_category_name_str][abi_name_str] = self.format_description(abi_desc, primary_stat, secondary_stat, localization)
 
                 # Determine from module alone
                 elif module.module_type_id in ['DA_ModuleType_Ability3.0', 'DA_ModuleType_Ability4.0']: #skip shoulder type
@@ -719,7 +737,7 @@ class Analysis:
 
                     logger.debug(f"Creating parameterized description for ability module {module_id} from module alone")
                     add_category_if_missing()
-                    result[lang_code][module_category_name_str][abi_name] = self.format_description(abi_desc, primary_stat, secondary_stat, lang_code)
+                    result[lang_code][module_category_name_str][abi_name] = self.format_description(abi_desc, primary_stat, secondary_stat, localization)
 
         return result
     
