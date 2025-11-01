@@ -28,3 +28,11 @@
 
 # Ability.json
 * id
+
+# Misc notes
+* Torso core modules use abilities_scalars
+  * name and description are in Ability.json
+* Non-core gear modules use module_scalars
+  * name and description are in Module.json
+* Non-ability modules like weapons/shoulders use module_scalars
+  * name and description are in Module.json

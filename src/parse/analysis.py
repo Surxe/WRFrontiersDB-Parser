@@ -556,7 +556,63 @@ class Analysis:
     #####################################
     # Primary & SecondaryParameter Gear #
     #####################################
-    def analyze_ability_descriptions(self, module_class_objects, character_module_class_objects, module_stat_class_objects, ability_class_objects):
+    def get_pattern_string(self, module_stat, stat_type: Literal['primary', 'secondary'], lang_code):
+        """
+        Example:
+            unit_pattern: {Amount}{Unit}
+            unit_name: %
+            unit_exponent: -1.0
+        ->
+            {Primary-}%
+        """
+        unit_name = getattr(module_stat, 'unit_name', {}).get(lang_code, "") # "%"
+        unit_pattern = getattr(module_stat, 'unit_pattern', {}).get(lang_code, "") # "{Amount}{Unit}"
+        unit_exponent = getattr(module_stat, 'unit_exponent', 1.0) # -1.0 or None(1.0)
+        unit_exponent_str = "+" if unit_exponent == 1.0 else "-" if unit_exponent == -1.0 else ""
+        more_is_better = getattr(module_stat, 'more_is_better', True) # True or False(None means true)
+        if not more_is_better:
+            logger.debug(f"Stat {module_stat.id} is used in ability and is more_is_better == False. Update handling.")
+
+        pattern_string = unit_pattern.replace("{Amount}", "{" + stat_type.capitalize() + unit_exponent_str + "}")
+        if unit_name:
+            pattern_string = pattern_string.replace("{Unit}", unit_name)
+        return pattern_string
+
+    def format_description(self, desc: str, primary_module_stat, secondary_module_stat, lang_code):
+        """
+        Example:
+            Deploys a device that reduces damage by {Resist} for {Duration}
+            ->
+            Deploys a device that reduces damage by {Primary}% for {Secondary}s
+
+        Terms:
+            pattern_string: example "
+        """
+
+        primary_short_key = primary_module_stat.short_key # "Resist"
+        secondary_short_key = secondary_module_stat.short_key # "Duration"
+        primary_pattern = self.get_pattern_string(primary_module_stat, 'primary', lang_code)
+        secondary_pattern = self.get_pattern_string(secondary_module_stat, 'secondary', lang_code)
+        desc = desc.replace(f"{{{primary_short_key}}}", primary_pattern)
+        desc = desc.replace(f"{{{secondary_short_key}}}", secondary_pattern)
+        return desc
+    
+    # For a given ability scalar index, get the primary or secondary stat object
+    def get_ability_stat(self, module, i, stat_type: Literal['primary', 'secondary']):
+        ability_scalars = module.abilities_scalars[i]
+        stat_id_key = f'{stat_type}_stat_id'
+        stat_id = ability_scalars.get(stat_id_key)
+        if stat_id is None:
+            return None
+        module_stat = self.module_stat_class_objects.get(stat_id)
+        return module_stat
+
+    def analyze_ability_descriptions(self, 
+                                     module_class_objects, 
+                                     character_module_class_objects, 
+                                     module_stat_class_objects,
+                                     ability_class_objects, 
+                                     lang_code="en"):
         """
         See scalar_linking.md
 
@@ -568,6 +624,7 @@ class Analysis:
         logger.debug("Analyzing Primary & SecondaryParameter gear modules")
         result = {}
         for module_id, module in module_class_objects.items():
+            # Skip if missing critical attributes
             if not hasattr(module, 'abilities_scalars'):
                 continue
             if not hasattr(module, 'character_module_mounts'):
@@ -575,17 +632,8 @@ class Analysis:
             if not hasattr(module, 'production_status') or module.production_status != 'Ready':
                 continue
 
-            # Determine primary and secondary stat id
-            for i, ability_scalars in enumerate(module.abilities_scalars):
-                primary_stat_id = ability_scalars.get('primary_stat_id')
-                secondary_stat_id = ability_scalars.get('secondary_stat_id')
-                if primary_stat_id is None and secondary_stat_id is None:
-                    continue
-                if primary_stat_id is None or secondary_stat_id is None:
-                    raise ValueError(f"Structure change: Module {module_id} has only one of Primary or SecondaryParameter set in ability scalars {i}.")
 
-
-            # Get abilities from character module. Verify only one character module mount
+            # Get ability ids from character module. Verify only one character module mount
             character_module_mounts = module.character_module_mounts
             if len(character_module_mounts) > 1:
                 logger.error(f"Structure change: Module {module_id} with abilities_scalars has multiple character module mounts.")
@@ -593,68 +641,24 @@ class Analysis:
             character_module = character_module_class_objects[character_module_id]
             abilities_ids = character_module.abilities_ids
 
-            def get_ability_stat(i, stat_type: Literal['primary', 'secondary']):
-                ability_scalars = module.abilities_scalars[i]
-                stat_id_key = f'{stat_type}_stat_id'
-                stat_id = ability_scalars.get(stat_id_key)
-                if stat_id is None:
-                    return None
-                module_stat = module_stat_class_objects.get(stat_id)
-                return module_stat
-            
-            def format_description(desc: str, primary_module_stat, secondary_module_stat):
-                """
-                Example:
-                    Deploys a device that reduces damage by {Resist} for {Duration}
-                    ->
-                    Deploys a device that reduces damage by {Primary}% for {Secondary}s
-
-                Terms:
-                    pattern_string: example "
-                """
-                def get_pattern_string(module_stat, stat_type: Literal['primary', 'secondary']):
-                    """
-                    Example:
-                        unit_pattern: {Amount}{Unit}
-                        unit_name: %
-                        unit_exponent: -1.0
-                    ->
-                        {Primary-}%
-                    """
-                    unit_name = getattr(module_stat, 'unit_name', {}).get("en", "") # "%"
-                    unit_pattern = getattr(module_stat, 'unit_pattern', {}).get("en", "") # "{Amount}{Unit}"
-                    unit_exponent = getattr(module_stat, 'unit_exponent', 1.0) # -1.0 or None(1.0)
-                    unit_exponent_str = "+" if unit_exponent == 1.0 else "-" if unit_exponent == -1.0 else ""
-                    more_is_better = getattr(module_stat, 'more_is_better', True) # True or False(None means true)
-                    if not more_is_better:
-                        logger.debug(f"Stat {module_stat.id} is used in ability {ability_id} and is more_is_better == False. Update handling.")
-
-                    pattern_string = unit_pattern.replace("{Amount}", "{" + stat_type.capitalize() + unit_exponent_str + "}")
-                    if unit_name:
-                        pattern_string = pattern_string.replace("{Unit}", unit_name)
-                    return pattern_string
-
-                primary_short_key = primary_module_stat.short_key # "Resist"
-                secondary_short_key = secondary_module_stat.short_key # "Duration"
-                primary_pattern = get_pattern_string(primary_module_stat, 'primary')
-                secondary_pattern = get_pattern_string(secondary_module_stat, 'secondary')
-                desc = desc.replace(f"{{{primary_short_key}}}", primary_pattern)
-                desc = desc.replace(f"{{{secondary_short_key}}}", secondary_pattern)
-                return desc
-
+            # Add each ability's formatted description
             for i, ability_id in enumerate(abilities_ids):
                 ability = ability_class_objects[ability_id]
-                logger.debug(f"Analyzing ability {ability_id} for module {module_id}")
-                abi_name = ability.name["en"]
-                abi_desc = ability.description["en"] # "Deploys a device that reduces damage by {Resist} for {Duration}"
+                abi_name = ability.name[lang_code]
+                abi_desc = ability.description[lang_code] # "Deploys a device that reduces damage by {Resist} for {Duration}"
+                
                 # Get primary and secondary stat's short key, which is whats referenced in the description
-                primary_stat_short_key = get_ability_stat(i, 'primary')
-                secondary_stat_short_key = get_ability_stat(i, 'secondary')
+                primary_stat_short_key = self.get_ability_stat(module, i, 'primary')
+                secondary_stat_short_key = self.get_ability_stat(module, i, 'secondary')
+
+                # Make sure both are defined. Jump for example has no primary/secondary stats, and there are lots of jump variants
                 if primary_stat_short_key is None and secondary_stat_short_key is None:
                     continue
                 if primary_stat_short_key is None or secondary_stat_short_key is None:
                     logger.error(f"Structure change: Ability {ability_id} has only one of Primary or SecondaryParameter set in module {module_id}.")
-                result[abi_name] = format_description(abi_desc, primary_stat_short_key, secondary_stat_short_key)
+                
+                logger.debug(f"Creating parameterized description for ability {ability_id} for module {module_id}")
+                result[abi_name] = self.format_description(abi_desc, primary_stat_short_key, secondary_stat_short_key, lang_code)
 
         return result
     
