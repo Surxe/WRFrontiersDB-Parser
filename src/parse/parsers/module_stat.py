@@ -31,13 +31,16 @@ class ModuleStat(ParseObject):
     
     def format_value(self, value):
         """Raw stat value is converted to the value that would be displayed in game."""
-        unit_baseline = getattr(self, "unit_baseline", 1.0)
+        unit_baseline = getattr(self, "unit_baseline", 0.0)
         unit_scaler = getattr(self, "unit_scaler", 1.0)
         unit_exponent = getattr(self, "unit_exponent", 1.0)
         if unit_exponent < 0 and getattr(self, "more_is_better", None) is not None:
             logger.warning(f"Warning: ModuleStat {self.id} requires inversion but also has 'more_is_better' set to {self.more_is_better}, which may lead to confusing UX. Should it be double inverted?")
-
-        return unit_baseline + (value * unit_scaler) ** unit_exponent
+        if unit_exponent != 1.0 and unit_scaler != 1.0:
+            logger.warning(f"New ModuleStat has both unit_exponent and unit_scaler. Please confirm the formula below is correct for these.")
+        if unit_baseline not in [0.0, 1.0]:
+            logger.warning(f"ModuleStat {self.id} has a non-standard baseline {unit_baseline}. Confirm the formula below is correct.")
+        return ((value - unit_baseline) * unit_scaler) ** unit_exponent
     
     def get_ui_value_format_indicator(self) -> str:
         """
