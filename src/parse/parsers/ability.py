@@ -57,7 +57,7 @@ class Ability(ParseObject):
             "ReactionOnRecharge": None, #voice line
             "SpawnActorAction": {"parser": self._p_spawn_action, "action": ParseAction.DICT_ENTRY, "target": ParseTarget.MATCH_KEY_SNAKE},
             "ConfirmationAction": {"parser": self._p_confirmation_action, "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY},
-            "HackingCastAction": None, #TODO kernel
+            "HackingCastAction": {"parser": self._p_hacking_cast_action, "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY},
             "ActorCDOShapeComponent": self._p_actor_class,
             "TargetingActionWithConfirmation": {"parser": self._p_confirmation_action, "action": ParseAction.DICT_ENTRY, "target_dict_path": "targeting", "target": ParseTarget.MATCH_KEY},
             "ImmediateTargetingAction": None,
@@ -290,8 +290,8 @@ class Ability(ParseObject):
             "InputActionOccupationPriority": None, #orbital strike
             "CompensationPower": "value", #kumo chassis
             "BuffAreaDistance": "value", #kumo torso
-            "DistanceRange": None, #TODO kernel
-            "BuffOnTarget": None, #TODO kernel
+            "DistanceRange": self._p_distance_range,
+            "BuffOnTarget": self._p_actor_class,
         }
 
         my_ability_data = self._process_key_to_parser_function(
@@ -309,6 +309,42 @@ class Ability(ParseObject):
         data = asset_path_to_data(data["ObjectPath"])["Properties"]
         return parse_editor_curve_data(data)
 
+    def _p_distance_range(self, data: dict):
+        key_to_parser_function_map = {
+            "max": "value",
+        }
+        return self._process_key_to_parser_function(
+            key_to_parser_function_map, data, log_descriptor="DistanceRange", set_attrs=False, default_configuration={
+                'target': ParseTarget.MATCH_KEY
+            }
+        )
+
+    def _p_hacking_cast_action(self, data: dict):
+        data = asset_path_to_data(data["ObjectPath"])
+
+        parsed_data = {}
+        if 'Properties' in data:
+            key_to_parser_function = {
+                "MaxRange": "value",
+                "HackingFx": None,
+                "TargetPosParam": None,
+                "HackingFailedParam": None,
+                "HackingTimeParam": None,
+                "TargetCameraFX": None,
+                "GetHackingTarget": None,
+            }
+
+            parsed_data = self._process_key_to_parser_function(
+                key_to_parser_function, data["Properties"], log_descriptor="HackingCastAction", set_attrs=False, default_configuration={
+                    'target': ParseTarget.MATCH_KEY
+                }
+            )
+
+        if 'Template' in data:
+            parsed_template_data = self._p_hacking_cast_action(data["Template"])
+            parsed_data = merge_dicts(parsed_template_data, parsed_data)
+
+        return parsed_data
 
     def _p_effect_type(self, data: str):
         etype = parse_colon_colon(data)
@@ -387,9 +423,6 @@ class Ability(ParseObject):
                 'target': ParseTarget.MATCH_KEY
             }
         )
-
-        if self.id == 'BP_Module_Kernel_Torso.1':
-            logger.debug(f"Parsed targeting data for {self.id}: {parsed_targeting_data}")
 
         return parsed_targeting_data
 
@@ -899,6 +932,13 @@ def p_actor_class(data: dict):
     props = data["Properties"]
 
     key_to_parser_function = {
+        "HackingTime": "value", #kernel
+        "Hacker": p_actor_class,
+        "BuffEventStartMain": None,
+        "BuffEventStop": None,
+        "BuffEventStartEnemy": None,
+        "BuffEventTeammate": None,
+        "HackingFx": None, #kernel
         "MuzzleSocketName": None,
         "OverlayFx": None,
         "Fade Out Time": None, #implied for vfx
