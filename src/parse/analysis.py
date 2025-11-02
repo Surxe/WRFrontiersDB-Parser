@@ -586,13 +586,13 @@ class Analysis:
             unit_pattern_str = localization.localize_from_name(unit_pattern)
         else:
             unit_pattern_str = "" # "{Amount}{Unit}"
-        unit_exponent = getattr(module_stat, 'unit_exponent', 1.0) # -1.0 or None(1.0)
-        unit_exponent_str = "+" if unit_exponent == 1.0 else "-" if unit_exponent == -1.0 else ""
+
         more_is_better = getattr(module_stat, 'more_is_better', True) # True or False(None means true)
         if not more_is_better:
             logger.debug(f"Stat {module_stat.id} is used in ability and is more_is_better == False. Update handling.")
 
-        stat_type_exp_str = "{**" + stat_type_localized + unit_exponent_str + "**}" # 'primary' or 'secondary'
+        value_modifier_indicator = module_stat.get_ui_value_format_indicator()
+        stat_type_exp_str = "{**" + stat_type_localized + '.' + value_modifier_indicator + "**}" # 'primary' or 'secondary'
 
         if unit_pattern_str:
             pattern_string = unit_pattern_str.replace("{Amount}", stat_type_exp_str)

@@ -25,6 +25,8 @@ from parsers.upgrade_cost import UpgradeCost
 from parsers.scrap_reward import ScrapReward
 from parsers.image import parse_image_asset_path, Image
 
+from typing import Literal
+
 class Module(ParseObject):
     objects = dict()
     
@@ -116,30 +118,29 @@ class Module(ParseObject):
             'target': ParseTarget.MATCH_KEY_NO_DEFAULT
         })
         
-        # Determine which stats need to be inverted (reciprocal taken of) based on if the stat has unit_exponent -1
-        primary_stat_id = parsed_scalars.get("primary_stat_id", None)
-        invert_primary = False
-        invert_secondary = False
-        if primary_stat_id is not None:
-            primary_stat = ModuleStat.get_from_id(primary_stat_id)
-            invert_primary = primary_stat is not None and getattr(primary_stat, "unit_exponent", None) == -1
-        secondary_stat_id = parsed_scalars.get("secondary_stat_id", None)
-        if secondary_stat_id is not None:
-            secondary_stat = ModuleStat.get_from_id(secondary_stat_id)
-            invert_secondary = secondary_stat is not None and getattr(secondary_stat, "unit_exponent", None) == -1
-        
-        # Reciprocal PrimaryParameter and SecondaryParameter in level data
-        if invert_primary or invert_secondary:
-            levels_data = parsed_scalars.get("levels", {})
-            def invert(level):
-                if invert_primary and "PrimaryParameter" in level:
-                    level["PrimaryParameter"] = 1 / level["PrimaryParameter"]
-                if invert_secondary and "SecondaryParameter" in level:
-                    level["SecondaryParameter"] = 1 / level["SecondaryParameter"]
-            for level in levels_data.get("variables", []):
-                invert(level)
-            if "constants" in levels_data:
-                invert(levels_data["constants"])
+        # Determine which stats need to be inverted (reciprocal taken of) based on if the stat has exponent/scaler that are negative
+        def format_stat_value(value, stat_type: Literal["primary", "secondary"]):
+            stat_id = parsed_scalars.get("primary_stat_id") if stat_type == "primary" else parsed_scalars.get("secondary_stat_id")
+            if stat_id is None:
+                return False
+            stat_obj = ModuleStat.objects.get(stat_id, None)
+            if stat_obj is None:
+                logger.warning(f"Warning: Module {self.id} references {stat_type} ModuleStat {stat_id} which does not exist")
+                return False
+            return stat_obj.format_value(value)
+
+        # Format PrimaryParameter and SecondaryParameter in level data
+        levels_data = parsed_scalars.get("levels", {})
+        def invert(level):
+            if 'PrimaryParameter' in level:
+                level["PrimaryParameter"] = format_stat_value(level["PrimaryParameter"], "primary")
+            if 'SecondaryParameter' in level:
+                level["SecondaryParameter"] = format_stat_value(level["SecondaryParameter"], "secondary")
+
+        for level in levels_data.get("variables", []):
+            invert(level)
+        if "constants" in levels_data:
+            invert(levels_data["constants"])
 
         module_name = parsed_scalars.get("module_name", None)
         if module_name is not None:
