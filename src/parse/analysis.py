@@ -9,18 +9,17 @@ from utils import OPTIONS, sort_dict
 from loguru import logger
 from typing import Literal
 from parsers.localization import Localization
+from parsers.module import Module
+from parsers.module_type import ModuleType
+from parsers.character_module import CharacterModule
+from parsers.module_stat import ModuleStat
+from parsers.upgrade_cost import UpgradeCost
+from parsers.scrap_reward import ScrapReward
+from parsers.factory_preset import FactoryPreset
+from parsers.ability import Ability
 
 class Analysis:
-    def __init__(self, module_class, module_type_class, character_module_class, module_stat_class, upgrade_cost_class, scrap_reward_class, factory_preset_class, ability_class):
-        self.module_class_objects = module_class.objects
-        self.module_type_class_objects = module_type_class.objects
-        self.character_module_class_objects = character_module_class.objects
-        self.module_stat_class_objects = module_stat_class.objects
-        self.upgrade_cost_class_objects = upgrade_cost_class.objects
-        self.scrap_reward_class_objects = scrap_reward_class.objects
-        self.factory_preset_class_objects = factory_preset_class.objects
-        self.ability_class_objects = ability_class.objects
-
+    def __init__(self):
         # Upgrade cost & Scrap reward
         self.frequency_map = self.get_frequency_map()
         self.standard_cost_and_scrap = self.determine_standard_cost_and_scrap(self.frequency_map)
@@ -49,7 +48,7 @@ class Analysis:
         self.total_upgrade_costs = self.calculate_total_upgrade_costs(self.modules_upgrade_costs)
 
         # Embed "Primary" and "Secondary" in ability descriptions to know which is which
-        self.ability_primary_secondary_descriptions = self.analyze_ability_descriptions(self.module_class_objects, self.module_type_class_objects, self.character_module_class_objects, self.module_stat_class_objects, self.ability_class_objects)
+        self.ability_primary_secondary_descriptions = self.analyze_ability_descriptions()
         self.ability_primary_secondary_descriptions_md = self.generate_ability_descriptions_md(self.ability_primary_secondary_descriptions)
 
     ########################################
@@ -73,7 +72,7 @@ class Analysis:
     """
     def get_frequency_map(self):
         frequency_map = {}
-        for module_id, module in self.module_class_objects.items():
+        for module_id, module in Module.objects.items():
             logger.debug(f"Analyzing upgrade costs for module: {module_id}")
 
             # Get module scalars
@@ -109,7 +108,7 @@ class Analysis:
                 # Register each scrap reward
                 scrap_rewards_ids = level_data.get('scrap_rewards_ids', [None])
                 for scrap_reward_id in scrap_rewards_ids:
-                    scrap_reward = self.scrap_reward_class_objects.get(scrap_reward_id)
+                    scrap_reward = ScrapReward.objects.get(scrap_reward_id)
                     if scrap_reward is None:
                         continue
                     register_amount('scrap_reward', 
@@ -122,7 +121,7 @@ class Analysis:
                 upgrade_cost_id = level_data.get('upgrade_cost_id')
                 if upgrade_cost_id is None:
                     continue
-                upgrade_cost = self.upgrade_cost_class_objects[upgrade_cost_id]
+                upgrade_cost = UpgradeCost.objects[upgrade_cost_id]
                 currency_id = upgrade_cost.currency_id
                 currency_amount = upgrade_cost.amount
                 register_amount('upgrade_cost', level, currency_id, currency_amount)
@@ -277,7 +276,7 @@ class Analysis:
             'ArmorDPS', 'ShieldDPS' #for now. these are UI numbers and are often wrong. will do real dps calcs later.
         }
 
-        for module_id, module in self.module_class_objects.items():
+        for module_id, module in Module.objects.items():
             if getattr(module, 'production_status', None) != 'Ready':
                 continue
             logger.debug(f"Analyzing level differences for module: {module_id}")
@@ -334,7 +333,7 @@ class Analysis:
             for stat_key in stat_keys_to_rank:
                 entry = stat_to_more_is_better.get(stat_key)
                 if entry is None:
-                    module_stat = next((stat for stat in self.module_stat_class_objects.values() if stat.short_key == stat_key), None)
+                    module_stat = next((stat for stat in ModuleStat.objects.values() if stat.short_key == stat_key), None)
                     if module_stat is None:
                         if stat_key.startswith('DPS_'): #dps stats are all more is better
                             more_is_better = True
@@ -342,7 +341,7 @@ class Analysis:
                             raise ValueError(f"stat_key: {stat_key}, Unknown module stat with this short_key")
                     more_is_better = getattr(module_stat, 'more_is_better', True)
                 elif isinstance(entry, str):
-                    module_stat = self.module_stat_class_objects[entry]
+                    module_stat = ModuleStat.objects[entry]
                     more_is_better = getattr(module_stat, 'more_is_better', True)
                 elif isinstance(entry, bool):
                     more_is_better = entry
@@ -435,7 +434,7 @@ class Analysis:
                 return None
         
         logger.debug(f"Getting upgrade costs for module: {module_id}")
-        module = self.module_class_objects[module_id]
+        module = Module.objects[module_id]
         if getattr(module, 'production_status', None) != 'Ready':
             return None
         module_rarity_id = module.module_rarity_id
@@ -471,7 +470,7 @@ class Analysis:
         """
 
         modules_upgrade_costs = {}
-        for module_id in self.module_class_objects.keys():
+        for module_id in Module.objects.keys():
             result = self.get_module_upgrade_costs(module_id, standard_cost_and_scrap)
             if result is None:
                 continue
@@ -515,7 +514,7 @@ class Analysis:
             }
         """
         factory_preset_costs = {}
-        for fpreset_id, fpreset in self.factory_preset_class_objects.items():
+        for fpreset_id, fpreset in FactoryPreset.objects.items():
             for module_socket_name, module_data in fpreset.modules.items():
                 module_id = module_data['id']
                 this_module_upgrade_costs, _ = self.get_module_upgrade_costs(module_id, standard_cost_and_scrap)
@@ -537,7 +536,7 @@ class Analysis:
     ############################
     def calculate_total_upgrade_costs(self, modules_upgrade_costs):
         total_upgrade_costs = {}  # <currency_id>: <total_upgrade_cost_amount>
-        for module_id, module in self.module_class_objects.items():
+        for module_id, module in Module.objects.items():
             # Ensure its production ready module
             if getattr(module, 'production_status', None) != 'Ready':
                 continue
@@ -628,15 +627,10 @@ class Analysis:
         stat_id = ability_scalars.get(stat_id_key)
         if stat_id is None:
             return None
-        module_stat = self.module_stat_class_objects.get(stat_id)
+        module_stat = ModuleStat.objects.get(stat_id)
         return module_stat
 
-    def analyze_ability_descriptions(self, 
-                                     module_class_objects, 
-                                     module_type_class_objects,
-                                     character_module_class_objects, 
-                                     module_stat_class_objects,
-                                     ability_class_objects):
+    def analyze_ability_descriptions(self):
         """
         See scalar_linking.md
 
@@ -655,7 +649,7 @@ class Analysis:
         for lang_code, localization in Localization.objects.items():
             result[lang_code] = {}
 
-            for module_id, module in module_class_objects.items():
+            for module_id, module in Module.objects.items():
                 # Skip if missing critical attributes
                 if not hasattr(module, 'production_status') or module.production_status != 'Ready':
                     continue
@@ -663,7 +657,7 @@ class Analysis:
                     continue
 
                 # Determine module category
-                module_type = module_type_class_objects.get(module.module_type_id)
+                module_type = ModuleType.objects.get(module.module_type_id)
                 category = localization.localize_from_name(module_type.name)
                 module_type_character_type = getattr(module_type, 'character_type', "Robot")
                 if module_type_character_type != "Robot":
@@ -691,12 +685,12 @@ class Analysis:
                     if len(character_module_mounts) > 1:
                         logger.error(f"Structure change: Module {module_id} with abilities_scalars has multiple character module mounts.")
                     character_module_id = character_module_mounts[0]['character_module_id']
-                    character_module = character_module_class_objects[character_module_id]
+                    character_module = CharacterModule.objects[character_module_id]
                     abilities_ids = character_module.abilities_ids
 
                     # Add each ability's formatted description
                     for i, ability_id in enumerate(abilities_ids):
-                        ability = ability_class_objects[ability_id]
+                        ability = Ability.objects[ability_id]
                         abi_name = localization.localize_from_name(ability.name)
                         abi_desc = localization.localize_from_name(ability.description) # "Deploys a device that reduces damage by {Resist} for {Duration}"
                         
@@ -718,8 +712,8 @@ class Analysis:
                     abi_desc = localization.localize_from_name(module.description)
                     
                     module_scalars = module.module_scalars
-                    primary_stat = module_stat_class_objects[module_scalars["primary_stat_id"]]
-                    secondary_stat = module_stat_class_objects[module_scalars["secondary_stat_id"]]
+                    primary_stat = ModuleStat.objects[module_scalars["primary_stat_id"]]
+                    secondary_stat = ModuleStat.objects[module_scalars["secondary_stat_id"]]
                     if not validate_param_presence(primary_stat, secondary_stat):
                         continue
 
@@ -808,6 +802,6 @@ def round_val(value):
         return value
     return round(value, 5) #decimal places
 
-def analyze(*classes):
-    analysis = Analysis(*classes)
+def analyze():
+    analysis = Analysis()
     analysis.to_file()
