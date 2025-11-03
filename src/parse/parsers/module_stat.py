@@ -48,10 +48,9 @@ class ModuleStat(ParseObject):
         
         Returns:
             str:
-                x - Value is multiplicatively increased - base * (1+value)
-                / - Value is divisively decreased - base / (1+value)
-                Cx - Complement of value is multiplicatively increased - base * (1-value)
-                C/ - Complement of value is divisively decreased - base / (1-value)
+                x - Value is multiplicatively increased: base * (1+increase)
+                / - Value is divisively decreased: base / (1+increase)
+                Cx - Complement of value is multiplicatively increased: 1 - (1-base) * (1+increase)
         """
         unit_baseline = getattr(self, "unit_baseline", 0)
         unit_exponent = getattr(self, "unit_exponent", 1.0)
