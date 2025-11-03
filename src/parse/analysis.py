@@ -21,8 +21,9 @@ from parsers.ability import Ability
 class Analysis:
     def __init__(self):
         # Upgrade cost & Scrap reward
-        self.frequency_map = self.get_frequency_map()
-        self.standard_cost_and_scrap = self.determine_standard_cost_and_scrap(self.frequency_map)
+        self.cost_scrap_frequency_map = self.get_frequency_map()
+        self.standard_cost_and_scrap = self.determine_standard_cost_and_scrap(self.cost_scrap_frequency_map)
+        self.intel_discount_cost = self.determine_intel_discount_cost(self.cost_scrap_frequency_map)
 
         # Level Diffs per module
         res = self.get_level_diffs_per_module()
@@ -126,10 +127,48 @@ class Analysis:
                 currency_amount = upgrade_cost.amount
                 register_amount('upgrade_cost', level, currency_id, currency_amount)
 
-        return frequency_map
+        def sort_frequency_map(frequency_map):
+            """Sort each amount_data by frequency descending
+            Example:
+                "345": 81,
+                "150": 6,
+                "230": 1
 
-    @staticmethod
-    def determine_standard_cost_and_scrap(frequency_map):
+            Also sort each level's data
+            """
+            for module_rarity_id, levels_data in frequency_map.items():
+                for level, currency_data in levels_data.items():
+                    frequency_map[module_rarity_id][level] = sort_dict(frequency_map[module_rarity_id][level]) #sort currency_id level
+                    for currency_id, type_data in currency_data.items():
+                        for _type, amount_data in type_data.items():
+                            sorted_amount_data = dict(sorted(amount_data.items(), key=lambda item: item[1], reverse=True))
+                            frequency_map[module_rarity_id][level][currency_id][_type] = sorted_amount_data
+            return frequency_map
+
+        return sort_frequency_map(frequency_map)
+
+    def get_most_freq_amount(self, amount_freq_map, n=1, allow_outliers=False):
+        """
+        Args:
+            amount_freq_map: {
+                <amount1>: <count1>,
+                <amount2>: <count2>,
+                ...
+            }
+
+        Returns:
+            N'th most frequent amount (int)
+        """
+        if n == 0:
+            amount, frequency = next(iter(amount_freq_map.items())) #quicker
+        else:
+            amount, frequency = list(amount_freq_map.items())[n-1] #nth in the dict thats sorted by frequency descending
+        if frequency <= 3 and not allow_outliers:
+            logger.debug(f"Most frequent amount {amount} has low frequency {frequency}. Assumed to be an outlier. Defaulting to 0.")
+            return 0
+        return amount
+
+    def determine_standard_cost_and_scrap(self, frequency_map):
         """
         For each module rarity & level & currency_id, determine the most frequent upgrade cost
         Assign that upgrade cost as the standard upgrade cost for that module rarity & level & currency_id
@@ -147,24 +186,6 @@ class Analysis:
             }
         """
 
-        def get_most_freq_amount(amount_freq_map):
-            """
-            Args:
-                amount_freq_map: {
-                    <amount>: count,
-                }
-
-            Returns:
-                most frequent amount (int)
-            """
-            biggest_entry = (None, -1)  # (amount, count)
-            for amount_str, count in amount_freq_map.items():
-                amount = int(amount_str)
-                if count > biggest_entry[1]:
-                    biggest_entry = (amount, count)
-            if biggest_entry[1] <= 3:
-                return 0 # if there are only outliers or too few data points it should be treated as 0 cost
-            return biggest_entry[0]
 
         # Next, determine the most frequent upgrade cost & scrap reward
         standard_cost_and_scrap = {}
@@ -181,13 +202,13 @@ class Analysis:
                     # Determine most frequent scrap reward
                     scrap_rewards_freq = type_data.get('scrap_reward', {})
                     if scrap_rewards_freq:
-                        most_frequent_scrap_reward = get_most_freq_amount(scrap_rewards_freq)
+                        most_frequent_scrap_reward = self.get_most_freq_amount(scrap_rewards_freq)
                         standard_cost_and_scrap[module_rarity_id][level][currency_id]['scrap_reward'] = most_frequent_scrap_reward
                     
                     # Determine most frequent upgrade cost
                     upgrade_costs_freq = type_data.get('upgrade_cost', {})
                     if upgrade_costs_freq:
-                        most_frequent_upgrade_cost = get_most_freq_amount(upgrade_costs_freq)
+                        most_frequent_upgrade_cost = self.get_most_freq_amount(upgrade_costs_freq)
                         standard_cost_and_scrap[module_rarity_id][level][currency_id]['upgrade_cost'] = most_frequent_upgrade_cost
 
         # Then, ensure upgrade_cost and scrap_reward in each entry, default to 0 otherwise
@@ -199,12 +220,57 @@ class Analysis:
                     if 'scrap_reward' not in cost_and_scrap:
                         cost_and_scrap['scrap_reward'] = 0
 
-        # Finally, sort each level's entry
-        for module_rarity_id, levels_data in standard_cost_and_scrap.items():
-            for level, currency_data in levels_data.items():
-                standard_cost_and_scrap[module_rarity_id][level] = sort_dict(dict(currency_data.items()))
-
         return standard_cost_and_scrap
+    
+
+    def get_intel_discounted_cost(self, level_data):
+        """
+        Determine intel discounted cost for each level. Intel discounted cost is the 2nd most frequent cost in each level.
+
+        Returns: {
+            'cost': intel_discounted_cost_amount,
+            'difference': <intel_discounted_cost_amount - standard_cost_amount>,
+            'percent_difference': <(intel_discounted_cost_amount - standard_cost_amount) / standard_cost_amount>,
+        """
+        if 'DA_Meta_Currency_Intel' not in level_data:
+            return None
+        intel_currency_data = level_data['DA_Meta_Currency_Intel']
+        if 'upgrade_cost' not in intel_currency_data:
+            return None
+        discounted_cost = self.get_most_freq_amount(intel_currency_data['upgrade_cost'], n=2, allow_outliers=True)
+        if discounted_cost == 0:
+            return None
+        standard_cost = self.get_most_freq_amount(intel_currency_data['upgrade_cost'], n=1, allow_outliers=False)
+        if standard_cost == 0:
+            return None
+        return {
+            'cost': discounted_cost,
+            'difference': discounted_cost - standard_cost,
+            'percent_difference': (discounted_cost - standard_cost) / standard_cost if standard_cost != 0 else 0,
+        }
+
+    def determine_intel_discount_cost(self, frequency_map):
+        """
+        For each module rarity & level, determine the intel discounted cost
+
+        Returns:
+            {
+                <module_rarity>: {
+                    <level>: <intel_discounted_cost_amount>,
+                }
+            }
+        """
+        intel_discount_cost = {}
+        for module_rarity_id, levels_data in frequency_map.items():
+            if module_rarity_id not in intel_discount_cost:
+                intel_discount_cost[module_rarity_id] = {}
+            for level, currency_data in levels_data.items():
+                intel_discounted_cost_amount = self.get_intel_discounted_cost(currency_data)
+                if intel_discounted_cost_amount is not None:
+                    intel_discount_cost[module_rarity_id][level] = intel_discounted_cost_amount
+        return intel_discount_cost
+
+
         
 
     ####################################################
@@ -759,8 +825,9 @@ class Analysis:
         res["json"] =sort_dict(round_dict_values({
             'level_diffs_by_module': self.level_diffs_by_module,
             'level_diffs_by_stat': self.level_diffs_by_stat,
-            'cost_scrap_frequency_map': self.frequency_map,
+            'cost_scrap_frequency_map': self.cost_scrap_frequency_map,
             'standard_cost_and_scrap': self.standard_cost_and_scrap,
+            'intel_discount_cost': self.intel_discount_cost,
             'total_upgrade_costs': self.total_upgrade_costs,
             'factory_preset_upgrade_costs': self.factory_preset_upgrade_costs,
             'ability_primary_secondary_descriptions': self.ability_primary_secondary_descriptions,
