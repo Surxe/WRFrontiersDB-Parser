@@ -21,8 +21,8 @@ from parsers.ability import Ability
 class Analysis:
     def __init__(self):
         # Upgrade cost & Scrap reward
-        self.frequency_map = self.get_frequency_map()
-        self.standard_cost_and_scrap = self.determine_standard_cost_and_scrap(self.frequency_map)
+        self.cost_scrap_frequency_map = self.get_frequency_map()
+        self.standard_cost_and_scrap = self.determine_standard_cost_and_scrap(self.cost_scrap_frequency_map)
 
         # Level Diffs per module
         res = self.get_level_diffs_per_module()
@@ -126,7 +126,22 @@ class Analysis:
                 currency_amount = upgrade_cost.amount
                 register_amount('upgrade_cost', level, currency_id, currency_amount)
 
-        return frequency_map
+        def sort_frequency_map(frequency_map):
+            """Sort each amount_data by frequency descending
+            Example:
+                "345": 81,
+                "150": 6,
+                "230": 1
+            """
+            for module_rarity_id, levels_data in frequency_map.items():
+                for level, currency_data in levels_data.items():
+                    for currency_id, type_data in currency_data.items():
+                        for _type, amount_data in type_data.items():
+                            sorted_amount_data = dict(sorted(amount_data.items(), key=lambda item: item[1], reverse=True))
+                            frequency_map[module_rarity_id][level][currency_id][_type] = sorted_amount_data
+            return frequency_map
+
+        return sort_frequency_map(frequency_map)
 
     @staticmethod
     def determine_standard_cost_and_scrap(frequency_map):
@@ -147,24 +162,27 @@ class Analysis:
             }
         """
 
-        def get_most_freq_amount(amount_freq_map):
+        def get_most_freq_amount(amount_freq_map, n=1):
             """
             Args:
                 amount_freq_map: {
-                    <amount>: count,
+                    <amount1>: <count1>,
+                    <amount2>: <count2>,
+                    ...
                 }
 
             Returns:
-                most frequent amount (int)
+                N'th most frequent amount (int)
             """
-            biggest_entry = (None, -1)  # (amount, count)
-            for amount_str, count in amount_freq_map.items():
-                amount = int(amount_str)
-                if count > biggest_entry[1]:
-                    biggest_entry = (amount, count)
-            if biggest_entry[1] <= 3:
-                return 0 # if there are only outliers or too few data points it should be treated as 0 cost
-            return biggest_entry[0]
+            if n == 0:
+                amount, frequency = next(iter(amount_freq_map.items())) #quicker
+            else:
+                amount, frequency = list(amount_freq_map.items())[n-1] #nth in the dict thats sorted by frequency descending
+            if frequency <= 3:
+                logger.debug(f"Most frequent amount {amount} has low frequency {frequency}. Assumed to be an outlier. Defaulting to 0.")
+                return 0
+            return amount
+
 
         # Next, determine the most frequent upgrade cost & scrap reward
         standard_cost_and_scrap = {}
@@ -759,7 +777,7 @@ class Analysis:
         res["json"] =sort_dict(round_dict_values({
             'level_diffs_by_module': self.level_diffs_by_module,
             'level_diffs_by_stat': self.level_diffs_by_stat,
-            'cost_scrap_frequency_map': self.frequency_map,
+            'cost_scrap_frequency_map': self.cost_scrap_frequency_map,
             'standard_cost_and_scrap': self.standard_cost_and_scrap,
             'total_upgrade_costs': self.total_upgrade_costs,
             'factory_preset_upgrade_costs': self.factory_preset_upgrade_costs,
