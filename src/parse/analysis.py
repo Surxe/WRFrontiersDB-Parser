@@ -23,7 +23,7 @@ class Analysis:
         # Upgrade cost & Scrap reward
         self.cost_scrap_frequency_map = self.get_frequency_map()
         self.standard_cost_and_scrap = self.determine_standard_cost_and_scrap(self.cost_scrap_frequency_map)
-        self.intel_discount_cost = self.determine_intel_discount_cost(self.cost_scrap_frequency_map)
+        self.intel_discount_cost = self.determine_intel_discount_cost(self.standard_cost_and_scrap, self.cost_scrap_frequency_map)
 
         # Level Diffs per module
         res = self.get_level_diffs_per_module()
@@ -222,6 +222,25 @@ class Analysis:
 
         return standard_cost_and_scrap
     
+    def get_relative_cost(self, standard_cost, discounted_cost):
+        """
+        Returns:
+            {
+                'cost': discounted_cost,
+                'difference': discounted_cost - standard_cost,
+                'percent_difference': (discounted_cost - standard_cost) / standard_cost,
+            }
+        """
+        if discounted_cost == 0:
+            return None
+        if standard_cost == 0:
+            raise ValueError("Standard cost cannot be zero when calculating relative cost.")
+        return {
+            'cost': discounted_cost,
+            'difference': discounted_cost - standard_cost,
+            'percent_difference': (discounted_cost - standard_cost) / standard_cost if standard_cost != 0 else 0,
+        }
+    
 
     def get_intel_discounted_cost(self, level_data):
         """
@@ -238,36 +257,39 @@ class Analysis:
         if 'upgrade_cost' not in intel_currency_data:
             return None
         discounted_cost = self.get_most_freq_amount(intel_currency_data['upgrade_cost'], n=2, allow_outliers=True)
-        if discounted_cost == 0:
-            return None
         standard_cost = self.get_most_freq_amount(intel_currency_data['upgrade_cost'], n=1, allow_outliers=False)
-        if standard_cost == 0:
-            return None
-        return {
-            'cost': discounted_cost,
-            'difference': discounted_cost - standard_cost,
-            'percent_difference': (discounted_cost - standard_cost) / standard_cost if standard_cost != 0 else 0,
-        }
+        return self.get_relative_cost(standard_cost, discounted_cost)
+        
 
-    def determine_intel_discount_cost(self, frequency_map):
+    def determine_intel_discount_cost(self, standard_cost_and_scrap, cost_scrap_frequency_map):
         """
         For each module rarity & level, determine the intel discounted cost
 
         Returns:
             {
                 <module_rarity>: {
-                    <level>: <intel_discounted_cost_amount>,
+                    "levels": {
+                        <level>: <intel_discounted_cost_amount>,
+                    }
+                    "cumulative": <intel_discounted_cost_amount>,
                 }
             }
         """
         intel_discount_cost = {}
-        for module_rarity_id, levels_data in frequency_map.items():
+        for module_rarity_id, levels_data in cost_scrap_frequency_map.items():
             if module_rarity_id not in intel_discount_cost:
                 intel_discount_cost[module_rarity_id] = {}
+                intel_discount_cost[module_rarity_id]["levels"] = {}
+            cumulative_intel_discounted_cost = 0
+            cumulative_standard_cost = 0
             for level, currency_data in levels_data.items():
                 intel_discounted_cost_amount = self.get_intel_discounted_cost(currency_data)
+                cumulative_intel_discounted_cost += intel_discounted_cost_amount['cost'] if intel_discounted_cost_amount is not None else 0
+                standard_cost = standard_cost_and_scrap[module_rarity_id][level].get('DA_Meta_Currency_Intel', {}).get('upgrade_cost', 0)
+                cumulative_standard_cost += standard_cost
                 if intel_discounted_cost_amount is not None:
-                    intel_discount_cost[module_rarity_id][level] = intel_discounted_cost_amount
+                    intel_discount_cost[module_rarity_id]["levels"][level] = intel_discounted_cost_amount
+            intel_discount_cost[module_rarity_id]["cumulative"] = self.get_relative_cost(cumulative_standard_cost, cumulative_intel_discounted_cost)
         return intel_discount_cost
 
 
