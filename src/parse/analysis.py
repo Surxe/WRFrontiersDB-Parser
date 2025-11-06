@@ -647,13 +647,9 @@ class Analysis:
                 logger.debug(f"Adding upgrade cost for factory preset: {fpreset_id}")
 
                 # For each currency_id, add to the fpreset's total
-                for currency_id, upgrade_cost_amount in this_module_upgrade_costs.items():
-                    if fpreset_id not in character_preset_costs:
+                if fpreset_id not in character_preset_costs:
                         character_preset_costs[fpreset_id] = {}
-                    
-                    if fpreset_id not in character_preset_costs:
-                        character_preset_costs[fpreset_id] = {}
-                    register_upgrade_costs_to_category(module_category_id, this_module_upgrade_costs, character_preset_costs[fpreset_id])
+                register_upgrade_costs_to_category(module_category_id, this_module_upgrade_costs, character_preset_costs[fpreset_id])
 
         return character_preset_costs
     
