@@ -21,7 +21,7 @@ class CharacterPreset(ParseObject):
         key_to_parser_function = {
             "Icon": parse_image_asset_path,
             "Name": parse_localization,
-            "bShowInProgressDiscover": ("value", "production_status"),
+            "bShowInProgressDiscover": ("value", "is_factory_preset"),
             "RobotAIDataAsset": None, #voiceline
             "TemplateType": None,
             "CharacterTypeAsset": None,
