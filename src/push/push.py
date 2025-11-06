@@ -14,7 +14,7 @@ from options import OPTIONS
 from loguru import logger
 
 
-def run_git_command(cmd, cwd=None, capture_output=True, check=True, log_output=False):
+def run_git_command(cmd, cwd=None, capture_output=True, check=True, log_output=False, log_command_str=True):
     """
     Run a git command with proper error handling and logging.
     
@@ -39,7 +39,8 @@ def run_git_command(cmd, cwd=None, capture_output=True, check=True, log_output=F
         'HOME': env.get('USERPROFILE', env.get('HOME', ''))
     })
     
-    logger.debug(f"Running git command: {' '.join(cmd)}")
+    if log_command_str:
+        logger.debug(f"Running git command: {' '.join(cmd)}")
     
     try:
         result = subprocess.run(
@@ -93,7 +94,8 @@ def clone_data_repo(data_repo_url, data_repo_dir):
     logger.info("Cloning WRFrontiersDB-Data...")
     run_git_command(
         ['git', 'clone', data_repo_url, data_repo_dir],
-        log_output=True  # Always log git clone output for important operations
+        log_output=True,
+        log_command_str=False
     )
 
 
@@ -293,13 +295,6 @@ def push_changes(repo_dir, target_branch):
 
 def main():
     """Main function that orchestrates the data pushing process. Uses global OPTIONS singleton."""
-    # Validate required options
-    if not OPTIONS.game_version:
-        raise ValueError("GAME_VERSION is required for pushing data")
-    
-    if not OPTIONS.gh_data_repo_pat:
-        raise ValueError("GH_DATA_REPO_PAT is required for pushing data")
-    
     # Validate target branch
     valid_branches = ['testing-grounds', 'main']
     if OPTIONS.target_branch not in valid_branches:
