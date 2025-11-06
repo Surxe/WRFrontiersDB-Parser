@@ -7,7 +7,7 @@ from utils import logger, get_json_data, OPTIONS
 
 from parsers.object import ParseObject
 from parsers.drop_team import DropTeam
-from parsers.character_preset import CharacterPreset
+from parsers.factory_preset import FactoryPreset
 from parsers.league import League
 from parsers.image import Image
 
@@ -77,7 +77,7 @@ def parse_bot_presets(to_file=False):
     if to_file: # Condition prevents needlessly saving the same data multiple times, as it will also be saved if ran thru parse.py
         BotPreset.to_file()
         DropTeam.to_file()
-        CharacterPreset.to_file()
+        FactoryPreset.to_file()
         League.to_file()
         Image.to_file()
 

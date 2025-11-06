@@ -1,6 +1,8 @@
 # Add two levels of parent dirs to sys path
 import sys
 import os
+
+from loguru import logger
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils import asset_path_to_file_path, OPTIONS, normalize_path
@@ -34,7 +36,7 @@ def parse_image_asset_path(data: dict) -> str:
     else:
         raise ValueError("Data must contain 'AssetPathName' or 'ObjectPath'.")
     export_plus_file_path = asset_path_to_file_path(asset_path)
-    image_path_generic = export_plus_file_path.split(OPTIONS.export_dir)[1].split(".")[0] # #<export_dir>\\<file_path>\\<image_name>.json -> <file_path>/<image_name>
+    image_path_generic = export_plus_file_path.split(normalize_path(str(OPTIONS.export_dir)))[1].split(".")[0] # #<export_dir>\\<file_path>\\<image_name>.json -> <file_path>/<image_name>
     Image(image_path_generic)  # Register the image path
     return normalize_path(image_path_generic)
 

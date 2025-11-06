@@ -36,7 +36,7 @@ def main():
     parse_bot_presets()
     parse_factory_presets()
     parse_powerups()
-    analyze()
+    #analyze()
 
 
     ProgressionTable.to_file()
@@ -80,7 +80,7 @@ def main():
 
     BotPreset.to_file()
     DropTeam.to_file()
-    CharacterPreset.to_file()
+    FactoryPreset.to_file()
     League.to_file()
 
     FactoryPreset.to_file()

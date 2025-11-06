@@ -4,7 +4,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import ParseObject
-from parsers.character_preset import CharacterPreset
+from parsers.factory_preset import FactoryPreset
 
 class DropTeam(ParseObject):
     objects = dict()  # Dictionary to hold all DropTeam instances
@@ -22,6 +22,6 @@ class DropTeam(ParseObject):
     def _p_characters(self, data):
         ids = []
         for elem in data:
-            preset_id = CharacterPreset.get_from_asset_path(elem["ObjectPath"])
+            preset_id = FactoryPreset.get_from_asset_path(elem["ObjectPath"])
             ids.append(preset_id)
         return ids
