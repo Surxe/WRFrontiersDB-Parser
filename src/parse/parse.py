@@ -34,7 +34,7 @@ def main():
     parse_progression_table()
     parse_game_modes()
     parse_bot_ai_presets()
-    parse_character_presets()
+    parse_factory_presets()
     parse_powerups()
     #analyze()
 

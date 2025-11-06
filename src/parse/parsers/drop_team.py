@@ -23,5 +23,6 @@ class DropTeam(ParseObject):
         ids = []
         for elem in data:
             preset_id = CharacterPreset.get_from_asset_path(elem["ObjectPath"])
+            preset = CharacterPreset.objects.get(preset_id)
             ids.append(preset_id)
         return ids

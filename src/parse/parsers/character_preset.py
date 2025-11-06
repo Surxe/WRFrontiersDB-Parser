@@ -21,7 +21,7 @@ class CharacterPreset(ParseObject):
         key_to_parser_function = {
             "Icon": parse_image_asset_path,
             "Name": parse_localization,
-            "bShowInProgressDiscover": ("value", "is_factory_preset"),
+            "bShowInProgressDiscover": None, #can't figure out its use, as TitanPro lvl13 presets have this as true
             "RobotAIDataAsset": None, #voiceline
             "TemplateType": None,
             "CharacterTypeAsset": None,
@@ -32,6 +32,10 @@ class CharacterPreset(ParseObject):
         }
 
         self._process_key_to_parser_function(key_to_parser_function, props)
+
+        # Default is_factory_preset to False
+        if not hasattr(self, "is_factory_preset"):
+            self.is_factory_preset = False
 
         # Default character_type to Mech
         if not hasattr(self, "character_type"):
@@ -53,14 +57,16 @@ class CharacterPreset(ParseObject):
                 "parent_socket_name": parent_socket_name,
                 "level": module_entry["Level"]
             }
-
-
         return modules
+    
     def _p_pilot(self, data):
         pilot = Pilot.get_from_asset_path(data["PilotAsset"]["ObjectPath"])
         return pilot
+    
+    def set_is_factory_preset(self, is_factory_preset):
+        self.is_factory_preset = is_factory_preset
 
-def parse_character_presets(to_file=False):
+def parse_factory_presets(to_file=False):
     root_path = os.path.join(OPTIONS.export_dir, r"WRFrontiers\Content\Sparrow\Mechanics\DA_Meta_Root.json")
     root_data = get_json_data(root_path)
     props = root_data[0]["Properties"]
@@ -70,7 +76,8 @@ def parse_character_presets(to_file=False):
     for bot_preset_entry in character_presets_data["Properties"]["Presets"]:
         bot_preset_asset_path = bot_preset_entry["ObjectPath"]
         bot_preset_id = CharacterPreset.get_from_asset_path(bot_preset_asset_path)
-    
+        bot_preset = CharacterPreset.objects[bot_preset_id]
+        bot_preset.set_is_factory_preset(True)
 
     if to_file: # Condition prevents needlessly saving the same data multiple times, as it will also be saved if ran thru parse.py
         CharacterPreset.to_file()
@@ -79,4 +86,4 @@ def parse_character_presets(to_file=False):
         Image.to_file()
 
 if __name__ == "__main__":
-    parse_character_presets(to_file=True)
+    parse_factory_presets(to_file=True)

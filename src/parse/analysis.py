@@ -603,8 +603,11 @@ class Analysis:
         """
         character_preset_costs = {}
         for fpreset_id, fpreset in CharacterPreset.objects.items():
+            if not hasattr(fpreset, 'is_factory_preset') or not fpreset.is_factory_preset: #only look at factory presets, as character presets includes ai bots
+                continue
             for module_socket_name, module_data in fpreset.modules.items():
                 module_id = module_data['id']
+
                 this_module_upgrade_costs, _ = self.get_module_upgrade_costs(module_id, standard_cost_and_scrap)
                 logger.debug(f"Adding upgrade cost for factory preset: {fpreset_id}")
             
