@@ -1,4 +1,5 @@
 from typing import Literal
+from pathlib import Path
 
 """
 # Patterns
@@ -26,11 +27,12 @@ OPTIONS_SCHEMA = {
     "EXPORT_DIR": {
         "env": "EXPORT_DIR",
         "arg": "--export-dir",
-        "type": str,
+        "type": Path,
         "default": None,
         "section": "Parse",
         "depends_on": ["SHOULD_PARSE"],
-        "help": "Directory where the exported game JSON files are stored."
+        "help": "Directory where the exported game JSON files are stored.",
+        "example": Path("C:/WRFrontiersDB/ExportData")
     },
     "SHOULD_PUSH_DATA": {
         "env": "SHOULD_PUSH_DATA",
@@ -47,7 +49,8 @@ OPTIONS_SCHEMA = {
         "default": None,
         "section": "Push Data",
         "depends_on": ["SHOULD_PUSH_DATA"],
-        "help": "Version of the game being processed, as its release date yyyy-mm-dd."
+        "help": "Version of the game being processed, as its release date yyyy-mm-dd.",
+        "example": "2025-10-28"
     },
     "CURRENT_IS_LATEST": {
         "env": "CURRENT_IS_LATEST",
@@ -75,7 +78,8 @@ OPTIONS_SCHEMA = {
         "section": "Push Data",
         "depends_on": ["SHOULD_PUSH_DATA"],
         "sensitive": True,
-        "help": "PAT token to the GitHub repository that stores the data."
+        "help": "PAT token to the GitHub repository that stores the data.",
+        "example": "github_pat_XXXXXXXXXXXXXXXX"
     },
     "LOG_LEVEL": {
         "env": "LOG_LEVEL",
@@ -88,10 +92,11 @@ OPTIONS_SCHEMA = {
     "OUTPUT_DIR": {
         "env": "OUTPUT_DIR",
         "arg": "--output-dir",
-        "type": str,
+        "type": Path,
         "default": None,
         "section": "Both",
         "depends_on": ["SHOULD_PARSE", "SHOULD_PUSH_DATA"],
-        "help": "Directory where the parser will output files and where data is pushed from."
+        "help": "Directory where the parser will output files and where data is pushed from.",
+        "example": Path("C:/WRFrontiersDB/Output")
     },
 }

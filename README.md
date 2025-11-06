@@ -17,7 +17,7 @@ python src/run.py --log-level INFO   # Run all steps with default/env values, ex
 <!-- BEGIN_GENERATED_OPTIONS -->
 #### Parse
 
-- **SHOULD_PARSE** - Whether to parse the game files after downloading.
+* **SHOULD_PARSE** - Whether to parse the game files after downloading.
   - Default: `"false"`
   - Command line: `--should-parse`
 
@@ -27,6 +27,7 @@ python src/run.py --log-level INFO   # Run all steps with default/env values, ex
   - Depends on: `SHOULD_PARSE`
 
 * **EXPORT_DIR** - Directory where the exported game JSON files are stored.
+  - Example: `"C:/WRFrontiersDB/ExportData"`
   - Default: None - required when SHOULD_PARSE is True
   - Command line: `--export-dir`
   - Depends on: `SHOULD_PARSE`
@@ -34,11 +35,12 @@ python src/run.py --log-level INFO   # Run all steps with default/env values, ex
 
 #### Push Data
 
-- **SHOULD_PUSH_DATA** - Whether to push parsed data to the data repository.
+* **SHOULD_PUSH_DATA** - Whether to push parsed data to the data repository.
   - Default: `"false"`
   - Command line: `--should-push-data`
 
 * **GAME_VERSION** - Version of the game being processed, as its release date yyyy-mm-dd.
+  - Example: `"2025-10-28"`
   - Default: None - required when SHOULD_PUSH_DATA is True
   - Command line: `--game-version`
   - Depends on: `SHOULD_PUSH_DATA`
@@ -54,6 +56,7 @@ python src/run.py --log-level INFO   # Run all steps with default/env values, ex
   - Depends on: `SHOULD_PUSH_DATA`
 
 * **GH_DATA_REPO_PAT** - PAT token to the GitHub repository that stores the data.
+  - Example: `"github_pat_XXXXXXXXXXXXXXXX"`
   - Default: None - required when SHOULD_PUSH_DATA is True
   - Command line: `--gh-data-repo-pat`
   - Depends on: `SHOULD_PUSH_DATA`
@@ -61,11 +64,12 @@ python src/run.py --log-level INFO   # Run all steps with default/env values, ex
 
 #### Both
 
-- **LOG_LEVEL** - Logging level. Must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL.
+* **LOG_LEVEL** - Logging level. Must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL.
   - Default: `"DEBUG"`
   - Command line: `--log-level`
 
 * **OUTPUT_DIR** - Directory where the parser will output files and where data is pushed from.
+  - Example: `"C:/WRFrontiersDB/Output"`
   - Default: None - required when SHOULD_PARSE or SHOULD_PUSH_DATA is True
   - Command line: `--output-dir`
   - Depends on: `SHOULD_PARSE`, `SHOULD_PUSH_DATA`
