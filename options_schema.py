@@ -52,9 +52,9 @@ OPTIONS_SCHEMA = {
         "help": "Version of the game being processed, as its release date yyyy-mm-dd.",
         "example": "2025-10-28"
     },
-    "CURRENT_IS_LATEST": {
-        "env": "CURRENT_IS_LATEST",
-        "arg": "--current-is-latest",
+    "PUSH_CURRENT": {
+        "env": "PUSH_CURRENT",
+        "arg": "--push-current",
         "type": bool,
         "default": True,
         "section": "Push Data",
