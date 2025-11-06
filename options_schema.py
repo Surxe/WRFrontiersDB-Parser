@@ -1,4 +1,5 @@
 from typing import Literal
+from pathlib import Path
 
 """
 # Patterns
@@ -26,12 +27,12 @@ OPTIONS_SCHEMA = {
     "EXPORT_DIR": {
         "env": "EXPORT_DIR",
         "arg": "--export-dir",
-        "type": str,
+        "type": Path,
         "default": None,
         "section": "Parse",
         "depends_on": ["SHOULD_PARSE"],
         "help": "Directory where the exported game JSON files are stored.",
-        "example": "C:\\WRFrontiersDB\\ExportData"
+        "example": Path("C:/WRFrontiersDB/ExportData")
     },
     "SHOULD_PUSH_DATA": {
         "env": "SHOULD_PUSH_DATA",
@@ -91,11 +92,11 @@ OPTIONS_SCHEMA = {
     "OUTPUT_DIR": {
         "env": "OUTPUT_DIR",
         "arg": "--output-dir",
-        "type": str,
+        "type": Path,
         "default": None,
         "section": "Both",
         "depends_on": ["SHOULD_PARSE", "SHOULD_PUSH_DATA"],
         "help": "Directory where the parser will output files and where data is pushed from.",
-        "example": "C:\\WRFrontiersDB\\Output"
+        "example": Path("C:/WRFrontiersDB/Output")
     },
 }
