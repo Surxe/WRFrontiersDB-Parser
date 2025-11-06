@@ -11,6 +11,7 @@ from typing import Literal
 from parsers.localization import Localization
 from parsers.module import Module
 from parsers.module_type import ModuleType
+from parsers.module_category import ModuleCategory
 from parsers.character_module import CharacterModule
 from parsers.module_stat import ModuleStat
 from parsers.upgrade_cost import UpgradeCost
@@ -484,7 +485,7 @@ class Analysis:
         Returns:
             None if module is not production ready
 
-            (<upgrade_costs_dict>, is_shoulder) where
+            (<upgrade_costs_dict>, module_category_id) where
             upgrade_costs_dict = {
                 <currency_id>: <total_upgrade_cost_amount>,
             }
@@ -526,7 +527,9 @@ class Analysis:
         if getattr(module, 'production_status', None) != 'Ready':
             return None
         module_rarity_id = module.module_rarity_id
-        is_shoulder = getattr(module, 'module_type_id', '') == 'DA_ModuleType_Shoulder.0'
+        module_type_id = getattr(module, 'module_type_id', '')
+        module_type = ModuleType.objects[module_type_id]
+        module_category_id = module_type.module_category_id
 
         rarity_standard_cost_and_scrap = standard_cost_and_scrap[module_rarity_id]
         for level, cost_scrap_data in rarity_standard_cost_and_scrap.items():
@@ -542,14 +545,14 @@ class Analysis:
                     module_upgrade_costs[currency_id] = 0
                 module_upgrade_costs[currency_id] += upgrade_cost_amount
 
-        return module_upgrade_costs, is_shoulder
+        return module_upgrade_costs, module_category_id
     
     def get_modules_upgrade_costs(self, standard_cost_and_scrap):
         """
         Returns:
             {
                 <module_id>: {
-                    "is_shoulder": bool,
+                    "module_category_id": <module_category_id>,
                     "upgrade_costs": {
                         <currency_id>: <total_upgrade_cost_amount>,
                     }
@@ -562,9 +565,9 @@ class Analysis:
             result = self.get_module_upgrade_costs(module_id, standard_cost_and_scrap)
             if result is None:
                 continue
-            upgrade_costs, is_shoulder = result
+            upgrade_costs, module_category_id = result
             modules_upgrade_costs[module_id] = {
-                "is_shoulder": is_shoulder,
+                "module_category_id": module_category_id,
                 "upgrade_costs": upgrade_costs
             }
         return modules_upgrade_costs
@@ -597,10 +600,42 @@ class Analysis:
         Returns:
             {
                 <character_preset_id>: {
-                    <currency_id>: <total_upgrade_cost_amount>,
+                    "total": {
+                        <currency_id>: <total_upgrade_cost_amount>,
+                    },
+                    "weapons": { #weapons
+                        <currency_id>: <total_upgrade_cost_amount>,
+                    }
+                    "frame": { #frame meaning torso, chassis, shoulders
+                        <currency_id>: <total_upgrade_cost_amount>,
+                    },
+                    "gears": { #supply, cycle, misc gear
+                        <currency_id>: <total_upgrade_cost_amount>,
+                    }
                 }
             }
         """
+        # category_name: [module_category_id]
+        category_map = {
+            "weapons": ['DA_ModuleCategory_Weapon.0'],
+            "frame": [
+                'DA_ModuleCategory_Torso.0',
+                'DA_ModuleCategory_Chassis.0',
+                'DA_ModuleCategory_Shoulder.0',
+            ],
+            "gears": ['DA_ModuleCategory_Ability.0'],
+            "total": [] #special case to sum all
+        }
+        def register_upgrade_costs_to_category(module_category_id, upgrade_costs, preset_costs):
+            for category_name, category_module_ids in category_map.items():
+                if category_name == "total" or module_category_id in category_module_ids:
+                    if category_name not in preset_costs:
+                        preset_costs[category_name] = {}
+                    for currency_id, upgrade_cost_amount in upgrade_costs.items():
+                        if currency_id not in preset_costs[category_name]:
+                            preset_costs[category_name][currency_id] = 0
+                        preset_costs[category_name][currency_id] += upgrade_cost_amount
+
         character_preset_costs = {}
         for fpreset_id, fpreset in CharacterPreset.objects.items():
             if not hasattr(fpreset, 'is_factory_preset') or not fpreset.is_factory_preset: #only look at factory presets, as character presets includes ai bots
@@ -608,16 +643,13 @@ class Analysis:
             for module_socket_name, module_data in fpreset.modules.items():
                 module_id = module_data['id']
 
-                this_module_upgrade_costs, _ = self.get_module_upgrade_costs(module_id, standard_cost_and_scrap)
+                this_module_upgrade_costs, module_category_id = self.get_module_upgrade_costs(module_id, standard_cost_and_scrap)
                 logger.debug(f"Adding upgrade cost for factory preset: {fpreset_id}")
-            
+
                 # For each currency_id, add to the fpreset's total
-                for currency_id, upgrade_cost_amount in this_module_upgrade_costs.items():
-                    if fpreset_id not in character_preset_costs:
+                if fpreset_id not in character_preset_costs:
                         character_preset_costs[fpreset_id] = {}
-                    if currency_id not in character_preset_costs[fpreset_id]:
-                        character_preset_costs[fpreset_id][currency_id] = 0
-                    character_preset_costs[fpreset_id][currency_id] += upgrade_cost_amount
+                register_upgrade_costs_to_category(module_category_id, this_module_upgrade_costs, character_preset_costs[fpreset_id])
 
         return character_preset_costs
     
@@ -635,7 +667,8 @@ class Analysis:
             # Determine the non-zero upgrade cost for this module
             this_module_upgrade = modules_upgrade_costs[module_id]
             this_module_upgrade_costs = this_module_upgrade["upgrade_costs"]
-            is_shoulder = this_module_upgrade["is_shoulder"]
+            module_category_id = this_module_upgrade["module_category_id"]
+            is_shoulder = module_category_id == 'DA_ModuleCategory_Shoulder.0'
             quantity = 2 if is_shoulder else 1
 
             # Add to grand total
