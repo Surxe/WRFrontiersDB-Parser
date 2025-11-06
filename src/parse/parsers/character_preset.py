@@ -12,7 +12,7 @@ from parsers.module import Module
 from parsers.localization_table import parse_localization
 from utils import asset_path_to_data
 
-class FactoryPreset(ParseObject):
+class CharacterPreset(ParseObject):
     objects = dict()
 
     def _parse(self):
@@ -60,23 +60,23 @@ class FactoryPreset(ParseObject):
         pilot = Pilot.get_from_asset_path(data["PilotAsset"]["ObjectPath"])
         return pilot
 
-def parse_factory_presets(to_file=False):
+def parse_character_presets(to_file=False):
     root_path = os.path.join(OPTIONS.export_dir, r"WRFrontiers\Content\Sparrow\Mechanics\DA_Meta_Root.json")
     root_data = get_json_data(root_path)
     props = root_data[0]["Properties"]
     
-    factory_presets_data = asset_path_to_data(props["DefaultPresets"]["ObjectPath"])
+    character_presets_data = asset_path_to_data(props["DefaultPresets"]["ObjectPath"])
     
-    for bot_preset_entry in factory_presets_data["Properties"]["Presets"]:
+    for bot_preset_entry in character_presets_data["Properties"]["Presets"]:
         bot_preset_asset_path = bot_preset_entry["ObjectPath"]
-        bot_preset_id = FactoryPreset.get_from_asset_path(bot_preset_asset_path)
+        bot_preset_id = CharacterPreset.get_from_asset_path(bot_preset_asset_path)
     
 
     if to_file: # Condition prevents needlessly saving the same data multiple times, as it will also be saved if ran thru parse.py
-        FactoryPreset.to_file()
+        CharacterPreset.to_file()
         Module.to_file()
         Pilot.to_file()
         Image.to_file()
 
 if __name__ == "__main__":
-    parse_factory_presets(to_file=True)
+    parse_character_presets(to_file=True)

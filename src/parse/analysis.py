@@ -15,7 +15,7 @@ from parsers.character_module import CharacterModule
 from parsers.module_stat import ModuleStat
 from parsers.upgrade_cost import UpgradeCost
 from parsers.scrap_reward import ScrapReward
-from parsers.factory_preset import FactoryPreset
+from parsers.character_preset import CharacterPreset
 from parsers.ability import Ability
 
 class Analysis:
@@ -43,7 +43,7 @@ class Analysis:
         self.level_diffs_by_module = self.add_upgrade_cost_to_level_diffs(self.level_diffs_by_module, self.modules_upgrade_costs)
 
         # Determine upgrade costs of each factory preset
-        self.factory_preset_upgrade_costs = self.calculate_factory_preset_upgrade_costs(self.standard_cost_and_scrap)
+        self.character_preset_upgrade_costs = self.calculate_character_preset_upgrade_costs(self.standard_cost_and_scrap)
 
         # Determine grand total upgrade costs of production only modules, and 2 of each shoulder rather than 1
         self.total_upgrade_costs = self.calculate_total_upgrade_costs(self.modules_upgrade_costs)
@@ -592,17 +592,17 @@ class Analysis:
     ################################
     # Factory preset upgrade costs #
     ################################
-    def calculate_factory_preset_upgrade_costs(self, standard_cost_and_scrap):
+    def calculate_character_preset_upgrade_costs(self, standard_cost_and_scrap):
         """
         Returns:
             {
-                <factory_preset_id>: {
+                <character_preset_id>: {
                     <currency_id>: <total_upgrade_cost_amount>,
                 }
             }
         """
-        factory_preset_costs = {}
-        for fpreset_id, fpreset in FactoryPreset.objects.items():
+        character_preset_costs = {}
+        for fpreset_id, fpreset in CharacterPreset.objects.items():
             for module_socket_name, module_data in fpreset.modules.items():
                 module_id = module_data['id']
                 this_module_upgrade_costs, _ = self.get_module_upgrade_costs(module_id, standard_cost_and_scrap)
@@ -610,13 +610,13 @@ class Analysis:
             
                 # For each currency_id, add to the fpreset's total
                 for currency_id, upgrade_cost_amount in this_module_upgrade_costs.items():
-                    if fpreset_id not in factory_preset_costs:
-                        factory_preset_costs[fpreset_id] = {}
-                    if currency_id not in factory_preset_costs[fpreset_id]:
-                        factory_preset_costs[fpreset_id][currency_id] = 0
-                    factory_preset_costs[fpreset_id][currency_id] += upgrade_cost_amount
+                    if fpreset_id not in character_preset_costs:
+                        character_preset_costs[fpreset_id] = {}
+                    if currency_id not in character_preset_costs[fpreset_id]:
+                        character_preset_costs[fpreset_id][currency_id] = 0
+                    character_preset_costs[fpreset_id][currency_id] += upgrade_cost_amount
 
-        return factory_preset_costs
+        return character_preset_costs
     
 
     ############################
@@ -851,7 +851,7 @@ class Analysis:
             'standard_cost_and_scrap': self.standard_cost_and_scrap,
             'intel_discount_cost': self.intel_discount_cost,
             'total_upgrade_costs': self.total_upgrade_costs,
-            'factory_preset_upgrade_costs': self.factory_preset_upgrade_costs,
+            'character_preset_upgrade_costs': self.character_preset_upgrade_costs,
             'ability_primary_secondary_descriptions': self.ability_primary_secondary_descriptions,
         }), 2)
 
