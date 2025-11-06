@@ -43,7 +43,7 @@ class Analysis:
         self.level_diffs_by_module = self.add_upgrade_cost_to_level_diffs(self.level_diffs_by_module, self.modules_upgrade_costs)
 
         # Determine upgrade costs of each factory preset
-        self.character_preset_upgrade_costs = self.calculate_character_preset_upgrade_costs(self.standard_cost_and_scrap)
+        self.factory_preset_upgrade_costs = self.calculate_factory_preset_upgrade_costs(self.standard_cost_and_scrap)
 
         # Determine grand total upgrade costs of production only modules, and 2 of each shoulder rather than 1
         self.total_upgrade_costs = self.calculate_total_upgrade_costs(self.modules_upgrade_costs)
@@ -592,7 +592,7 @@ class Analysis:
     ################################
     # Factory preset upgrade costs #
     ################################
-    def calculate_character_preset_upgrade_costs(self, standard_cost_and_scrap):
+    def calculate_factory_preset_upgrade_costs(self, standard_cost_and_scrap):
         """
         Returns:
             {
@@ -854,7 +854,7 @@ class Analysis:
             'standard_cost_and_scrap': self.standard_cost_and_scrap,
             'intel_discount_cost': self.intel_discount_cost,
             'total_upgrade_costs': self.total_upgrade_costs,
-            'character_preset_upgrade_costs': self.character_preset_upgrade_costs,
+            'factory_preset_upgrade_costs': self.factory_preset_upgrade_costs,
             'ability_primary_secondary_descriptions': self.ability_primary_secondary_descriptions,
         }), 2)
 
