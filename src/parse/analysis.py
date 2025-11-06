@@ -15,7 +15,7 @@ from parsers.character_module import CharacterModule
 from parsers.module_stat import ModuleStat
 from parsers.upgrade_cost import UpgradeCost
 from parsers.scrap_reward import ScrapReward
-from parsers.factory_preset import FactoryPreset
+from parsers.character_preset import CharacterPreset
 from parsers.ability import Ability
 
 class Analysis:
@@ -596,27 +596,30 @@ class Analysis:
         """
         Returns:
             {
-                <factory_preset_id>: {
+                <character_preset_id>: {
                     <currency_id>: <total_upgrade_cost_amount>,
                 }
             }
         """
-        factory_preset_costs = {}
-        for fpreset_id, fpreset in FactoryPreset.objects.items():
+        character_preset_costs = {}
+        for fpreset_id, fpreset in CharacterPreset.objects.items():
+            if not hasattr(fpreset, 'is_factory_preset') or not fpreset.is_factory_preset: #only look at factory presets, as character presets includes ai bots
+                continue
             for module_socket_name, module_data in fpreset.modules.items():
                 module_id = module_data['id']
+
                 this_module_upgrade_costs, _ = self.get_module_upgrade_costs(module_id, standard_cost_and_scrap)
                 logger.debug(f"Adding upgrade cost for factory preset: {fpreset_id}")
             
                 # For each currency_id, add to the fpreset's total
                 for currency_id, upgrade_cost_amount in this_module_upgrade_costs.items():
-                    if fpreset_id not in factory_preset_costs:
-                        factory_preset_costs[fpreset_id] = {}
-                    if currency_id not in factory_preset_costs[fpreset_id]:
-                        factory_preset_costs[fpreset_id][currency_id] = 0
-                    factory_preset_costs[fpreset_id][currency_id] += upgrade_cost_amount
+                    if fpreset_id not in character_preset_costs:
+                        character_preset_costs[fpreset_id] = {}
+                    if currency_id not in character_preset_costs[fpreset_id]:
+                        character_preset_costs[fpreset_id][currency_id] = 0
+                    character_preset_costs[fpreset_id][currency_id] += upgrade_cost_amount
 
-        return factory_preset_costs
+        return character_preset_costs
     
 
     ############################

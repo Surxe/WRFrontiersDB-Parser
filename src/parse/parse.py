@@ -19,8 +19,8 @@ from parsers.localization import *
 from parsers.pilot import *
 from parsers.progression_table import *
 from parsers.game_mode import *
-from parsers.bot_preset import *
-from parsers.factory_preset import *
+from parse.parsers.bot_ai_preset import *
+from parsers.character_preset import *
 from parsers.powerup import *
 from analysis import *
 
@@ -33,7 +33,7 @@ def main():
     parse_pilots()  # Pilot parser relies on module data being parsed first
     parse_progression_table()
     parse_game_modes()
-    parse_bot_presets()
+    parse_bot_ai_presets()
     parse_factory_presets()
     parse_powerups()
     analyze()
@@ -78,12 +78,12 @@ def main():
     BotNames.to_file()
     HonorReward.to_file()
 
-    BotPreset.to_file()
+    BotAIPreset.to_file()
     DropTeam.to_file()
     CharacterPreset.to_file()
     League.to_file()
 
-    FactoryPreset.to_file()
+    CharacterPreset.to_file()
 
     Powerup.to_file()
 

@@ -1,51 +1,89 @@
-# Add parent dirs to sys path
+# Add two levels of parent dirs to sys path
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from utils import get_json_data, OPTIONS, parse_colon_colon
+
 from parsers.object import ParseObject
+from parsers.image import Image, parse_image_asset_path
+from parsers.pilot import Pilot
 from parsers.module import Module
 from parsers.localization_table import parse_localization
-from parsers.image import parse_image_asset_path
-from parsers.pilot import Pilot
-
-from utils import parse_colon_colon
+from utils import asset_path_to_data
 
 class CharacterPreset(ParseObject):
-    objects = dict()  # Dictionary to hold all CharacterPreset instances
+    objects = dict()
 
     def _parse(self):
         props = self.source_data["Properties"]
-
+        
         key_to_parser_function = {
+            "Icon": parse_image_asset_path,
             "Name": parse_localization,
+            "bShowInProgressDiscover": None, #can't figure out its use, as TitanPro lvl13 presets have this as true
+            "RobotAIDataAsset": None, #voiceline
             "TemplateType": None,
             "CharacterTypeAsset": None,
             "CharacterType": parse_colon_colon,
             "Modules": self._p_modules,
-            "Pilot": self._p_pilot,
-            "Icon": parse_image_asset_path,
-            "RobotAIDataAsset": None, #voiceline
-            "bShowInProgressDiscover": None,
+            "Pilot": (self._p_pilot, "pilot_id"),
             "ID": None,
         }
 
         self._process_key_to_parser_function(key_to_parser_function, props)
 
+        # Default is_factory_preset to False
+        if not hasattr(self, "is_factory_preset"):
+            self.is_factory_preset = False
+
+        # Default character_type to Mech
+        if not hasattr(self, "character_type"):
+            self.character_type = "Mech"
+
     def _p_modules(self, data):
-        modules = []
-        for entry in data:
-            module = dict()
-            module["id"] = Module.get_from_asset_path(entry["Module"]["ObjectPath"], sub_index=False)
-            module["level"] = entry["Level"]
-            modules.append(module)
+        modules = {}
+        for index, module_entry in enumerate(data):
+            module_id = Module.get_from_asset_path(module_entry["Module"]["ObjectPath"], sub_index=False)
+            socket_name = module_entry["ParentSocket"]
+            parent_socket_index = module_entry["ParentModuleIndex"]
+            # determine parent_socket_name by using the parent_socket_index lookup in modules
+            if parent_socket_index == -1:
+                parent_socket_name = None
+            else:
+                parent_socket_name = list(modules.keys())[parent_socket_index]
+            modules[socket_name] = {
+                "id": module_id,
+                "parent_socket_name": parent_socket_name,
+                "level": module_entry["Level"]
+            }
         return modules
-
+    
     def _p_pilot(self, data):
-        pilot = dict()
-        pilot["id"] = Pilot.get_from_asset_path(data["PilotAsset"]["ObjectPath"], sub_index=False)
-        pilot["level"] = data["Level"] if "Level" in data else 1
+        pilot = Pilot.get_from_asset_path(data["PilotAsset"]["ObjectPath"])
         return pilot
+    
+    def set_is_factory_preset(self, is_factory_preset):
+        self.is_factory_preset = is_factory_preset
 
-    def _p_robot_ai_data_asset(self, data):
-        pass
+def parse_factory_presets(to_file=False):
+    root_path = os.path.join(OPTIONS.export_dir, r"WRFrontiers\Content\Sparrow\Mechanics\DA_Meta_Root.json")
+    root_data = get_json_data(root_path)
+    props = root_data[0]["Properties"]
+    
+    character_presets_data = asset_path_to_data(props["DefaultPresets"]["ObjectPath"])
+    
+    for bot_preset_entry in character_presets_data["Properties"]["Presets"]:
+        bot_preset_asset_path = bot_preset_entry["ObjectPath"]
+        bot_preset_id = CharacterPreset.get_from_asset_path(bot_preset_asset_path)
+        bot_preset = CharacterPreset.objects[bot_preset_id]
+        bot_preset.set_is_factory_preset(True)
+
+    if to_file: # Condition prevents needlessly saving the same data multiple times, as it will also be saved if ran thru parse.py
+        CharacterPreset.to_file()
+        Module.to_file()
+        Pilot.to_file()
+        Image.to_file()
+
+if __name__ == "__main__":
+    parse_factory_presets(to_file=True)
