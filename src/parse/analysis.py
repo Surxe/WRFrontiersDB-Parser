@@ -307,34 +307,39 @@ class Analysis:
             # Extract level data from both attrs
             level_data_attrs = ['module_scalars', 'abilities_scalars']
             for attr in level_data_attrs:
-                level_data = getattr(module, attr, None)
-                if level_data is None:
-                    continue
-                if 'levels' not in level_data:
-                    continue
-                level_data = level_data['levels']
+                attr_data = getattr(module, attr, None)
 
-                # Add to level base and max for each one
-                def add_category(data):
-                    if not data or not data.get("variables"):
+                def process_attr(attr_data):
+                    if attr_data is None:
                         return
-                    this_lvl_base = data["variables"][0]
-                    this_lvl_max = data["variables"][-1]
+                    if 'levels' not in attr_data:
+                        return
+                    attr_data = attr_data['levels']
 
-                    def update_no_conflict(target_dict, source_dict):
-                        for key, value in source_dict.items():
-                            if key not in target_dict:
-                                target_dict[key] = value
-                            else:
-                                if target_dict[key] != value:
-                                    logger.error(f"Structure change: Conflict detected for module {module.id} key {key}: existing value {target_dict[key]}, new value {value}. Keeping existing value.")
-                    update_no_conflict(level_base, this_lvl_base)
-                    update_no_conflict(level_max, this_lvl_max)
-                if isinstance(level_data, list):
-                    for item in level_data:
-                        add_category(item)
-                elif isinstance(level_data, dict):
-                    add_category(level_data)
+                    # Add to level base and max for each one
+                    def add_category(data):
+                        if not data or not data.get("variables"):
+                            return
+                        this_lvl_base = data["variables"][0]
+                        this_lvl_max = data["variables"][-1]
+
+                        def update_no_conflict(target_dict, source_dict):
+                            for key, value in source_dict.items():
+                                if key not in target_dict:
+                                    target_dict[key] = value
+                                else:
+                                    if target_dict[key] != value:
+                                        logger.error(f"Structure change: Conflict detected for module {module.id} key {key}: existing value {target_dict[key]}, new value {value}. Keeping existing value.")
+                        update_no_conflict(level_base, this_lvl_base)
+                        update_no_conflict(level_max, this_lvl_max)
+
+                    add_category(attr_data)
+
+                if isinstance(attr_data, list):
+                    for item in attr_data:
+                        process_attr(item)
+                elif isinstance(attr_data, dict):
+                    process_attr(attr_data)
 
             return level_base, level_max
         
