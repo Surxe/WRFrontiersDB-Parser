@@ -325,12 +325,12 @@ def main():
         # Always upload to archive
         upload_to_archive(data_repo_dir, output_dir, OPTIONS.game_version, latest_commit)
 
-        # Only update current if PUSH_CURRENT is true
-        if OPTIONS.push_current:
-            logger.info("IS_CURRENT is true, updating current directory...")
+        # Only update current if
+        if OPTIONS.push_to_current:
+            logger.info("Pushing to current is true, updating current directory...")
             update_current_data(data_repo_dir, output_dir, OPTIONS.game_version, latest_commit)
         else:
-            logger.info("IS_CURRENT is false, skipping current directory update.")
+            logger.info("Pushing to current is false, skipping current directory update.")
         
         # Push all changes
         push_changes(data_repo_dir, OPTIONS.target_branch)
