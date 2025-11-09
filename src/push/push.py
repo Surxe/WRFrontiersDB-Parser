@@ -295,6 +295,11 @@ def push_changes(repo_dir, target_branch):
 
 def main():
     """Main function that orchestrates the data pushing process. Uses global OPTIONS singleton."""
+    # Quit early if neither push option is enabled
+    if not OPTIONS.push_to_archive and not OPTIONS.push_to_current:
+        logger.info("Neither push_to_archive nor push_to_current is enabled. Exiting push process.")
+        return
+    
     # Validate target branch
     valid_branches = ['testing-grounds', 'main']
     if OPTIONS.target_branch not in valid_branches:
