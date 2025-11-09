@@ -322,10 +322,14 @@ def main():
         # Get latest commit info from parser repo
         latest_commit = get_latest_commit_info()
         
-        # Always upload to archive
-        upload_to_archive(data_repo_dir, output_dir, OPTIONS.game_version, latest_commit)
+        # Upload to archive if enabled
+        if OPTIONS.push_to_archive:
+            logger.info("Pushing to archive is true, updating archive directory...")
+            upload_to_archive(data_repo_dir, output_dir, OPTIONS.game_version, latest_commit)
+        else:
+            logger.info("Pushing to archive is false, skipping archive directory update.")
 
-        # Only update current if
+        # Update current if enabled
         if OPTIONS.push_to_current:
             logger.info("Pushing to current is true, updating current directory...")
             update_current_data(data_repo_dir, output_dir, OPTIONS.game_version, latest_commit)
