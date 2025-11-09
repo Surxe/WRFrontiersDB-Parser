@@ -295,6 +295,11 @@ def push_changes(repo_dir, target_branch):
 
 def main():
     """Main function that orchestrates the data pushing process. Uses global OPTIONS singleton."""
+    # Quit early if neither push option is enabled
+    if not OPTIONS.push_to_archive and not OPTIONS.push_to_current:
+        logger.info("Neither push_to_archive nor push_to_current is enabled. Exiting push process.")
+        return
+    
     # Validate target branch
     valid_branches = ['testing-grounds', 'main']
     if OPTIONS.target_branch not in valid_branches:
@@ -322,15 +327,19 @@ def main():
         # Get latest commit info from parser repo
         latest_commit = get_latest_commit_info()
         
-        # Always upload to archive
-        upload_to_archive(data_repo_dir, output_dir, OPTIONS.game_version, latest_commit)
+        # Upload to archive if enabled
+        if OPTIONS.push_to_archive:
+            logger.info("Pushing to archive is true, updating archive directory...")
+            upload_to_archive(data_repo_dir, output_dir, OPTIONS.game_version, latest_commit)
+        else:
+            logger.info("Pushing to archive is false, skipping archive directory update.")
 
-        # Only update current if PUSH_CURRENT is true
-        if OPTIONS.push_current:
-            logger.info("IS_CURRENT is true, updating current directory...")
+        # Update current if enabled
+        if OPTIONS.push_to_current:
+            logger.info("Pushing to current is true, updating current directory...")
             update_current_data(data_repo_dir, output_dir, OPTIONS.game_version, latest_commit)
         else:
-            logger.info("IS_CURRENT is false, skipping current directory update.")
+            logger.info("Pushing to current is false, skipping current directory update.")
         
         # Push all changes
         push_changes(data_repo_dir, OPTIONS.target_branch)
