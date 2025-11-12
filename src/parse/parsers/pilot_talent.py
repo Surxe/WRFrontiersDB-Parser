@@ -55,6 +55,9 @@ class PilotTalent(ParseObject):
             "OnActivateAkEvent": None,
             "OnDeactivateAkEvent": None,
             "bIsInfinity": None,
+            "VfxClass": None,
+            "Cooldown": "value",
+            "BuffClass": p_actor_class,
             
             # Save to default_properties with custom target names
             "Regen amount": {

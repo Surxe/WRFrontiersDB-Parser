@@ -292,6 +292,14 @@ class Ability(ParseObject):
             "BuffAreaDistance": "value", #kumo torso
             "DistanceRange": self._p_distance_range,
             "BuffOnTarget": self._p_actor_class,
+            "MuzzleGrapplingTailEffect": None, #vfx
+            "GrapplingTailEffect": None,
+            "ImpactGrappingTailEffect": None,
+            "MuzzleSocketName": None,
+            "GrapplingSocketName": None,
+            "DirectDamage": "value", #crix, 50k, doesnt seem to be used though
+            "PullingAction": self._p_pulling_action,
+            "ImpactGrapplingTailEffect": None, #vfx
         }
 
         my_ability_data = self._process_key_to_parser_function(
@@ -304,6 +312,35 @@ class Ability(ParseObject):
         overlayed_data = merge_dicts(template_ability_data, my_ability_data)
 
         return overlayed_data
+    
+    def _p_pulling_action(self, data: dict):
+        logger.debug(f"Parsing pulling action for {self.id}")
+
+        data = asset_path_to_data(data["ObjectPath"])
+        if 'Template' in data:
+            template_data = self._p_pulling_action(data["Template"])
+        else:
+            template_data = {}
+
+        if 'Properties' not in data:
+            my_data = {}
+        else:
+            key_to_parser_function = {
+                "ForceRange": "value",
+                "PullingForceEasingFunction": None,
+                "PullingEntryEasingFunction": None,
+                "PullingFx": None,
+            }
+
+            my_data = self._process_key_to_parser_function(
+                key_to_parser_function, data["Properties"], log_descriptor="PullingAction", set_attrs=False, default_configuration={
+                    'target': ParseTarget.MATCH_KEY
+                }
+            )
+
+        return merge_dicts(template_data, my_data)
+
+
 
     def _p_vertical_accel_curve(self, data: dict):
         data = asset_path_to_data(data["ObjectPath"])["Properties"]
@@ -415,6 +452,8 @@ class Ability(ParseObject):
             "TargetingMarkerAction": None,
             "TargetingStartedSoundEvent": None,
             "TargetingEndedSoundEvent": None,
+            "bUnmarkTargetsOnExit": "value",
+
         }
 
         parsed_targeting_data = self._process_key_to_parser_function(
@@ -691,6 +730,7 @@ def p_expansion_template(data: dict):
         "ExpansionSettings": p_expansion_settings, 
         "InitialRadius": "value",
         "FinishRadius": "value",
+        "bWithCenter": "value", #crix
     }
     return process_key_to_parser_function(key_to_parser_function, props, log_descriptor="ExpansionTemplate", set_attrs=False, default_configuration={
         'target': ParseTarget.MATCH_KEY
@@ -1206,6 +1246,7 @@ def p_actor_class(data: dict):
         "SocketToFX_ColorId": None,
         "WeaponSoundComponent": None,
         "Tracker": None,
+        "VfxClass": None,
     }
 
     parsed_data = process_key_to_parser_function(
