@@ -97,9 +97,6 @@ class Pilot(ParseObject):
                 talent_id = PilotTalent.get_from_asset_path(asset_path)
                 self.levels[i]["talents"].append(talent_id)
 
-            # Process the level data as needed
-            #self.levels[i] = level_data
-
 def parse_pilot_wrapper(dir, file_name):
     if not file_name.endswith(".json"):
         return
