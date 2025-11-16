@@ -49,6 +49,7 @@ class Powerup(ParseObject):
             "VFXClass": None,
             "CorpseDuration": None,
             "VFXLocation": None,
+            "ReactionType": None, #voiceline
             "ID": None,
         }
 

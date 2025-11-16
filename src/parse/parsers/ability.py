@@ -1247,6 +1247,7 @@ def p_actor_class(data: dict):
         "WeaponSoundComponent": None,
         "Tracker": None,
         "VfxClass": None,
+        "SpecialEffect": None, #vfx
     }
 
     parsed_data = process_key_to_parser_function(
