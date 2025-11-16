@@ -163,7 +163,11 @@ class Analysis:
         if n == 0:
             amount, frequency = next(iter(amount_freq_map.items())) #quicker
         else:
-            amount, frequency = list(amount_freq_map.items())[n-1] #nth in the dict thats sorted by frequency descending
+            amount_freq_list = list(amount_freq_map.items())
+            if n > len(amount_freq_list):
+                logger.error(f"Requested {n}th most frequent amount, but only {len(amount_freq_list)} amounts available. Returning None.")
+                return None
+            amount, frequency = amount_freq_list[n-1] #nth in the dict thats sorted by frequency descending
         if frequency <= 3 and not allow_outliers:
             logger.debug(f"Most frequent amount {amount} has low frequency {frequency}. Assumed to be an outlier. Defaulting to 0.")
             return 0
@@ -258,6 +262,8 @@ class Analysis:
         if 'upgrade_cost' not in intel_currency_data:
             return None
         discounted_cost = self.get_most_freq_amount(intel_currency_data['upgrade_cost'], n=2, allow_outliers=True)
+        if discounted_cost is None:
+            return None #not enough data to determine 2nd most frequent
         standard_cost = self.get_most_freq_amount(intel_currency_data['upgrade_cost'], n=1, allow_outliers=False)
         return self.get_relative_cost(standard_cost, discounted_cost)
         
@@ -929,6 +935,8 @@ def round_dict_values(d):
 
 def round_val(value):
     if isinstance(value, str):
+        return value
+    if value is None:
         return value
     return round(value, 5) #decimal places
 
