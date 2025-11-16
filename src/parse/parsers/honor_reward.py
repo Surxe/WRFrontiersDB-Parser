@@ -23,6 +23,7 @@ class HonorReward(ParseObject):
             "bIncremental": "value",
             "ProcessingTime": parse_colon_colon,
             "TitanCharge": "value",
+            "PerUnit": "value",
             "ID": None,
         }
 
