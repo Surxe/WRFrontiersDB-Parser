@@ -300,6 +300,11 @@ class Ability(ParseObject):
             "DirectDamage": "value", #crix, 50k, doesnt seem to be used though
             "PullingAction": self._p_pulling_action,
             "ImpactGrapplingTailEffect": None, #vfx
+            "SpawnSoundEvent": None,
+            "InputMappingContext": None, #typhon, idk what means
+            "ProjectileActivationType": parse_colon_colon,
+            "ConeRadius": "value",
+            "ConeHalfAngleInDegrees": "value",
         }
 
         my_ability_data = self._process_key_to_parser_function(
@@ -453,7 +458,7 @@ class Ability(ParseObject):
             "TargetingStartedSoundEvent": None,
             "TargetingEndedSoundEvent": None,
             "bUnmarkTargetsOnExit": "value",
-
+            "bMarkTargets": "value",
         }
 
         parsed_targeting_data = self._process_key_to_parser_function(
@@ -1247,6 +1252,10 @@ def p_actor_class(data: dict):
         "WeaponSoundComponent": None,
         "Tracker": None,
         "VfxClass": None,
+        "SpecialEffect": None, #vfx
+        "Buffs": p_buffs,
+        "FuelPerSecond": "value",
+        "AreBlockingDashAndJetpack": "value",
     }
 
     parsed_data = process_key_to_parser_function(
