@@ -453,7 +453,7 @@ class Ability(ParseObject):
             "TargetingStartedSoundEvent": None,
             "TargetingEndedSoundEvent": None,
             "bUnmarkTargetsOnExit": "value",
-
+            "bMarkTargets": "value",
         }
 
         parsed_targeting_data = self._process_key_to_parser_function(
@@ -1248,6 +1248,8 @@ def p_actor_class(data: dict):
         "Tracker": None,
         "VfxClass": None,
         "SpecialEffect": None, #vfx
+        "Buffs": p_buffs,
+        "FuelPerSecond": "value",
     }
 
     parsed_data = process_key_to_parser_function(

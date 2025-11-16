@@ -165,7 +165,7 @@ class Analysis:
         else:
             amount_freq_list = list(amount_freq_map.items())
             if n > len(amount_freq_list):
-                logger.error(f"Requested {n}th most frequent amount, but only {len(amount_freq_list)} amounts available. Returning None.")
+                logger.debug(f"Requested {n}th most frequent amount, but only {len(amount_freq_list)} amounts available. Returning None.")
                 return None
             amount, frequency = amount_freq_list[n-1] #nth in the dict thats sorted by frequency descending
         if frequency <= 3 and not allow_outliers:
@@ -826,8 +826,16 @@ class Analysis:
                     # Add each ability's formatted description
                     for i, ability_id in enumerate(abilities_ids):
                         ability = Ability.objects[ability_id]
-                        abi_name = localization.localize_from_name(ability.name)
-                        abi_desc = localization.localize_from_name(ability.description) # "Deploys a device that reduces damage by {Resist} for {Duration}"
+                        ability_name = getattr(ability, 'name', None)
+                        ability_description = getattr(ability, 'description', None)
+                        if ability_name is None:
+                            abi_name_localized = f"Unnamed Ability {ability_id}"
+                        else:
+                            abi_name_localized = localization.localize_from_name(ability_name)
+                        if ability_description is None:
+                            abi_desc_localized = f"No Description for Ability {ability_id}"
+                        else:
+                            abi_desc_localized = localization.localize_from_name(ability_description) # "Deploys a device that reduces damage by {Resist} for {Duration}"
                         
                         # Get primary and secondary stat's short key, which is whats referenced in the description
                         primary_stat = self.get_ability_stat(module, i, 'primary')
@@ -835,12 +843,11 @@ class Analysis:
                         if not validate_param_presence(primary_stat, secondary_stat):
                             continue
 
-                        abi_name_str = f"{module_name_str}'s {abi_name}"
+                        abi_name_str = f"{module_name_str}'s {abi_name_localized}"
                         
                         logger.debug(f"Creating parameterized description for ability {ability_id} for module {module_id} from abilities_scalars")
                         add_category_if_missing()
-                        result[lang_code][category][abi_name_str] = self.format_description(abi_desc, primary_stat, secondary_stat, localization)
-
+                        result[lang_code][category][abi_name_str] = self.format_description(abi_desc_localized, primary_stat, secondary_stat, localization)
                 # Determine from module alone
                 elif module.module_type_id in ['DA_ModuleType_Ability3.0', 'DA_ModuleType_Ability4.0']: #skip shoulder type
                     abi_name = module_name_str
