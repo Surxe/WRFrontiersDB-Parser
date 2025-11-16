@@ -1,6 +1,8 @@
 # Add two levels of parent dirs to sys path
 import sys
 import os
+
+from loguru import logger
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils import get_json_data, OPTIONS, parse_colon_colon
@@ -71,13 +73,38 @@ def parse_factory_presets(to_file=False):
     root_data = get_json_data(root_path)
     props = root_data[0]["Properties"]
     
-    character_presets_data = asset_path_to_data(props["DefaultPresets"]["ObjectPath"])
-    
-    for bot_preset_entry in character_presets_data["Properties"]["Presets"]:
-        bot_preset_asset_path = bot_preset_entry["ObjectPath"]
+    if 'DefaultPresets' in props:
+        character_presets_data = asset_path_to_data(props["DefaultPresets"]["ObjectPath"])
+    elif 'InitialPlayerRobots' in props:#older structure
+        character_presets_data = asset_path_to_data(props["InitialPlayerRobots"]["ObjectPath"]) 
+    else:
+        logger.error("No default presets found in DA_Meta_Root data.")
+        return
+    props = character_presets_data["Properties"]
+
+    def make_bot_preset(bot_preset_asset_path):
         bot_preset_id = CharacterPreset.get_from_asset_path(bot_preset_asset_path)
         bot_preset = CharacterPreset.objects[bot_preset_id]
         bot_preset.set_is_factory_preset(True)
+    
+    if 'Presets' in props: #newer structure
+        presets = props["Presets"]
+        for bot_preset_entry in presets:
+            bot_preset_asset_path = bot_preset_entry["ObjectPath"]
+            make_bot_preset(bot_preset_asset_path)
+            
+    elif 'Robots' in props: #older structure
+        robots = props["Robots"]
+        for robot in robots:
+            preset_asset_path = robot["PresetAsset"]["ObjectPath"]
+            unlock_asset = robot["UnlockAsset"]
+            if unlock_asset is not None:
+                continue # only include presets that are available from the start
+            make_bot_preset(preset_asset_path)
+
+    else:
+        logger.error("No presets found in factory presets data.")
+        return
 
     if to_file: # Condition prevents needlessly saving the same data multiple times, as it will also be saved if ran thru parse.py
         CharacterPreset.to_file()
