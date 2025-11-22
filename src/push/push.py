@@ -94,7 +94,7 @@ def clone_data_repo(data_repo_url, data_repo_dir):
     logger.info("Cloning WRFrontiersDB-Data...")
     run_git_command(
         ['git', 'clone', data_repo_url, data_repo_dir],
-        log_output=True,
+        log_output=False,
         log_command_str=False
     )
 
@@ -130,12 +130,11 @@ def switch_to_target_branch(repo_dir, target_branch):
     
     try:
         # Try to checkout existing branch first
-        run_git_command(['git', 'checkout', target_branch], cwd=repo_dir, log_output=False)
+        run_git_command(['git', 'checkout', target_branch], cwd=repo_dir, log_output=True)
     except subprocess.CalledProcessError:
         # Branch doesn't exist, create it
         logger.debug(f"Branch {target_branch} doesn't exist, creating it...")
-        run_git_command(['git', 'checkout', '-b', target_branch], cwd=repo_dir, log_output=False)
-
+        run_git_command(['git', 'checkout', '-b', target_branch], cwd=repo_dir, log_output=True)
 
 def get_latest_commit_info():
     """
@@ -148,7 +147,7 @@ def get_latest_commit_info():
         result = run_git_command(
             ['git', 'log', '-1', '--format=%s - %ad', '--date=short'],
             capture_output=True,
-            log_output=False
+            log_output=True
         )
         latest_commit = result.stdout.strip()
         logger.info(f"Latest commit: {latest_commit}")
@@ -201,7 +200,7 @@ def upload_to_archive(repo_dir, output_dir, game_version, latest_commit):
     commit_title = f"Add/update archive version '{game_version}'"
     commit_description = f"Parser commit: '{latest_commit}'"
     
-    run_git_command(['git', 'add', '.'], cwd=repo_dir, log_output=False)
+    run_git_command(['git', 'add', '.'], cwd=repo_dir, log_output=True)
     
     # Try to commit, but don't fail if there's nothing to commit
     try:
@@ -215,7 +214,7 @@ def upload_to_archive(repo_dir, output_dir, game_version, latest_commit):
             raise  # Re-raise if it's a different error
 
 
-def update_current_data(repo_dir, output_dir, game_version, latest_commit):
+def update_current_data(repo_dir, output_dir, game_version, latest_commit, target_branch):
     """
     Update the current directory with new parsed output.
     
@@ -224,8 +223,23 @@ def update_current_data(repo_dir, output_dir, game_version, latest_commit):
         output_dir: Path to the output directory with new data
         game_version: Version string for the new data
         latest_commit: Latest commit info for commit message
+        target_branch: Name of the target branch (used for tag naming)
     """
     current_path = os.path.join(repo_dir, 'current')
+    
+    # Read previous version from version.txt if it exists
+    version_file = os.path.join(current_path, 'version.txt')
+    previous_version = 'none'
+    if os.path.exists(version_file):
+        try:
+            with open(version_file, 'r') as f:
+                previous_version = f.read().strip()
+            logger.info(f"Previous version: {previous_version}")
+        except Exception as e:
+            logger.warning(f"Could not read previous version from version.txt: {e}")
+            previous_version = 'none'
+    else:
+        logger.info("No previous version.txt found, using 'none' as previous version.")
     
     # Clear existing current data
     if os.path.exists(current_path):
@@ -263,13 +277,27 @@ def update_current_data(repo_dir, output_dir, game_version, latest_commit):
     commit_title = f"Update current to version '{game_version}'"
     commit_description = f"Parser commit: '{latest_commit}'"
     
-    run_git_command(['git', 'add', '.'], cwd=repo_dir, log_output=False)
+    run_git_command(['git', 'add', '.'], cwd=repo_dir, log_output=True)
     
     # Try to commit, but don't fail if there's nothing to commit
     try:
         run_git_command(['git', 'commit', '-m', commit_title, '-m', commit_description], cwd=repo_dir,
                        log_output=True)
         logger.info(f"Updated current data to version {game_version} and committed changes.")
+        
+        # Create a git tag for this version with branch prefix and previous version
+        branch_prefix = 'main' if target_branch == 'main' else 'testing' if target_branch == 'testing-grounds' else target_branch
+        tag_name = f"current-{branch_prefix}-{previous_version}-to-{game_version}"
+        try:
+            # Delete existing tag if it exists (force update)
+            run_git_command(['git', 'tag', '-d', tag_name], cwd=repo_dir, log_output=True, check=False)
+        except:
+            pass  # Tag doesn't exist, which is fine
+        
+        # Create new tag
+        run_git_command(['git', 'tag', '-a', tag_name, '-m', f"Current version updated from {previous_version} to {game_version} on {branch_prefix}"], cwd=repo_dir, log_output=True)
+        logger.info(f"Created tag '{tag_name}' for current version.")
+        
     except subprocess.CalledProcessError as e:
         if "nothing to commit" in e.stdout:
             logger.info(f"No changes detected for current version {game_version}.")
@@ -279,7 +307,7 @@ def update_current_data(repo_dir, output_dir, game_version, latest_commit):
 
 def push_changes(repo_dir, target_branch):
     """
-    Push all commits to the remote repository.
+    Push all commits and tags to the remote repository.
     
     Args:
         repo_dir: Path to the repository directory
@@ -290,7 +318,12 @@ def push_changes(repo_dir, target_branch):
     run_git_command(['git', 'push', 'origin', target_branch], cwd=repo_dir,
                    log_output=True)
     
-    logger.info(f"All changes committed and pushed successfully to branch '{target_branch}'.")
+    # Push tags (use --force to update existing tags)
+    logger.info("Pushing tags...")
+    run_git_command(['git', 'push', 'origin', '--tags', '--force'], cwd=repo_dir,
+                   log_output=True)
+    
+    logger.info(f"All changes and tags committed and pushed successfully to branch '{target_branch}'.")
 
 
 def main():
@@ -337,7 +370,7 @@ def main():
         # Update current if enabled
         if OPTIONS.push_to_current:
             logger.info("Pushing to current is true, updating current directory...")
-            update_current_data(data_repo_dir, output_dir, OPTIONS.game_version, latest_commit)
+            update_current_data(data_repo_dir, output_dir, OPTIONS.game_version, latest_commit, OPTIONS.target_branch)
         else:
             logger.info("Pushing to current is false, skipping current directory update.")
         
