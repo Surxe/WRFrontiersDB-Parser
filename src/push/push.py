@@ -287,7 +287,7 @@ def update_current_data(repo_dir, output_dir, game_version, latest_commit, targe
         
         # Create a git tag for this version with branch prefix and previous version
         branch_prefix = 'main' if target_branch == 'main' else 'testing' if target_branch == 'testing-grounds' else target_branch
-        tag_name = f"current-{branch_prefix}-{previous_version}-to-{game_version}"
+        tag_name = f"current_{branch_prefix}_{previous_version}_to_{game_version}"
         try:
             # Delete existing tag if it exists (force update)
             run_git_command(['git', 'tag', '-d', tag_name], cwd=repo_dir, log_output=True, check=False)
