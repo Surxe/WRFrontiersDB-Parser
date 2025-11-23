@@ -90,6 +90,15 @@ OPTIONS_SCHEMA = {
         "help": "PAT token to the GitHub repository that stores the data.",
         "example": "github_pat_XXXXXXXXXXXXXXXX"
     },
+    "TRIGGER_DATA_WORKFLOW": {
+        "env": "TRIGGER_DATA_WORKFLOW",
+        "arg": "--trigger-data-workflow",
+        "type": bool,
+        "default": False,
+        "section": "Push Data",
+        "depends_on": ["SHOULD_PUSH_DATA"],
+        "help": "Whether to trigger the data repository workflow after pushing data to it."
+    },
     "LOG_LEVEL": {
         "env": "LOG_LEVEL",
         "arg": "--log-level",

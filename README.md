@@ -66,6 +66,11 @@ python src/run.py --log-level INFO   # Run all steps with default/env values, ex
   - Command line: `--gh-data-repo-pat`
   - Depends on: `SHOULD_PUSH_DATA`
 
+* **TRIGGER_DATA_WORKFLOW** - Whether to trigger the data repository workflow after pushing data to it.
+  - Default: `"false"`
+  - Command line: `--trigger-data-workflow`
+  - Depends on: `SHOULD_PUSH_DATA`
+
 
 #### Both
 

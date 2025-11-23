@@ -6,6 +6,7 @@ import stat
 import shutil
 import subprocess
 from pathlib import Path
+import requests
 
 # Add parent dirs to sys path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -224,6 +225,10 @@ def update_current_data(repo_dir, output_dir, game_version, latest_commit, targe
         game_version: Version string for the new data
         latest_commit: Latest commit info for commit message
         target_branch: Name of the target branch (used for tag naming)
+
+    Returns:
+        previous_version: Previous version string (if available)
+        changes_made: Boolean indicating if changes were made. False if e.g. its the same as before.
     """
     current_path = os.path.join(repo_dir, 'current')
     
@@ -235,6 +240,9 @@ def update_current_data(repo_dir, output_dir, game_version, latest_commit, targe
             with open(version_file, 'r') as f:
                 previous_version = f.read().strip()
             logger.info(f"Previous version: {previous_version}")
+            if previous_version >= game_version:
+                previous_version = None
+                logger.info("Previous version is the same or newer than current version, skipping git tag creation.")
         except Exception as e:
             logger.warning(f"Could not read previous version from version.txt: {e}")
     else:
@@ -297,7 +305,7 @@ def update_current_data(repo_dir, output_dir, game_version, latest_commit, targe
         # Create a git tag for this version with branch prefix and previous version
         if previous_version is None:
             logger.info("No previous version available, skipping git tag creation.")
-            return
+            return None, False
         branch_prefix = 'main' if target_branch == 'main' else 'testing' if target_branch == 'testing-grounds' else target_branch
         tag_name = f"current_{branch_prefix}_{previous_version}_to_{game_version}"
         try:
@@ -313,8 +321,49 @@ def update_current_data(repo_dir, output_dir, game_version, latest_commit, targe
     except subprocess.CalledProcessError as e:
         if "nothing to commit" in e.stdout:
             logger.info(f"No changes detected for current version {game_version}.")
+            return previous_version, False
         else:
             raise  # Re-raise if it's a different error
+    
+    return previous_version, True
+
+
+def trigger_data_repo_workflow(game_version, target_branch):
+    """
+    Trigger a workflow in the data repository via repository dispatch.
+    
+    Args:
+        game_version: Current game version being pushed
+        target_branch: Branch that was updated
+        previous_version: Previous version (if available)
+    """
+    logger.info("Triggering workflow in data repository...")
+    
+    url = "https://api.github.com/repos/Surxe/WRFrontiersDB-Data/dispatches"
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "Authorization": f"Bearer {OPTIONS.gh_data_repo_pat}",
+        "X-GitHub-Api-Version": "2022-11-28"
+    }
+    
+    payload = {
+        "version": game_version,
+        "branch": target_branch
+    }
+    
+    data = {
+        "event_type": "data_updated",
+        "client_payload": payload
+    }
+    
+    try:
+        response = requests.post(url, headers=headers, json=data)
+        if response.status_code == 204:
+            logger.info("Successfully triggered workflow in data repository.")
+        else:
+            logger.error(f"Failed to trigger workflow: {response.status_code} - {response.text}")
+    except Exception as e:
+        logger.error(f"Error triggering workflow: {e}")
 
 
 def push_changes(repo_dir, target_branch):
@@ -380,14 +429,22 @@ def main():
             logger.info("Pushing to archive is false, skipping archive directory update.")
 
         # Update current if enabled
+        previous_version = None
+        changes_made = False
         if OPTIONS.push_to_current:
             logger.info("Pushing to current is true, updating current directory...")
-            update_current_data(data_repo_dir, output_dir, OPTIONS.game_version, latest_commit, OPTIONS.target_branch)
+            previous_version, changes_made = update_current_data(data_repo_dir, output_dir, OPTIONS.game_version, latest_commit, OPTIONS.target_branch)
         else:
             logger.info("Pushing to current is false, skipping current directory update.")
         
         # Push all changes
         push_changes(data_repo_dir, OPTIONS.target_branch)
+        
+        # Trigger workflow in data repository
+        if previous_version and OPTIONS.trigger_data_workflow and changes_made:
+            trigger_data_repo_workflow(OPTIONS.game_version, OPTIONS.target_branch)
+        else:
+            logger.info("Triggering data workflow is false or no previous version, skipping workflow trigger.")
         
     except Exception as e:
         logger.error(f"Error during push process: {e}")

@@ -2,3 +2,4 @@ python-dotenv==1.1.1
 loguru==0.7.3
 psutil==5.9.8
 optionsconfig==0.2.2
+requests
