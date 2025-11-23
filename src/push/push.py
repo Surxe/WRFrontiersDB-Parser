@@ -240,6 +240,9 @@ def update_current_data(repo_dir, output_dir, game_version, latest_commit, targe
             with open(version_file, 'r') as f:
                 previous_version = f.read().strip()
             logger.info(f"Previous version: {previous_version}")
+            if previous_version >= game_version:
+                previous_version = None
+                logger.info("Previous version is the same or newer than current version, skipping git tag creation.")
         except Exception as e:
             logger.warning(f"Could not read previous version from version.txt: {e}")
     else:
@@ -302,7 +305,7 @@ def update_current_data(repo_dir, output_dir, game_version, latest_commit, targe
         # Create a git tag for this version with branch prefix and previous version
         if previous_version is None:
             logger.info("No previous version available, skipping git tag creation.")
-            return
+            return None, False
         branch_prefix = 'main' if target_branch == 'main' else 'testing' if target_branch == 'testing-grounds' else target_branch
         tag_name = f"current_{branch_prefix}_{previous_version}_to_{game_version}"
         try:
