@@ -286,14 +286,9 @@ def update_current_data(repo_dir, output_dir, game_version, latest_commit, targe
     return True
 
 
-def trigger_data_repo_workflow(game_version, target_branch):
+def trigger_data_repo_workflow():
     """
     Trigger a workflow in the data repository via repository dispatch.
-    
-    Args:
-        game_version: Current game version being pushed
-        target_branch: Branch that was updated
-        previous_version: Previous version (if available)
     """
     logger.info("Triggering workflow in data repository...")
     
@@ -305,9 +300,10 @@ def trigger_data_repo_workflow(game_version, target_branch):
     }
     
     payload = {
-        "version": game_version,
-        "branch": target_branch
-    }
+        "from_version": "",
+        "to_version": ""
+    } # this will be auto-detected when the workflow calls the summarizer. 
+    # it checks against archive, as such, this function is only ran when pushing to archive.
     
     data = {
         "event_type": "data_updated",
@@ -467,7 +463,7 @@ def main():
         
         # Trigger workflow in data repository
         if OPTIONS.push_to_archive and OPTIONS.trigger_data_workflow and changes_made:
-            trigger_data_repo_workflow(OPTIONS.game_version, OPTIONS.target_branch)
+            trigger_data_repo_workflow()
         else:
             logger.info("Triggering data workflow is false or no previous version, skipping workflow trigger.")
         
