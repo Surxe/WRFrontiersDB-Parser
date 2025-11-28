@@ -66,10 +66,16 @@ python src/run.py --log-level INFO   # Run all steps with default/env values, ex
   - Command line: `--gh-data-repo-pat`
   - Depends on: `SHOULD_PUSH_DATA`
 
-* **TRIGGER_DATA_WORKFLOW** - Whether to trigger the data repository workflow after pushing data to it.
+* **TRIGGER_DATA_WORKFLOW** - Whether to trigger the data repository workflow after pushing data to it. Requires PUSH_TO_ARCHIVE to be true.
   - Default: `"false"`
   - Command line: `--trigger-data-workflow`
   - Depends on: `SHOULD_PUSH_DATA`
+
+* **CREATE_VERSION_CONFIG** - Whether to create a version config file to include with pushed data.
+  - Default: `"false"`
+  - Command line: `--create-version-config`
+  - Depends on: `SHOULD_PUSH_DATA`
+  - Useful when uploading 'current' on patch-day. Will be prompted for information.
 
 
 #### Both

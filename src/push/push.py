@@ -7,6 +7,7 @@ import shutil
 import subprocess
 from pathlib import Path
 import requests
+import json
 
 # Add parent dirs to sys path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -194,7 +195,7 @@ def upload_to_archive(repo_dir, output_dir, game_version, latest_commit):
     
     # Write version file
     version_file = os.path.join(archive_path, 'version.txt')
-    with open(version_file, 'w') as f:
+    with open(version_file, 'w', encoding='utf-8', newline='\n') as f:
         f.write(game_version)
     
     # Commit the changes
@@ -227,36 +228,9 @@ def update_current_data(repo_dir, output_dir, game_version, latest_commit, targe
         target_branch: Name of the target branch (used for tag naming)
 
     Returns:
-        previous_version: Previous version string (if available)
         changes_made: Boolean indicating if changes were made. False if e.g. its the same as before.
     """
     current_path = os.path.join(repo_dir, 'current')
-    
-    # Read previous version from version.txt if it exists
-    version_file = os.path.join(current_path, 'version.txt')
-    previous_version = None
-    if os.path.exists(version_file):
-        try:
-            with open(version_file, 'r') as f:
-                previous_version = f.read().strip()
-            logger.info(f"Previous version: {previous_version}")
-            if previous_version >= game_version:
-                previous_version = None
-                logger.info("Previous version is the same or newer than current version, skipping git tag creation.")
-        except Exception as e:
-            logger.warning(f"Could not read previous version from version.txt: {e}")
-    else:
-        logger.info("No previous version.txt found, won't assign a git tag.")
-    
-
-    # If the previous version is actually newer than the current version,
-    # set previous_version to None to skip tagging. Its likely just for testing purposes of 
-    # reverting current/ to older versions for the git diff to the next version.
-    # e.g. previous_version = '2025-11-11' and game_version = '2025-10-28'
-    if previous_version is not None and previous_version > game_version:
-        #this also works for months < 10 since string comparison 09 < 10 as 0<1. It wouldnt work if month was 9 instead of 09
-        logger.info(f"Previous version {previous_version} is newer than current version {game_version}, skipping git tag.")
-        previous_version = None
     
     # Clear existing current data
     if os.path.exists(current_path):
@@ -287,7 +261,7 @@ def update_current_data(repo_dir, output_dir, game_version, latest_commit, targe
     
     # Write version file
     version_file = os.path.join(current_path, 'version.txt')
-    with open(version_file, 'w') as f:
+    with open(version_file, 'w', encoding='utf-8', newline='\n') as f:
         f.write(game_version)
     
     # Commit the changes
@@ -302,40 +276,19 @@ def update_current_data(repo_dir, output_dir, game_version, latest_commit, targe
                        log_output=True)
         logger.info(f"Updated current data to version {game_version} and committed changes.")
         
-        # Create a git tag for this version with branch prefix and previous version
-        if previous_version is None:
-            logger.info("No previous version available, skipping git tag creation.")
-            return None, False
-        branch_prefix = 'main' if target_branch == 'main' else 'testing' if target_branch == 'testing-grounds' else target_branch
-        tag_name = f"current_{branch_prefix}_{previous_version}_to_{game_version}"
-        try:
-            # Delete existing tag if it exists (force update)
-            run_git_command(['git', 'tag', '-d', tag_name], cwd=repo_dir, log_output=True, check=False)
-        except:
-            pass  # Tag doesn't exist, which is fine
-        
-        # Create new tag
-        run_git_command(['git', 'tag', '-a', tag_name, '-m', f"Current version updated from {previous_version} to {game_version} on {branch_prefix}"], cwd=repo_dir, log_output=True)
-        logger.info(f"Created tag '{tag_name}' for current version.")
-        
     except subprocess.CalledProcessError as e:
         if "nothing to commit" in e.stdout:
             logger.info(f"No changes detected for current version {game_version}.")
-            return previous_version, False
+            return False
         else:
             raise  # Re-raise if it's a different error
     
-    return previous_version, True
+    return True
 
 
-def trigger_data_repo_workflow(game_version, target_branch):
+def trigger_data_repo_workflow():
     """
     Trigger a workflow in the data repository via repository dispatch.
-    
-    Args:
-        game_version: Current game version being pushed
-        target_branch: Branch that was updated
-        previous_version: Previous version (if available)
     """
     logger.info("Triggering workflow in data repository...")
     
@@ -347,9 +300,10 @@ def trigger_data_repo_workflow(game_version, target_branch):
     }
     
     payload = {
-        "version": game_version,
-        "branch": target_branch
-    }
+        "from_version": "",
+        "to_version": ""
+    } # this will be auto-detected when the workflow calls the summarizer. 
+    # it checks against archive, as such, this function is only ran when pushing to archive.
     
     data = {
         "event_type": "data_updated",
@@ -386,6 +340,70 @@ def push_changes(repo_dir, target_branch):
     
     logger.info(f"All changes and tags committed and pushed successfully to branch '{target_branch}'.")
 
+def create_version_config(repo_dir, game_version):
+    """
+    Update the version configuration file in the repository to include the current game version.
+    
+    Args:
+        repo_dir: Path to the repository directory
+        game_version: Current game version being pushed
+    """
+    logger.info("Updating version configuration file...")
+    
+    config_file = os.path.join(repo_dir, 'versions.json')
+    # Read current config file
+    with open(config_file, 'r') as f:
+        version_configs = json.load(f)
+    
+    if game_version in version_configs:
+        logger.info(f"Version {game_version} already exists in configuration, skipping update.")
+        return
+    
+    # Prompt the user for title, date_utc, manifest_id, patch_notes_url, is_season_release
+    title = input(f"Enter title for version {game_version}. Title should be concise and usually reference the biggest content released. If no content was released, name it 'Hotfix'. e.g. 'Decker and Tortuga': ")
+    date_utc = input(f"Enter release date (UTC) for version {game_version} in YYYY-MM-DD format. Double check the utc date at https://steamdb.info/depot/1491005/manifests: ")
+    manifest_id = input(f"Enter manifest ID for version {game_version}. Double check the manifest id at https://steamdb.info/depot/1491005/manifests: ")
+    patch_notes_url_raw = input(f"Enter patch notes URL for version {game_version}. If no patch notes exist, press Enter: Double check the url at https://warrobotsfrontiers.com/en/news/ : ")
+    is_season_release_raw = input(f"Is version {game_version} a season release? (yes/no): ")
+    patch_notes_url = patch_notes_url_raw.strip() if patch_notes_url_raw.strip() else None
+    is_season_release = bool(is_season_release_raw.strip().lower() in ['yes', 'y', 'true', '1'])
+    is_season_release = True if is_season_release else None # if false it won't be stored. for cleaner JSON
+    
+    # Create the version config
+    while True:
+        version_config = {}
+        version_config['title'] = title
+        version_config['date_utc'] = date_utc
+        version_config['manifest_id'] = manifest_id
+        if patch_notes_url:
+            version_config['patch_notes_url'] = patch_notes_url
+        if is_season_release is not None:
+            version_config['is_season_release'] = is_season_release
+        logger.debug(f"Version config to add: {version_config}")
+        confirm = input("Is this information correct? (yes/no): ")
+        if confirm.strip().lower() in ['yes', 'y']:
+            break
+
+
+    # Add the version config to the overall configs at the very top
+    version_configs = {game_version: version_config, **version_configs}
+
+    # Write back the updated config file
+    with open(config_file, 'w', encoding='utf-8', newline='\n') as f:
+        json.dump(version_configs, f, indent=4)
+
+    # Add and commit the changes
+    run_git_command(['git', 'add', 'versions.json'], cwd=repo_dir, log_output=True)
+    
+    try:
+        run_git_command(['git', 'commit', '-m', f"Add the version configuration for {game_version}"], cwd=repo_dir,
+                       log_output=True)
+        logger.info("Version configuration file created/updated and committed.")
+    except subprocess.CalledProcessError as e:
+        if "nothing to commit" in e.stdout:
+            logger.info("No changes detected for version configuration file.")
+        else:
+            raise  # Re-raise if it's a different error
 
 def main():
     """Main function that orchestrates the data pushing process. Uses global OPTIONS singleton."""
@@ -433,16 +451,19 @@ def main():
         changes_made = False
         if OPTIONS.push_to_current:
             logger.info("Pushing to current is true, updating current directory...")
-            previous_version, changes_made = update_current_data(data_repo_dir, output_dir, OPTIONS.game_version, latest_commit, OPTIONS.target_branch)
+            changes_made = update_current_data(data_repo_dir, output_dir, OPTIONS.game_version, latest_commit, OPTIONS.target_branch)
         else:
             logger.info("Pushing to current is false, skipping current directory update.")
+
+        if OPTIONS.create_version_config:
+            create_version_config(data_repo_dir, OPTIONS.game_version)
         
         # Push all changes
         push_changes(data_repo_dir, OPTIONS.target_branch)
         
         # Trigger workflow in data repository
-        if previous_version and OPTIONS.trigger_data_workflow and changes_made:
-            trigger_data_repo_workflow(OPTIONS.game_version, OPTIONS.target_branch)
+        if OPTIONS.push_to_archive and OPTIONS.trigger_data_workflow and changes_made:
+            trigger_data_repo_workflow()
         else:
             logger.info("Triggering data workflow is false or no previous version, skipping workflow trigger.")
         
