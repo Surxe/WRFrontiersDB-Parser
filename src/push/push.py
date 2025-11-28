@@ -466,7 +466,7 @@ def main():
         push_changes(data_repo_dir, OPTIONS.target_branch)
         
         # Trigger workflow in data repository
-        if OPTIONS.trigger_data_workflow and changes_made:
+        if OPTIONS.push_to_archive and OPTIONS.trigger_data_workflow and changes_made:
             trigger_data_repo_workflow(OPTIONS.game_version, OPTIONS.target_branch)
         else:
             logger.info("Triggering data workflow is false or no previous version, skipping workflow trigger.")
