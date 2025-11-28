@@ -97,7 +97,7 @@ OPTIONS_SCHEMA = {
         "default": False,
         "section": "Push Data",
         "depends_on": ["SHOULD_PUSH_DATA"],
-        "help": "Whether to trigger the data repository workflow after pushing data to it."
+        "help": "Whether to trigger the data repository workflow after pushing data to it. Requires PUSH_TO_ARCHIVE to be true."
     },
     "CREATE_VERSION_CONFIG": {
         "env": "CREATE_VERSION_CONFIG",
