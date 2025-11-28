@@ -71,6 +71,12 @@ python src/run.py --log-level INFO   # Run all steps with default/env values, ex
   - Command line: `--trigger-data-workflow`
   - Depends on: `SHOULD_PUSH_DATA`
 
+* **CREATE_VERSION_CONFIG** - Whether to create a version config file to include with pushed data.
+  - Default: `"false"`
+  - Command line: `--create-version-config`
+  - Depends on: `SHOULD_PUSH_DATA`
+  - Useful when uploading 'current' on patch-day. Will be prompted for information.
+
 
 #### Both
 

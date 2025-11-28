@@ -7,6 +7,7 @@ import shutil
 import subprocess
 from pathlib import Path
 import requests
+import json
 
 # Add parent dirs to sys path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -386,6 +387,65 @@ def push_changes(repo_dir, target_branch):
     
     logger.info(f"All changes and tags committed and pushed successfully to branch '{target_branch}'.")
 
+def create_version_config(repo_dir, game_version):
+    """
+    Update the version configuration file in the repository to include the current game version.
+    
+    Args:
+        repo_dir: Path to the repository directory
+        game_version: Current game version being pushed
+    """
+    logger.info("Updating version configuration file...")
+    
+    config_file = os.path.join(repo_dir, 'versions.json')
+    # Read current config file
+    with open(config_file, 'r') as f:
+        version_configs = json.load(f)
+    
+    if game_version in version_configs:
+        logger.info(f"Version {game_version} already exists in configuration, skipping update.")
+        return
+    
+    # Prompt the user for title, date_utc, manifest_id, patch_notes_url, is_season_release
+    title = input(f"Enter title for version {game_version}. Title should be concise and usually reference the biggest content released. If no content was released, name it 'Hotfix'. e.g. 'Decker and Tortuga': ")
+    date_utc = input(f"Enter release date (UTC) for version {game_version} in YYYY-MM-DD format. Double check the utc date at https://steamdb.info/depot/1491005/manifests: ")
+    manifest_id = input(f"Enter manifest ID for version {game_version}. Double check the manifest id at https://steamdb.info/depot/1491005/manifests: ")
+    patch_notes_url_raw = input(f"Enter patch notes URL for version {game_version}. If no patch notes exist, press Enter: Double check the url at https://warrobotsfrontiers.com/en/news/ : ")
+    is_season_release_raw = input(f"Is version {game_version} a season release? (yes/no): ")
+    patch_notes_url = patch_notes_url_raw.strip() if patch_notes_url_raw.strip() else None
+    is_season_release = bool(is_season_release_raw.strip().lower() in ['yes', 'y', 'true', '1'])
+    is_season_release = True if is_season_release else None # if false it won't be stored. for cleaner JSON
+    
+    # Create the version config
+    version_config = {}
+    version_config['title'] = title
+    version_config['date_utc'] = date_utc
+    version_config['manifest_id'] = manifest_id
+    if patch_notes_url:
+        version_config['patch_notes_url'] = patch_notes_url
+    if is_season_release is not None:
+        version_config['is_season_release'] = is_season_release
+    logger.debug(f"Version config to add: {version_config}")
+
+    # Add the version config to the overall configs
+    version_configs[game_version] = version_config
+
+    # Write back the updated config file
+    with open(config_file, 'w') as f:
+        json.dump(version_configs, f, indent=4)
+
+    # Add and commit the changes
+    run_git_command(['git', 'add', 'versions.json'], cwd=repo_dir, log_output=True)
+    
+    try:
+        run_git_command(['git', 'commit', '-m', f"Add the version configuration for {game_version}"], cwd=repo_dir,
+                       log_output=True)
+        logger.info("Version configuration file created/updated and committed.")
+    except subprocess.CalledProcessError as e:
+        if "nothing to commit" in e.stdout:
+            logger.info("No changes detected for version configuration file.")
+        else:
+            raise  # Re-raise if it's a different error
 
 def main():
     """Main function that orchestrates the data pushing process. Uses global OPTIONS singleton."""
@@ -436,6 +496,9 @@ def main():
             previous_version, changes_made = update_current_data(data_repo_dir, output_dir, OPTIONS.game_version, latest_commit, OPTIONS.target_branch)
         else:
             logger.info("Pushing to current is false, skipping current directory update.")
+
+        if OPTIONS.create_version_config:
+            create_version_config(data_repo_dir, OPTIONS.game_version)
         
         # Push all changes
         push_changes(data_repo_dir, OPTIONS.target_branch)
