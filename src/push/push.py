@@ -228,36 +228,9 @@ def update_current_data(repo_dir, output_dir, game_version, latest_commit, targe
         target_branch: Name of the target branch (used for tag naming)
 
     Returns:
-        previous_version: Previous version string (if available)
         changes_made: Boolean indicating if changes were made. False if e.g. its the same as before.
     """
     current_path = os.path.join(repo_dir, 'current')
-    
-    # Read previous version from version.txt if it exists
-    version_file = os.path.join(current_path, 'version.txt')
-    previous_version = None
-    if os.path.exists(version_file):
-        try:
-            with open(version_file, 'r', encoding='utf-8') as f:
-                previous_version = f.read().strip()
-            logger.info(f"Previous version: {previous_version}")
-            if previous_version >= game_version:
-                previous_version = None
-                logger.info("Previous version is the same or newer than current version, skipping git tag creation.")
-        except Exception as e:
-            logger.warning(f"Could not read previous version from version.txt: {e}")
-    else:
-        logger.info("No previous version.txt found, won't assign a git tag.")
-    
-
-    # If the previous version is actually newer than the current version,
-    # set previous_version to None to skip tagging. Its likely just for testing purposes of 
-    # reverting current/ to older versions for the git diff to the next version.
-    # e.g. previous_version = '2025-11-11' and game_version = '2025-10-28'
-    if previous_version is not None and previous_version > game_version:
-        #this also works for months < 10 since string comparison 09 < 10 as 0<1. It wouldnt work if month was 9 instead of 09
-        logger.info(f"Previous version {previous_version} is newer than current version {game_version}, skipping git tag.")
-        previous_version = None
     
     # Clear existing current data
     if os.path.exists(current_path):
@@ -303,30 +276,14 @@ def update_current_data(repo_dir, output_dir, game_version, latest_commit, targe
                        log_output=True)
         logger.info(f"Updated current data to version {game_version} and committed changes.")
         
-        # Create a git tag for this version with branch prefix and previous version
-        if previous_version is None:
-            logger.info("No previous version available, skipping git tag creation.")
-            return None, False
-        branch_prefix = 'main' if target_branch == 'main' else 'testing' if target_branch == 'testing-grounds' else target_branch
-        tag_name = f"current_{branch_prefix}_{previous_version}_to_{game_version}"
-        try:
-            # Delete existing tag if it exists (force update)
-            run_git_command(['git', 'tag', '-d', tag_name], cwd=repo_dir, log_output=True, check=False)
-        except:
-            pass  # Tag doesn't exist, which is fine
-        
-        # Create new tag
-        run_git_command(['git', 'tag', '-a', tag_name, '-m', f"Current version updated from {previous_version} to {game_version} on {branch_prefix}"], cwd=repo_dir, log_output=True)
-        logger.info(f"Created tag '{tag_name}' for current version.")
-        
     except subprocess.CalledProcessError as e:
         if "nothing to commit" in e.stdout:
             logger.info(f"No changes detected for current version {game_version}.")
-            return previous_version, False
+            return False
         else:
             raise  # Re-raise if it's a different error
     
-    return previous_version, True
+    return True
 
 
 def trigger_data_repo_workflow(game_version, target_branch):
@@ -498,7 +455,7 @@ def main():
         changes_made = False
         if OPTIONS.push_to_current:
             logger.info("Pushing to current is true, updating current directory...")
-            previous_version, changes_made = update_current_data(data_repo_dir, output_dir, OPTIONS.game_version, latest_commit, OPTIONS.target_branch)
+            changes_made = update_current_data(data_repo_dir, output_dir, OPTIONS.game_version, latest_commit, OPTIONS.target_branch)
         else:
             logger.info("Pushing to current is false, skipping current directory update.")
 
@@ -509,7 +466,7 @@ def main():
         push_changes(data_repo_dir, OPTIONS.target_branch)
         
         # Trigger workflow in data repository
-        if previous_version and OPTIONS.trigger_data_workflow and changes_made:
+        if OPTIONS.trigger_data_workflow and changes_made:
             trigger_data_repo_workflow(OPTIONS.game_version, OPTIONS.target_branch)
         else:
             logger.info("Triggering data workflow is false or no previous version, skipping workflow trigger.")
