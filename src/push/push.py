@@ -195,7 +195,7 @@ def upload_to_archive(repo_dir, output_dir, game_version, latest_commit):
     
     # Write version file
     version_file = os.path.join(archive_path, 'version.txt')
-    with open(version_file, 'w') as f:
+    with open(version_file, 'w', encoding='utf-8', newline='\n') as f:
         f.write(game_version)
     
     # Commit the changes
@@ -238,7 +238,7 @@ def update_current_data(repo_dir, output_dir, game_version, latest_commit, targe
     previous_version = None
     if os.path.exists(version_file):
         try:
-            with open(version_file, 'r') as f:
+            with open(version_file, 'r', encoding='utf-8') as f:
                 previous_version = f.read().strip()
             logger.info(f"Previous version: {previous_version}")
             if previous_version >= game_version:
@@ -288,7 +288,7 @@ def update_current_data(repo_dir, output_dir, game_version, latest_commit, targe
     
     # Write version file
     version_file = os.path.join(current_path, 'version.txt')
-    with open(version_file, 'w') as f:
+    with open(version_file, 'w', encoding='utf-8', newline='\n') as f:
         f.write(game_version)
     
     # Commit the changes
@@ -417,21 +417,26 @@ def create_version_config(repo_dir, game_version):
     is_season_release = True if is_season_release else None # if false it won't be stored. for cleaner JSON
     
     # Create the version config
-    version_config = {}
-    version_config['title'] = title
-    version_config['date_utc'] = date_utc
-    version_config['manifest_id'] = manifest_id
-    if patch_notes_url:
-        version_config['patch_notes_url'] = patch_notes_url
-    if is_season_release is not None:
-        version_config['is_season_release'] = is_season_release
-    logger.debug(f"Version config to add: {version_config}")
+    while True:
+        version_config = {}
+        version_config['title'] = title
+        version_config['date_utc'] = date_utc
+        version_config['manifest_id'] = manifest_id
+        if patch_notes_url:
+            version_config['patch_notes_url'] = patch_notes_url
+        if is_season_release is not None:
+            version_config['is_season_release'] = is_season_release
+        logger.debug(f"Version config to add: {version_config}")
+        confirm = input("Is this information correct? (yes/no): ")
+        if confirm.strip().lower() in ['yes', 'y']:
+            break
 
-    # Add the version config to the overall configs
-    version_configs[game_version] = version_config
+
+    # Add the version config to the overall configs at the very top
+    version_configs = {game_version: version_config, **version_configs}
 
     # Write back the updated config file
-    with open(config_file, 'w') as f:
+    with open(config_file, 'w', encoding='utf-8', newline='\n') as f:
         json.dump(version_configs, f, indent=4)
 
     # Add and commit the changes
