@@ -90,6 +90,12 @@ python src/run.py --log-level INFO   # Run all steps with default/env values, ex
   - Command line: `--output-dir`
   - Depends on: `SHOULD_PARSE`, `SHOULD_PUSH_DATA`
 
+* **TEXTURE_OUTPUT_DIR** - Directory where extracted textures will be saved. Unlike OUTPUT_DIR, this will not be cleared on each run.
+  - Example: `"C:/WRFrontiersDB/Textures"`
+  - Default: None - required when SHOULD_PARSE or SHOULD_PUSH_DATA is True
+  - Command line: `--texture-output-dir`
+  - Depends on: `SHOULD_PARSE`, `SHOULD_PUSH_DATA`
+
 
 <!-- END_GENERATED_OPTIONS -->
 ### Miscellaneous Option Behavior
