@@ -9,6 +9,7 @@ from optionsconfig import init_options, ArgumentWriter
 from options import set_options
 from parse.parse import main as parse_main
 from push.push import main as push_main
+from parse.process_parsed_images import main as process_images_main
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -61,6 +62,9 @@ def main():
     if options.should_parse:
         logger.debug(f"should_parse is set to {options.should_parse}, proceeding with parsing.")
         parse_main()
+
+    process_images_main()
+
     if options.should_push_data:
         logger.debug(f"should_push_data is set to {options.should_push_data}, proceeding with pushing data.")
         push_main()

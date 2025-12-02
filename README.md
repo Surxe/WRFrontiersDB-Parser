@@ -77,6 +77,11 @@ python src/run.py --log-level INFO   # Run all steps with default/env values, ex
   - Depends on: `SHOULD_PUSH_DATA`
   - Useful when uploading 'current' on patch-day. Will be prompted for information.
 
+* **SHOULD_PUSH_TEXTURES** - Whether to push extracted textures to the data repository.
+  - Default: `"false"`
+  - Command line: `--should-push-textures`
+  - Depends on: `SHOULD_PUSH_DATA`
+
 
 #### Both
 
@@ -88,6 +93,12 @@ python src/run.py --log-level INFO   # Run all steps with default/env values, ex
   - Example: `"C:/WRFrontiersDB/Output"`
   - Default: None - required when SHOULD_PARSE or SHOULD_PUSH_DATA is True
   - Command line: `--output-dir`
+  - Depends on: `SHOULD_PARSE`, `SHOULD_PUSH_DATA`
+
+* **TEXTURE_OUTPUT_DIR** - Directory where extracted textures will be saved. Unlike OUTPUT_DIR, this will not be cleared on each run.
+  - Example: `"C:/WRFrontiersDB/Textures"`
+  - Default: None - required when SHOULD_PARSE or SHOULD_PUSH_DATA is True
+  - Command line: `--texture-output-dir`
   - Depends on: `SHOULD_PARSE`, `SHOULD_PUSH_DATA`
 
 
