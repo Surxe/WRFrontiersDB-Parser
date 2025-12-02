@@ -135,8 +135,7 @@ def switch_to_target_branch(repo_dir, target_branch):
         run_git_command(['git', 'checkout', target_branch], cwd=repo_dir, log_output=True)
     except subprocess.CalledProcessError:
         # Branch doesn't exist, create it
-        logger.debug(f"Branch {target_branch} doesn't exist, creating it...")
-        run_git_command(['git', 'checkout', '-b', target_branch], cwd=repo_dir, log_output=True)
+        raise ValueError(f"Target branch '{target_branch}' does not exist in the repository.")
 
 def get_latest_commit_info():
     """
@@ -405,6 +404,47 @@ def create_version_config(repo_dir, game_version):
         else:
             raise  # Re-raise if it's a different error
 
+def upload_textures(repo_dir, texture_output_dir):
+    """
+    Copies textures from texture_output_dir/path/to/icon.ext 
+    to repo_dir/textures/path/to/icon.ext and commits the changes.
+    """
+
+    # Copy textures
+    textures_dest_dir = os.path.join(repo_dir, 'textures')
+    if os.path.exists(texture_output_dir):
+        for root, dirs, files in os.walk(texture_output_dir):
+            for file in files:
+                src = os.path.join(root, file)
+                relative_path = os.path.relpath(src, texture_output_dir)
+                dst = os.path.join(textures_dest_dir, relative_path)
+                dst_dir = os.path.dirname(dst)
+                os.makedirs(dst_dir, exist_ok=True)
+                shutil.copy2(src, dst)
+    else:
+        raise ValueError(f"Texture output directory {texture_output_dir} does not exist")
+    
+    # Commit the changes
+    logger.info("Committing texture updates...")
+    run_git_command(['git', 'add', 'textures'], cwd=repo_dir, log_output=True)
+
+    # Try to commit, but don't fail if there's nothing to commit
+    commit_title = "Update textures"
+    commit_description = "Updated textures from parser output."
+    try:
+        run_git_command(['git', 'commit', '-m', commit_title, '-m', commit_description], cwd=repo_dir,
+                       log_output=True)
+        logger.info(f"Updated textures and committed changes.")
+        
+    except subprocess.CalledProcessError as e:
+        if "nothing to commit" in e.stdout:
+            logger.info(f"No changes detected for texture updates.")
+            return False
+        else:
+            raise  # Re-raise if it's a different error
+    
+    return True
+
 def main():
     """Main function that orchestrates the data pushing process. Uses global OPTIONS singleton."""
     # Quit early if neither push option is enabled
@@ -447,7 +487,6 @@ def main():
             logger.info("Pushing to archive is false, skipping archive directory update.")
 
         # Update current if enabled
-        previous_version = None
         changes_made = False
         if OPTIONS.push_to_current:
             logger.info("Pushing to current is true, updating current directory...")
@@ -457,6 +496,10 @@ def main():
 
         if OPTIONS.create_version_config:
             create_version_config(data_repo_dir, OPTIONS.game_version)
+
+        # Update Textures
+        logger.info("Copying textures to data repository...")
+        upload_textures(data_repo_dir, OPTIONS.texture_output_dir)
         
         # Push all changes
         push_changes(data_repo_dir, OPTIONS.target_branch)

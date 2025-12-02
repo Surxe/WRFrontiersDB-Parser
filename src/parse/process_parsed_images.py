@@ -36,10 +36,10 @@ def get_texture_list():
         if not full_img_path:
             file_name = export_img_path.name
             file_dir = export_img_path.parent
-            logger.warning(f"No image extensions found for asset {file_name} in export directory {file_dir}, skipping.")
+            logger.debug(f"No image extensions found for asset {file_name} in export directory {file_dir}, skipping.")
             continue
 
-        logger.debug(f"Processing image: {full_img_path}")
+        #logger.debug(f"Processing image: {full_img_path}")
         texture_paths.append(full_img_path)
         num_passed += 1
 
@@ -62,7 +62,7 @@ def copy_textures_to_output(texture_paths, output_dir):
         with open(texture_path, 'rb') as src_file:
             with open(dest_path, 'wb') as dest_file:
                 dest_file.write(src_file.read())
-        logger.debug(f"Copied texture to: {dest_path}")
+        #logger.debug(f"Copied texture to: {dest_path}")
 
     logger.info(f"All textures copied to {output_dir}")
 

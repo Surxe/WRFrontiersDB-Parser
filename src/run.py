@@ -59,13 +59,12 @@ def main():
 
     from optionsconfig import logger
 
-    # temp for testing
-    process_images_main()
-    return
-
     if options.should_parse:
         logger.debug(f"should_parse is set to {options.should_parse}, proceeding with parsing.")
         parse_main()
+
+    process_images_main()
+
     if options.should_push_data:
         logger.debug(f"should_push_data is set to {options.should_push_data}, proceeding with pushing data.")
         push_main()
