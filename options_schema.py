@@ -137,4 +137,13 @@ OPTIONS_SCHEMA = {
         "help": "Directory where extracted textures will be saved. Unlike OUTPUT_DIR, this will not be cleared on each run.",
         "example": Path("C:/WRFrontiersDB/Textures")
     },
+    "SHOULD_PUSH_TEXTURES": {
+        "env": "SHOULD_PUSH_TEXTURES",
+        "arg": "--should-push-textures",
+        "type": bool,
+        "default": False,
+        "section": "Push Data",
+        "depends_on": ["SHOULD_PUSH_DATA"],
+        "help": "Whether to push extracted textures to the data repository."
+    },
 }

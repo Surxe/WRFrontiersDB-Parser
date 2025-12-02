@@ -498,8 +498,11 @@ def main():
             create_version_config(data_repo_dir, OPTIONS.game_version)
 
         # Update Textures
-        logger.info("Copying textures to data repository...")
-        upload_textures(data_repo_dir, OPTIONS.texture_output_dir)
+        if OPTIONS.should_push_textures:
+            logger.info("Copying textures to data repository...")
+            upload_textures(data_repo_dir, OPTIONS.texture_output_dir)
+        else:
+            logger.info("should_push_textures is false, skipping texture upload.")
         
         # Push all changes
         push_changes(data_repo_dir, OPTIONS.target_branch)

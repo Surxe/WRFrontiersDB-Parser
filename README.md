@@ -77,6 +77,11 @@ python src/run.py --log-level INFO   # Run all steps with default/env values, ex
   - Depends on: `SHOULD_PUSH_DATA`
   - Useful when uploading 'current' on patch-day. Will be prompted for information.
 
+* **SHOULD_PUSH_TEXTURES** - Whether to push extracted textures to the data repository.
+  - Default: `"false"`
+  - Command line: `--should-push-textures`
+  - Depends on: `SHOULD_PUSH_DATA`
+
 
 #### Both
 
