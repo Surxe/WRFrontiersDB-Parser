@@ -404,7 +404,7 @@ def create_version_config(repo_dir, game_version):
         else:
             raise  # Re-raise if it's a different error
 
-def upload_textures(repo_dir, texture_output_dir):
+def upload_textures(repo_dir, texture_output_dir, game_version):
     """
     Copies textures from texture_output_dir/path/to/icon.ext 
     to repo_dir/textures/path/to/icon.ext and commits the changes.
@@ -429,7 +429,7 @@ def upload_textures(repo_dir, texture_output_dir):
     run_git_command(['git', 'add', 'textures'], cwd=repo_dir, log_output=True)
 
     # Try to commit, but don't fail if there's nothing to commit
-    commit_title = "Update textures"
+    commit_title = f"Update textures to {game_version}"
     commit_description = "Updated textures from parser output."
     try:
         run_git_command(['git', 'commit', '-m', commit_title, '-m', commit_description], cwd=repo_dir,
@@ -500,7 +500,7 @@ def main():
         # Update Textures
         if OPTIONS.should_push_textures:
             logger.info("Copying textures to data repository...")
-            upload_textures(data_repo_dir, OPTIONS.texture_output_dir)
+            upload_textures(data_repo_dir, OPTIONS.texture_output_dir, game_version=OPTIONS.game_version)
         else:
             logger.info("should_push_textures is false, skipping texture upload.")
         
