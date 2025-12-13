@@ -99,16 +99,6 @@ OPTIONS_SCHEMA = {
         "depends_on": ["SHOULD_PUSH_DATA"],
         "help": "Whether to trigger the data repository workflow after pushing data to it. Requires PUSH_TO_ARCHIVE to be true."
     },
-    "CREATE_VERSION_CONFIG": {
-        "env": "CREATE_VERSION_CONFIG",
-        "arg": "--create-version-config",
-        "type": bool,
-        "default": False,
-        "section": "Push Data",
-        "depends_on": ["SHOULD_PUSH_DATA"],
-        "help": "Whether to create a version config file to include with pushed data.",
-        "help_extended": "Useful when uploading 'current' on patch-day. Will be prompted for information."
-    },
     "LOG_LEVEL": {
         "env": "LOG_LEVEL",
         "arg": "--log-level",
