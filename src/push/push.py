@@ -448,8 +448,8 @@ def upload_textures(repo_dir, texture_output_dir, game_version):
 def main():
     """Main function that orchestrates the data pushing process. Uses global OPTIONS singleton."""
     # Quit early if neither push option is enabled
-    if not OPTIONS.push_to_archive and not OPTIONS.push_to_current:
-        logger.info("Neither push_to_archive nor push_to_current is enabled. Exiting push process.")
+    if not OPTIONS.push_to_archive and not OPTIONS.push_to_current and not OPTIONS.should_push_textures:
+        logger.info("None of push_to_archive nor push_to_current nor should_push_textures are enabled. Exiting push process.")
         return
     
     # Validate target branch
