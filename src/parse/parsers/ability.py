@@ -481,15 +481,6 @@ class Ability(ParseObject):
     def _p_projectile_types(self, data: dict):
         logger.debug(f"Parsing projectile types for {self.id}")
 
-        # Validate structure
-        if len(data) != 1:
-            last_socket_name = None
-            for projectile_type in data:
-                socket_name = projectile_type["SpawnSocketName"]
-                if last_socket_name is not None and socket_name != "None" and socket_name == last_socket_name:
-                    logger.error(f"Data structure change: Multiple projectile types with the same socket names found: {last_socket_name} and {socket_name}.")
-                last_socket_name = socket_name
-
         parsed_projectile_types = []
         for projectile_type in data:
             projectile_class_data = asset_path_to_data(projectile_type["ProjectileClass"]["ObjectPath"])
@@ -547,7 +538,7 @@ class Ability(ParseObject):
                 "StartOfDelaySoundEvent": None,
                 "StopOfDelaySoundEvent": None,
                 "PushingType": None, #also a numerical code
-                "PushingSettings": self._p_pushing_settings,
+                "PushingSettings": p_pushing_settings,
                 "bPassThroughShields": "value", #magnetic sensor
                 "bCanBeDamaged": "value",
                 "bSetVFXSizeFromCollision": None, #repulsor
@@ -573,7 +564,7 @@ class Ability(ParseObject):
     def _p_cont_pushing_settings(self, data: dict):
         key_to_parser_function = {
             "Interval": "value",
-            "PushingSettings": self._p_pushing_settings,
+            "PushingSettings": p_pushing_settings,
         }
         return self._process_key_to_parser_function(
             key_to_parser_function, data, log_descriptor="ContinuousPushingSettings", set_attrs=False, default_configuration={
@@ -658,13 +649,6 @@ class Ability(ParseObject):
     def _p_stat(self, data: dict):
         stat_id = ModuleStat.get_from_asset_path(data["ObjectPath"])
         return stat_id
-    
-    def _p_pushing_settings(self, data: dict):
-        data = asset_path_to_data(data["ObjectPath"])
-        if 'Properties' not in data:
-            return
-        else:
-            return data["Properties"]
         
     def _p_charge_trigger(self, data: dict):
         if data is None or data == []:
@@ -827,6 +811,14 @@ def p_weapon_infos(list: list):
     weapon_module_id = CharacterModule.get_from_asset_path(last_weapon_module_asset_path)
     return weapon_module_id
 
+def p_physics_volume(data):
+    invocs = {}
+    for invoc in data["InvocationList"]:
+        invoc_data = asset_path_to_data(invoc["Object"]["ObjectPath"])["Properties"]
+        fn_name = invoc["FunctionName"]
+        invocs[fn_name] = invoc_data
+    return invocs
+
 def p_collision_component(data):
     data = asset_path_to_data(data["ObjectPath"])
     if 'Properties' not in data:
@@ -843,12 +835,25 @@ def p_collision_component(data):
         "RelativeScale3D": "value",
         "bTraceComplexOnMove": None,
         "StaticMesh": None,
-        "bHiddenInGame": None,
+        "bHiddenInGame": None,  
+        'bGenerateOverlapEvents': "value", 
+        "PhysicsVolumeChangedDelegate": p_physics_volume,
     }
 
     return process_key_to_parser_function(key_to_parser_function, props, log_descriptor="CollisionComponent", set_attrs=False, default_configuration={
         'target': ParseTarget.MATCH_KEY
     })
+
+def p_push_settings_class(data: dict):
+    data = asset_path_to_data(data["ObjectPath"])
+    return p_pushing_settings(data["ClassDefaultObject"])
+
+def p_pushing_settings(data: dict):
+    data = asset_path_to_data(data["ObjectPath"])
+    if 'Properties' not in data:
+        return
+    else:
+        return data["Properties"]
 
 def p_transf_sphere_component(data: dict):
     data = asset_path_to_data(data["ObjectPath"])
@@ -1256,6 +1261,12 @@ def p_actor_class(data: dict):
         "Buffs": p_buffs,
         "FuelPerSecond": "value",
         "AreBlockingDashAndJetpack": "value",
+        "PhysicsVolumeChangedDelegate": p_physics_volume,
+        "SphereHitEvent": None, #audio
+        "SpawnActiveEffect": None, #muzzle vfx
+        "ExplosionSettings": None, #vfx
+        "OverlapHitSoundEvent": None, #audio
+        "PushSettingsClass": p_push_settings_class,
     }
 
     parsed_data = process_key_to_parser_function(

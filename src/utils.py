@@ -21,6 +21,7 @@ def get_json_data(file_path: str) -> dict:
         data = json.load(file)
     if data is None:
         raise ValueError(f"Error: {file_path} is empty or not a valid JSON file.")
+    logger.debug(f"Loaded data from {file_path}") #TODO: fix log level always being debug, change this to .trace
     return data
 
 def clear_dir(dir_path: str) -> None:
