@@ -45,7 +45,7 @@ class ParseObject: #generic object that all classes extend
         """
         Recursively parse and merge template ability data.
         """
-        asset_path = template["ObjectPath"]
+        asset_path = asset_to_asset_path(template)
         template_data = asset_path_to_data(asset_path)
         base_template_data = {}
         if template_data and "Template" in template_data:

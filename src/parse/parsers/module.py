@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import ParseTarget, logger, path_to_id, get_json_data, asset_path_to_data, parse_colon_colon, OPTIONS
+from utils import ParseTarget, logger, path_to_id, get_json_data, asset_to_data, asset_path_to_data, parse_colon_colon, OPTIONS
 from parsers.localization_table import parse_localization
 
 from parsers.object import ParseObject
@@ -85,7 +85,7 @@ class Module(ParseObject):
         return module_tags
 
     def _p_module_scalar(self, data):
-        module_scalar_data = asset_path_to_data(data["ObjectPath"])
+        module_scalar_data = asset_to_data(data)
         scalars = self._p_scalars(module_scalar_data)
         if not scalars:
             return
@@ -94,8 +94,7 @@ class Module(ParseObject):
 
     def _p_ability_scalars(self, data):
         for elem in data:
-            asset_path = elem["ObjectPath"]
-            ability_scalar_data = asset_path_to_data(asset_path)
+            ability_scalar_data = asset_to_data(elem)
             scalars = self._p_scalars(ability_scalar_data)
 
             if not hasattr(self, "abilities_scalars"):

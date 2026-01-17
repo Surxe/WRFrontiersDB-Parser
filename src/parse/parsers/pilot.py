@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import logger, path_to_id, get_json_data, asset_path_to_data, OPTIONS
+from utils import logger, path_to_id, get_json_data, asset_to_data, OPTIONS
 from parsers.localization_table import parse_localization
 
 from parsers.object import ParseObject
@@ -77,9 +77,9 @@ class Pilot(ParseObject):
         logger.debug(f"Parsing {len(levels)} levels for {self.id}")
 
         for i, level in enumerate(levels):
-            level_data = asset_path_to_data(level["ObjectPath"])
+            level_data = asset_to_data(level)
             if level_data is None:
-                raise ValueError(f"Level data not found for asset path: {level['ObjectPath']}")
+                raise ValueError(f"Level data not found for asset: {level}")
             self.levels.append(dict())
         
             props = level_data["Properties"]
@@ -92,8 +92,7 @@ class Pilot(ParseObject):
             talents = props["Talents"]
             self.levels[i]["talents"] = []
             for talent in talents:
-                asset_path = talent["ObjectPath"]
-                talent_id = PilotTalent.create_from_asset_path(asset_path).id
+                talent_id = PilotTalent.create_from_asset(talent).id
                 self.levels[i]["talents"].append(talent_id)
 
 def parse_pilot_wrapper(dir, file_name):

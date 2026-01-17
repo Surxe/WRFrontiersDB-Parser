@@ -5,7 +5,7 @@ import os
 from loguru import logger
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import path_to_id
+from utils import path_to_id, asset_to_asset_path
 from parsers.object import ParseObject
 from parsers.currency import Currency, parse_currency
 from parsers.content_unlock import ContentUnlock
@@ -18,6 +18,8 @@ from parsers.group_reward import GroupReward
 from parsers.material import Material
 from parsers.weathering import Weathering
 from parsers.skin import Skin
+from parsers.module import Module
+from parsers.pilot import Pilot
 
 class ProgressionTable(ParseObject):
     objects = dict()  # Dictionary to hold all ProgressionTable instances
@@ -52,7 +54,7 @@ class ProgressionTable(ParseObject):
             "ReputationPoints": self._confirm_0,
             "Currencies": (lambda currencies: [parse_currency(currency) for currency in currencies], "currencies"),
             "CharacterModules": (self._p_modules, "modules"),
-            "Blueprints": (lambda blueprints: [path_to_id(blueprint["ObjectPath"]) for blueprint in blueprints], "blueprints_ids"),
+            "Blueprints": (lambda blueprints: [Module.create_from_asset(blueprint).id for blueprint in blueprints], "blueprints_ids"),
             "Characters": self._confirm_empty,
             "ContentUnlocks": (lambda content_unlocks: [ContentUnlock.create_from_asset(content_unlock).id for content_unlock in content_unlocks], "content_unlocks_ids"),
             "Premium": self._confirm_empty,
@@ -78,7 +80,7 @@ class ProgressionTable(ParseObject):
         parsed_ms = []
         for element in data:
             parsed_m = dict()
-            module_id = path_to_id(element["Module"]["ObjectPath"])
+            module_id, _ = Module.get_from_asset(element["Module"])
             parsed_m["module_id"] = module_id
             parsed_m["level"] = element["Level"]
             parsed_ms.append(parsed_m)
@@ -88,7 +90,7 @@ class ProgressionTable(ParseObject):
         parsed_pilots = []
         for element in data:
             parsed_p = dict()
-            pilot_id = path_to_id(element["Pilot"]["ObjectPath"])
+            pilot_id, _ = Pilot.get_from_asset(element["Pilot"])
             parsed_p["pilot_id"] = pilot_id
             parsed_p["level"] = element["Level"]
             parsed_pilots.append(parsed_p)
