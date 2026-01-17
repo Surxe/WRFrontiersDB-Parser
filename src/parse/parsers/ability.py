@@ -804,7 +804,7 @@ def p_weapon_infos(list: list):
             )
         last_weapon_module_asset_path = weapon_module_asset_path
 
-    weapon_module_id = CharacterModule.get_from_asset_path(last_weapon_module_asset_path)
+    weapon_module_id = CharacterModule.create_from_asset_path(last_weapon_module_asset_path).id
     return weapon_module_id
 
 def p_physics_volume(data):

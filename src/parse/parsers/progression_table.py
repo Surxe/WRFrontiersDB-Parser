@@ -54,13 +54,13 @@ class ProgressionTable(ParseObject):
             "CharacterModules": (self._p_modules, "modules"),
             "Blueprints": (lambda blueprints: [path_to_id(blueprint["ObjectPath"]) for blueprint in blueprints], "blueprints_ids"),
             "Characters": self._confirm_empty,
-            "ContentUnlocks": (lambda content_unlocks: [ContentUnlock.get_from_asset_path(content_unlock["ObjectPath"]) for content_unlock in content_unlocks], "content_unlocks_ids"),
+            "ContentUnlocks": (lambda content_unlocks: [ContentUnlock.create_from_asset(content_unlock).id for content_unlock in content_unlocks], "content_unlocks_ids"),
             "Premium": self._confirm_empty,
-            "Decals": (lambda decals: [Decal.get_from_asset_path(decal["Decal"]["ObjectPath"]) for decal in decals], "decals_ids"),
-            "Materials": (lambda materials: [Material.get_from_asset_path(material["Material"]["ObjectPath"]) for material in materials], "materials_ids"),
+            "Decals": (lambda decals: [Decal.create_from_asset(decals["Decal"]).id for decals in decals], "decals_ids"),
+            "Materials": (lambda materials: [Material.create_from_asset(material["Material"]).id for material in materials], "materials_ids"),
             "GlobalDecals": self._confirm_empty,
-            "Weathering": (lambda weathering: [Weathering.get_from_asset_path(weather["Weathering"]["ObjectPath"]) for weather in weathering], "weatherings_ids"),
-            "CharacterSkins": (lambda skins: [Skin.get_from_asset_path(skin["Skin"]["ObjectPath"]) for skin in skins], "skins_ids"),
+            "Weathering": (lambda weathering: [Weathering.create_from_asset(weather["Weathering"]).id for weather in weathering], "weatherings_ids"),
+            "CharacterSkins": (lambda skins: [Skin.create_from_asset(skin["Skin"]).id for skin in skins], "skins_ids"),
             "CharacterSetups": self._confirm_empty,
             "PilotRewards": (self._p_pilots, "pilots"),
             "ModuleVariantRewards": self._confirm_empty,
@@ -106,7 +106,7 @@ def parse_progression_table(to_file=False):
     progression_table_path = r"WRFrontiers/Content/Sparrow/Mechanics/DA_ProgressionTable.json"
 
     # Hero pilots are in this dir directly
-    progression_table = ProgressionTable.get_from_asset_path(progression_table_path)
+    progression_table = ProgressionTable.create_from_asset_path(progression_table_path)
 
     if to_file: # Condition prevents needlessly saving the same data multiple times, as it will also be saved if ran thru parse.py
         ProgressionTable.to_file()
