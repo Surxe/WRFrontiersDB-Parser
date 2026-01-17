@@ -11,7 +11,7 @@ from parsers.localization_table import parse_localization
 from parsers.image import parse_image_asset_path
 from parsers.module_stat import ModuleStat
 
-from utils import ParseTarget, ParseAction, asset_to_file_path, asset_path_to_data, get_json_data, parse_colon_colon
+from utils import ParseTarget, ParseAction, asset_to_file_path, asset_path_to_data, get_json_data, asset_to_data, parse_colon_colon
 
 class PilotTalent(ParseObject):
     objects = dict()  # Dictionary to hold all PilotTalent instances
@@ -37,7 +37,7 @@ class PilotTalent(ParseObject):
         if 'ClassDefaultObject' not in bp_data:
             return
         
-        cdo_data = asset_path_to_data(bp_data["ClassDefaultObject"]["ObjectPath"])
+        cdo_data = asset_to_data(bp_data["ClassDefaultObject"])
         props = cdo_data["Properties"]
 
         key_to_parser_function = {

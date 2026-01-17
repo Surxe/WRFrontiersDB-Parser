@@ -5,7 +5,7 @@ import os
 from loguru import logger
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import asset_path_to_file_path, OPTIONS, normalize_path
+from utils import asset_to_file_path, OPTIONS, normalize_path
 
 import json
 
@@ -26,16 +26,10 @@ class Image():
             json.dump(list(sorted(cls.image_paths.keys())), f, indent=4)
 
 
-def parse_image_asset_path(data: dict) -> str:
-    if data is None:
-        return
-    if "AssetPathName" in data:
-        asset_path = data["AssetPathName"]
-    elif "ObjectPath" in data:
-        asset_path = data["ObjectPath"]
-    else:
-        raise ValueError("Data must contain 'AssetPathName' or 'ObjectPath'.")
-    export_plus_file_path = asset_path_to_file_path(asset_path)
+def parse_image_asset_path(asset: dict | None) -> str | None:
+    if asset is None:
+        return None
+    export_plus_file_path = asset_to_file_path(asset)
     image_path_generic = export_plus_file_path.split(normalize_path(str(OPTIONS.export_dir)))[1].split(".")[0] # #<export_dir>\\<file_path>\\<image_name>.json -> <file_path>/<image_name>
     Image(image_path_generic)  # Register the image path
     return normalize_path(image_path_generic)
