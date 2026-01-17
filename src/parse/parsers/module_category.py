@@ -41,7 +41,7 @@ class ModuleCategory(ParseObject):
         parsed = []
         for elem in data:
             stat_id = ModuleStat.create_from_asset(elem["ModuleStat"]).id
-            module_type = ModuleType.create_from_asset(elem["ModuleType"], create_if_missing=False) #must always avoid creating module types at this point as it will recursively search for a module category and recursion loop. Module categories can be parsed thru another source to avoid infinite loop
+            _, module_type = ModuleType.get_from_asset(elem["ModuleType"]) #must always avoid creating module types at this point as it will recursively search for a module category and recursion loop. Module categories can be parsed thru another source to avoid infinite loop
             module_type_id = module_type.id if module_type else None
             parsed.append({
                 'module_stat_id': stat_id,
