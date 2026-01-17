@@ -66,7 +66,7 @@ def parse_powerup_wrapper(full_path, id):
     if 'Indicator' in full_path:
         return
     logger.debug(f"Parsing {Powerup.__name__} {id} from {full_path}")
-    powerup_data = asset_path_to_data(get_json_data(full_path)[0]["ClassDefaultObject"]["ObjectPath"])
+    powerup_data = asset_path_to_data(get_json_data(full_path, index=0)["ClassDefaultObject"]["ObjectPath"])
     powerup = Powerup(id, powerup_data)
     return powerup
 

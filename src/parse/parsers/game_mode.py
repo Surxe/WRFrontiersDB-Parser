@@ -28,11 +28,11 @@ class GameMode(ParseObject):
         self._process_key_to_parser_function(key_to_parser_function, props)
 
     def _parse_bp(self, bp_path: str):
-        bp_data = get_json_data(bp_path)
-        cdo_path = bp_data[0]["ClassDefaultObject"]["ObjectPath"]
+        bp_data = get_json_data(bp_path, index=0)
+        cdo_path = bp_data["ClassDefaultObject"]["ObjectPath"]
         cdo_file_path, index = asset_path_to_file_path_and_index(cdo_path)
         logger.debug(f"Parsing {self.__class__.__name__} BP data from {cdo_file_path}")
-        cdo_data = get_json_data(cdo_file_path)[index]
+        cdo_data = get_json_data(cdo_file_path, index=index)
         props = cdo_data["Properties"]
 
         key_to_parser_function = {
@@ -177,8 +177,8 @@ class GameMode(ParseObject):
 
 def parse_game_modes(to_file=False):
     root_path = os.path.join(OPTIONS.export_dir, r"WRFrontiers\Content\Sparrow\Mechanics\DA_Meta_Root.json")
-    root_data = get_json_data(root_path)
-    game_modes = root_data[0]["Properties"]["GameModes"]
+    root_data = get_json_data(root_path, index=0)
+    game_modes = root_data["Properties"]["GameModes"]
     for game_mode_entry in game_modes:
         game_mode_asset_path = game_mode_entry["ObjectPath"]
         game_mode_id = path_to_id(game_mode_asset_path)

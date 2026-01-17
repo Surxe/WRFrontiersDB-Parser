@@ -33,7 +33,7 @@ class PilotTalent(ParseObject):
 
     def _p_bp(self, data: dict):
         bp_file_path = asset_path_to_file_path(data["AssetPathName"])
-        bp_data = get_json_data(bp_file_path)[0]
+        bp_data = get_json_data(bp_file_path, index=0)
         if 'ClassDefaultObject' not in bp_data:
             return
         

@@ -34,8 +34,8 @@ class BotAIPreset(ParseObject):
 
 def parse_bot_ai_presets(to_file=False):
     root_path = os.path.join(OPTIONS.export_dir, r"WRFrontiers\Content\Sparrow\Mechanics\DA_Meta_Root.json")
-    root_data = get_json_data(root_path)
-    props = root_data[0]["Properties"]
+    root_data = get_json_data(root_path, index=0)
+    props = root_data["Properties"]
 
     # Older version only has by-level in BotPresets
     # Newer version (as of 2025-09-09) has both by-level and by-league
