@@ -12,7 +12,7 @@ from options import OPTIONS
 #             FILE            #
 ###############################
 
-def get_json_data(file_path: str) -> dict:
+def get_json_data(file_path: str, index: int | None = None) -> dict:
     """
     Reads a JSON file and returns its content.
     """
@@ -21,7 +21,11 @@ def get_json_data(file_path: str) -> dict:
         data = json.load(file)
     if data is None:
         raise ValueError(f"Error: {file_path} is empty or not a valid JSON file.")
-    logger.debug(f"Loaded data from {file_path}") #TODO: fix log level always being debug, change this to .trace
+    elif index is not None and isinstance(data, list):
+        data = data[index]
+        logger.debug(f"Loaded data from {file_path} at index {index}") #TODO: fix log level always being debug, change this to .trace
+    else:
+        logger.debug(f"Loaded data from {file_path}") #TODO: fix log level always being debug, change this to .trace
     return data
 
 def clear_dir(dir_path: str) -> None:
@@ -95,8 +99,8 @@ def asset_path_to_file_path_and_index(asset_path):
 
 def asset_path_to_data(asset_path) -> dict: # "/Game/DungeonCrawler/Data/Generated/V2/LootDrop/LootDropGroup/Id_LootDropGroup_GhostKing.Id_LootDropGroup_GhostKing" -> the data found within the file stored locally
     file_path, index = asset_path_to_file_path_and_index(asset_path)
-    data = get_json_data(file_path)
-    return data[index] #json via asset path is technically an array with just one element
+    data = get_json_data(file_path, index)
+    return data #json via asset path is technically an array with just one element
 
 def path_to_file_name(asset_path) -> str:
     if asset_path in ['','.','/','//'] or asset_path is None:

@@ -91,9 +91,10 @@ class ParseObject: #generic object that all classes extend
         if obj is None and create_if_missing:
             file_path, index = asset_path_to_file_path_and_index(asset_path)
             logger.debug(f"Parsing {cls.__name__} {obj_id} from {file_path} . {index}")
-            obj_data = get_json_data(file_path)
-            if sub_index:
-                obj_data = obj_data[index]
+            if not sub_index:
+                index = None
+            obj_data = get_json_data(file_path, index)
+            
             obj = cls(obj_id, obj_data)
 
         return obj_id
