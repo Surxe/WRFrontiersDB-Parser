@@ -50,6 +50,25 @@ def normalize_path(path: str) -> str:
 #    Unreal Engine Parsing    #
 ###############################
 
+
+# First, a series of functions for extracting assets
+"""
+Example / Vocabulary:
+
+asset =
+{
+    "ObjectName": "DataTable'/Game/MyGame/MyDataTable.MyDataTable'",
+    "ObjectPath": "Game/MyGame/MyDataTable.MyDataTable"
+}
+-> to asset path: "Game/MyGame/MyDataTable.MyDataTable"
+-> to file path: "WRF/Content/MyGame/MyDataTable.json[0]"
+-> to json content: [{a}, {b}]
+-> to data: {a}
+
+* ObjectPath can alternatively be Game/MyGame/MYDataTable.5 where 5 represents the index of the data in the json content
+* ObjectPath (the key) can instead be AssetPathName in some cases
+"""
+
 # The two most front-facing functions
 def asset_to_data(asset: dict) -> dict:
     asset_path = asset_to_asset_path(asset)
@@ -67,19 +86,20 @@ def asset_to_asset_path(asset: dict) -> dict:
         raise ValueError("Asset must have either ObjectPath or AssetPathName")
     return asset_path
 
-# Converts "asset_path_name" or "ObjectPath" to the actual file path
+# Converts "AssetPathName" or "ObjectPath" to the actual file path
 def asset_path_to_file_path(asset_path):
     # Ensure OPTIONS is initialized
     if OPTIONS is None:
         raise ValueError("OPTIONS not initialized. Call init_options() first.")
     
     game_name = OPTIONS.game_name
+    # Example from Dark and Darker:
     # ObjectPath (DT) are suffixed with .<assetName> like path/to//assetName.assetName, return 0 index
         # "DungeonCrawler/Content/DungeonCrawler/ActorStatus/Buff/AbyssalFlame/GE_AbyssalFlame.0" -> "F:\DarkAndDarkerWiki\Exports\DungeonCrawler\Content\DungeonCrawler\ActorStatus\Buff\AbyssalFlame\GE_AbyssalFlame.json"
-    # asset_path_name (V2) are prefixed with \Game instead of \DungeonCrawler\Content, and suffixed with .<index>
+    # AssetPathName (V2) are prefixed with \Game instead of \DungeonCrawler\Content, and suffixed with .<index>
         # "/Game/DungeonCrawler/Maps/Dungeon/Modules/Crypt/Edge/Armory/Armory_A.Armory_A" -> "F:\DarkAndDarkerWiki\Exports\DungeonCrawler\Content\Maps\Dungeon\Modules\Crypt\Edge\Armory\Armory_A.json"
     
-    # "BlueprintGeneratedClass'/Game/Sparrow/.../BP_Buff_A.BP_Buff_A_C'" -> use the part in quotes
+    # Or whatever this format is "BlueprintGeneratedClass'/Game/Sparrow/.../BP_Buff_A.BP_Buff_A_C'" -> use the part in quotes
     # if ' in asset path twice
     if "\'" in asset_path and asset_path.count("\'") == 2:
         asset_path = asset_path.split("\'")[1]
@@ -107,7 +127,7 @@ def path_to_index(path: str) -> int:
         return 0
     return int(index_str)
 
-# Converts "asset_path_name" or "ObjectPath" to the actual file path and the index of the asset
+# Converts "AssetPathName" or "ObjectPath" to the actual file path and the index of the asset
 # when a asset/object path is referenced, the index corresponds to the specific element of the asset to jump to
 # i.e. if file A references file B with index 2, it means within file B's json of [a, b, c], it will jump to the data within c
 def asset_path_to_file_path_and_index(asset_path):
