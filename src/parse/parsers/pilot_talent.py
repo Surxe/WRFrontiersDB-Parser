@@ -41,6 +41,7 @@ class PilotTalent(ParseObject):
         props = cdo_data["Properties"]
 
         key_to_parser_function = {
+            "EffectOffset": "value",
             "UberGraphFrame": None,
             "FadeOutTime": None, #pretty sure this is for the following OverlayMeshFx and not any gameplay effects
             "OverlayMeshFx": None,
