@@ -920,7 +920,7 @@ def p_weapon_selectors(data: list):
         tag = ws["ModuleTag"]
         if tag is None:
             continue
-        module_tag_id = ModuleTag.get_from_asset_path(tag["ObjectPath"])
+        module_tag_id = ModuleTag.create_from_asset(tag).id
         weapon_selectors.append({"module_tag_id": module_tag_id})
 
     if weapon_selectors:
@@ -934,7 +934,7 @@ def p_ability_selectors(data: list):
             allowed_placement_types.append(parse_colon_colon(aptype))
         module_tags = []
         for mtag in aselector["ModuleTags"]:
-            module_tag_id = ModuleTag.get_from_asset_path(mtag["ObjectPath"])
+            module_tag_id = ModuleTag.create_from_asset(mtag).id
             module_tags.append({"module_tag_id": module_tag_id})
         
         ability_selector = {}
@@ -950,7 +950,7 @@ def p_ability_selectors(data: list):
 def p_module_tag_selector(data: list):
     module_tags = []
     for elem in data:
-        module_tag_id = ModuleTag.get_from_asset_path(elem["ObjectPath"])
+        module_tag_id = ModuleTag.create_from_asset(elem).id
         module_tags.append({"module_tag_id": module_tag_id})
     return module_tags
     

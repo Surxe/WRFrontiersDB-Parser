@@ -88,6 +88,13 @@ class ParseObject: #generic object that all classes extend
         return cls.get_from_asset_path(asset_path, sub_index=sub_index, create_if_missing=create_if_missing, id_or_obj='obj')
         
     @classmethod
+    def create_from_asset_path(cls, asset_path: str, sub_index=True, create_if_missing=True):
+        """
+        For now its mostly a wrapper of get_from_asset_path that first gets asset path from asset
+        """
+        return cls.get_from_asset_path(asset_path, sub_index=sub_index, create_if_missing=create_if_missing, id_or_obj='obj')
+
+    @classmethod
     def get_from_asset_path(cls, asset_path: str, sub_index=True, create_if_missing=True, id_or_obj='id') -> str:
         """
         Returns the ID of an object from its asset path.

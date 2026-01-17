@@ -327,8 +327,7 @@ class CharacterModule(ParseObject):
     def _p_abilities(self, list: list):
         parsed_abilities = []
         for ability in list:
-            ability_asset_path = ability["ObjectPath"]
-            ability_id = Ability.get_from_asset_path(ability_asset_path)
+            ability_id = Ability.create_from_asset(ability).id
             parsed_abilities.append(ability_id)
         return parsed_abilities
 
