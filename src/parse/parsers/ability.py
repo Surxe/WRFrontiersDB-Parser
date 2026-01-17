@@ -645,10 +645,6 @@ class Ability(ParseObject):
         if not parsed_conditions:
             return
         return parsed_conditions
-
-    def _p_stat(self, data: dict):
-        stat_id = ModuleStat.get_from_asset_path(data["ObjectPath"])
-        return stat_id
         
     def _p_charge_trigger(self, data: dict):
         if data is None or data == []:
@@ -914,7 +910,7 @@ def p_modifier(data):
 def p_ability_classes(data: dict):
     ids = []
     for ability_class in data:
-        ability_id = Ability.get_from_asset_path(ability_class["ObjectPath"])
+        ability_id = Ability.create_from_asset(ability_class).id
         ids.append(ability_id)
     return ids
 

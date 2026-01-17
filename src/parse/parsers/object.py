@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import OPTIONS, path_to_id, asset_path_to_file_path_and_index, get_json_data, logger, merge_dicts, asset_path_to_data, process_key_to_parser_function, sort_dict
+from utils import OPTIONS, asset_to_asset_path, path_to_id, asset_path_to_file_path_and_index, get_json_data, logger, merge_dicts, asset_path_to_data, process_key_to_parser_function, sort_dict
 
 import json
 
@@ -78,9 +78,17 @@ class ParseObject: #generic object that all classes extend
                 return None
         else:
             return cls.objects[id]
+
+    @classmethod
+    def create_from_asset(cls, asset: dict, sub_index=True, create_if_missing=True):
+        """
+        For now its mostly a wrapper of get_from_asset_path that first gets asset path from asset
+        """
+        asset_path = asset_to_asset_path(asset)
+        return cls.get_from_asset_path(asset_path, sub_index=sub_index, create_if_missing=create_if_missing, id_or_obj='obj')
         
     @classmethod
-    def get_from_asset_path(cls, asset_path: str, sub_index=True, create_if_missing=True) -> str:
+    def get_from_asset_path(cls, asset_path: str, sub_index=True, create_if_missing=True, id_or_obj='id') -> str:
         """
         Returns the ID of an object from its asset path.
         If the object does not exist, it creates a new instance by parsing the asset file.
@@ -97,6 +105,8 @@ class ParseObject: #generic object that all classes extend
             
             obj = cls(obj_id, obj_data)
 
+        if id_or_obj == 'obj':
+            return obj
         return obj_id
 
     @classmethod
