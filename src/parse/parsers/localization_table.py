@@ -27,8 +27,7 @@ def parse_localization(data: dict):
         table_asset_path = data["TableId"]
         if '.' in table_asset_path:
             # If the path contains a dot, it is an asset path
-            localization_table_id = LocalizationTable.get_from_asset_path(table_asset_path)
-            localization_table = LocalizationTable.get_from_id(localization_table_id)
+            localization_table = LocalizationTable.create_from_asset_path(table_asset_path)
             localization_table_namespace = localization_table.table_namespace
         else:
             localization_table_namespace = path_to_file_name(data["TableId"]).split('ST_')[-1] #ST_C_Currencies -> namespace is C_Currencies

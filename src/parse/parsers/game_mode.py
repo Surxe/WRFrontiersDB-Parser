@@ -153,7 +153,7 @@ class GameMode(ParseObject):
         })
 
     def _p_bot_names(self, data):
-        return BotNames.get_from_asset_path(data["ObjectPath"])
+        return BotNames.create_from_asset(data).id
         
     def _p_honor_system(self, data):
         data = asset_path_to_data(data["ObjectPath"])
@@ -163,7 +163,7 @@ class GameMode(ParseObject):
         data = data["Properties"]["Rewards"]
         ids = []
         for honor_reward in data:
-            honor_reward_id = HonorReward.get_from_asset_path(honor_reward["ObjectPath"])
+            honor_reward_id = HonorReward.create_from_asset(honor_reward).id
             ids.append(honor_reward_id)
         return ids
 

@@ -20,5 +20,4 @@ class ModuleRarity(ParseObject):
         self._process_key_to_parser_function(key_to_parser_function, props)
 
     def _p_rarity_data_asset(self, data):
-        asset_path = data["ObjectPath"]
-        return Rarity.get_from_asset_path(asset_path)
+        return Rarity.create_from_asset(data).id

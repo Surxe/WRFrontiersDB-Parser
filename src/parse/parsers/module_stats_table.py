@@ -22,8 +22,7 @@ class ModuleStatsTable(ParseObject):
     def _p_all_module_stats(self, data):
         parsed_stats = dict()
         for stat_key, stat_data in data.items():
-            asset_path = stat_data["ObjectPath"]
-            stat_id = ModuleStat.get_from_asset_path(asset_path)
+            stat_id = ModuleStat.create_from_asset(stat_data).id
             parsed_stats[stat_key] = stat_id
         
         return parsed_stats
