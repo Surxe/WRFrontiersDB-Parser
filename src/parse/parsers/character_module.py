@@ -5,7 +5,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import ParseObject
 from parsers.ability import Ability, p_movement_component, p_collision_component, p_actor_class
-from utils import ParseTarget, asset_path_to_data, parse_colon_colon, parse_editor_curve_data, merge_dicts, process_key_to_parser_function
+from utils import ParseTarget, asset_to_data, asset_path_to_data, parse_colon_colon, parse_editor_curve_data, merge_dicts, process_key_to_parser_function
 from loguru import logger
 
 class CharacterModule(ParseObject):
@@ -13,7 +13,7 @@ class CharacterModule(ParseObject):
     
     def _parse(self):
         class_default_object = self.source_data["ClassDefaultObject"]
-        cdo_data = asset_path_to_data(class_default_object["ObjectPath"])
+        cdo_data = asset_to_data(class_default_object)
         props = cdo_data["Properties"]
 
         key_to_parser_function = {
@@ -105,7 +105,7 @@ class CharacterModule(ParseObject):
             self.misc = other_data
 
     def _p_module_scalar(self, data):
-        module_scalar_data = asset_path_to_data(data["ObjectPath"])
+        module_scalar_data = asset_to_data(data)
         if "Properties" not in module_scalar_data:
             return
         
@@ -145,16 +145,16 @@ class CharacterModule(ParseObject):
         return parsed_module_scalers
     
     def _p_obstacle_dmg_modifier(self, data):
-        return asset_path_to_data(data["ObjectPath"])["Properties"]["Value"]
+        return asset_to_data(data)["Properties"]["Value"]
 
     def _p_fire_modes(self, data):
         if len(data) != 1:
             raise ValueError(f"Structure changed for {self.__class__.__name__} {self.id}: expected 1 FireMode, got {len(data)}")
         fire_mode = data[0]
-        fire_mode_data = asset_path_to_data(fire_mode["ObjectPath"])
+        fire_mode_data = asset_to_data(fire_mode)
 
         def p_firing_behavior(data):
-            data = asset_path_to_data(data["ObjectPath"])
+            data = asset_to_data(data)
             data = data["Properties"]
             # contains damage related data that is overlayed over the Default damage found in ModuleScalars
 
@@ -258,7 +258,7 @@ class CharacterModule(ParseObject):
 
             # Recursively parse template if present
             if "ProjectileClass" in data:
-                base = p_firing_behavior(asset_path_to_data(data["ProjectileClass"]["ObjectPath"])["ClassDefaultObject"])
+                base = p_firing_behavior(asset_to_data(data["ProjectileClass"])["ClassDefaultObject"])
             else:
                 base = {}
             result = dict(base)
@@ -270,7 +270,7 @@ class CharacterModule(ParseObject):
             return merge_dicts(result, overlay)
 
         def p_burst_behavior(data):
-            data = asset_path_to_data(data["ObjectPath"])
+            data = asset_to_data(data)
             props = data["Properties"]
 
             key_to_parser_function = {
@@ -284,7 +284,7 @@ class CharacterModule(ParseObject):
             })
         
         def p_charging_behavior(data):
-            data = asset_path_to_data(data["ObjectPath"])
+            data = asset_to_data(data)
             props = data["Properties"]
 
             def p_charge_modifiers(data: list):
@@ -327,8 +327,7 @@ class CharacterModule(ParseObject):
     def _p_abilities(self, list: list):
         parsed_abilities = []
         for ability in list:
-            ability_asset_path = ability["ObjectPath"]
-            ability_id = Ability.get_from_asset_path(ability_asset_path)
+            ability_id = Ability.create_from_asset(ability).id
             parsed_abilities.append(ability_id)
         return parsed_abilities
 
@@ -357,7 +356,7 @@ class CharacterModule(ParseObject):
         return parsed_mappings
 
     def _p_ballistic_behavior(self, data):
-        ballistic_behavior_data = asset_path_to_data(data["ObjectPath"])
+        ballistic_behavior_data = asset_to_data(data)
         props = ballistic_behavior_data["Properties"]
 
         key_to_parser_function = {

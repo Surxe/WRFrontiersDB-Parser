@@ -12,7 +12,7 @@ from parsers.image import Image, parse_image_asset_path
 from parsers.pilot import Pilot
 from parsers.module import Module
 from parsers.localization_table import parse_localization
-from utils import asset_path_to_data
+from utils import asset_path_to_data, asset_to_data
 
 class CharacterPreset(ParseObject):
     objects = dict()
@@ -46,7 +46,7 @@ class CharacterPreset(ParseObject):
     def _p_modules(self, data):
         modules = {}
         for index, module_entry in enumerate(data):
-            module_id = Module.get_from_asset_path(module_entry["Module"]["ObjectPath"], sub_index=False)
+            module_id = Module.create_from_asset(module_entry["Module"], sub_index=False).id
             socket_name = module_entry["ParentSocket"]
             parent_socket_index = module_entry["ParentModuleIndex"]
             # determine parent_socket_name by using the parent_socket_index lookup in modules
@@ -62,7 +62,7 @@ class CharacterPreset(ParseObject):
         return modules
     
     def _p_pilot(self, data):
-        pilot = Pilot.get_from_asset_path(data["PilotAsset"]["ObjectPath"])
+        pilot = Pilot.create_from_asset(data["PilotAsset"]).id
         return pilot
     
     def set_is_factory_preset(self, is_factory_preset):
@@ -74,33 +74,30 @@ def parse_factory_presets(to_file=False):
     props = root_data[0]["Properties"]
     
     if 'DefaultPresets' in props:
-        character_presets_data = asset_path_to_data(props["DefaultPresets"]["ObjectPath"])
+        character_presets_data = asset_to_data(props["DefaultPresets"])
     elif 'InitialPlayerRobots' in props:#older structure
-        character_presets_data = asset_path_to_data(props["InitialPlayerRobots"]["ObjectPath"]) 
+        character_presets_data = asset_to_data(props["InitialPlayerRobots"]) 
     else:
         logger.error("No default presets found in DA_Meta_Root data.")
         return
     props = character_presets_data["Properties"]
 
-    def make_bot_preset(bot_preset_asset_path):
-        bot_preset_id = CharacterPreset.get_from_asset_path(bot_preset_asset_path)
-        bot_preset = CharacterPreset.objects[bot_preset_id]
+    def make_bot_preset(bot_preset_asset):
+        bot_preset = CharacterPreset.create_from_asset(bot_preset_asset)
         bot_preset.set_is_factory_preset(True)
     
     if 'Presets' in props: #newer structure
         presets = props["Presets"]
         for bot_preset_entry in presets:
-            bot_preset_asset_path = bot_preset_entry["ObjectPath"]
-            make_bot_preset(bot_preset_asset_path)
+            make_bot_preset(bot_preset_entry)
             
     elif 'Robots' in props: #older structure
         robots = props["Robots"]
         for robot in robots:
-            preset_asset_path = robot["PresetAsset"]["ObjectPath"]
             unlock_asset = robot["UnlockAsset"]
             if unlock_asset is not None:
                 continue # only include presets that are available from the start
-            make_bot_preset(preset_asset_path)
+            make_bot_preset(robot["PresetAsset"])
 
     else:
         logger.error("No presets found in factory presets data.")

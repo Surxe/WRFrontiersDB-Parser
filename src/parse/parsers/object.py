@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import OPTIONS, path_to_id, asset_path_to_file_path_and_index, get_json_data, logger, merge_dicts, asset_path_to_data, process_key_to_parser_function, sort_dict
+from utils import OPTIONS, asset_to_asset_path, path_to_id, asset_path_to_file_path_and_index, get_json_data, logger, merge_dicts, asset_path_to_data, process_key_to_parser_function, sort_dict
 
 import json
 
@@ -45,7 +45,7 @@ class ParseObject: #generic object that all classes extend
         """
         Recursively parse and merge template ability data.
         """
-        asset_path = template["ObjectPath"]
+        asset_path = asset_to_asset_path(template)
         template_data = asset_path_to_data(asset_path)
         base_template_data = {}
         if template_data and "Template" in template_data:
@@ -66,29 +66,51 @@ class ParseObject: #generic object that all classes extend
         return obj_as_dict
 
     @classmethod
-    def get_from_id(cls, id, create_if_missing=False):
+    def get_from_id(cls, id):
         """
         Returns an object from the class dictionary by its ID.
-        If the object does not exist and create_if_missing is True, it creates a new instance.
+        If the object does not exist, it returns None.
         """
         if id not in cls.objects:
-            if create_if_missing:
-                return cls(id)
-            else:
-                return None
+            return None
         else:
             return cls.objects[id]
-        
+
     @classmethod
-    def get_from_asset_path(cls, asset_path: str, sub_index=True, create_if_missing=True) -> str:
+    def get_from_asset_path(cls, asset_path: str):
         """
-        Returns the ID of an object from its asset path.
-        If the object does not exist, it creates a new instance by parsing the asset file.
-        sub_index: Whether to use the sub-index when parsing the asset file.
+        If the object doesn't already exist, it still returns the object_id
+        Returns:
+            tuple: (object_id, object)
         """
         obj_id = path_to_id(asset_path)
         obj = cls.get_from_id(obj_id)
-        if obj is None and create_if_missing:
+        return obj_id, obj
+
+    @classmethod
+    def get_from_asset(cls, asset: dict):
+        """
+        Wrapper of get_from_asset_path that first gets asset path from asset
+        """
+        asset_path = asset_to_asset_path(asset)
+        return cls.get_from_asset_path(asset_path)
+
+    @classmethod
+    def create_from_asset(cls, asset: dict, sub_index=True):
+        """
+        Wrapper of get_from_asset_path that first gets asset path from asset
+        """
+        asset_path = asset_to_asset_path(asset)
+        return cls.create_from_asset_path(asset_path, sub_index=sub_index)
+
+    @classmethod
+    def create_from_asset_path(cls, asset_path: str, sub_index=True) -> str:
+        """
+        Creates an object if it doesn't already exist, and returns itself
+        sub_index: Whether to use the sub-index when parsing the asset file.
+        """
+        obj_id, obj = cls.get_from_asset_path(asset_path)
+        if obj is None:
             file_path, index = asset_path_to_file_path_and_index(asset_path)
             logger.debug(f"Parsing {cls.__name__} {obj_id} from {file_path} . {index}")
             if not sub_index:
@@ -97,7 +119,7 @@ class ParseObject: #generic object that all classes extend
             
             obj = cls(obj_id, obj_data)
 
-        return obj_id
+        return obj
 
     @classmethod
     def objects_to_dict(cls):

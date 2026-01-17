@@ -28,7 +28,7 @@ class Material(ParseObject):
         self._process_key_to_parser_function(key_to_parser_function, props)
 
     def _p_customization_rarity(self, data):
-        return CustomizationRarity.get_from_asset_path(data["ObjectPath"])
+        return CustomizationRarity.create_from_asset(data).id
     
     def _p_customization_type(self, data):
-        return CustomizationType.get_from_asset_path(data["ObjectPath"])
+        return CustomizationType.create_from_asset(data).id

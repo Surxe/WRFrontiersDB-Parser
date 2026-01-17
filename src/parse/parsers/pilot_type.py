@@ -30,9 +30,7 @@ class PilotType(ParseObject):
         self._process_key_to_parser_function(key_to_parser_function, props)
 
     def _p_rarity_data_asset(self, data):
-        asset_path = data["ObjectPath"]
-        return Rarity.get_from_asset_path(asset_path)
+        return Rarity.create_from_asset(data).id
 
     def _p_group_reward(self, data):
-        asset_path = data["ObjectPath"]
-        return GroupReward.get_from_asset_path(asset_path)
+        return GroupReward.create_from_asset(data).id

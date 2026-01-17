@@ -6,7 +6,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from parsers.object import ParseObject
 from parsers.localization_table import parse_localization
 
-from utils import asset_path_to_data, parse_colon_colon
+from utils import asset_to_data, parse_colon_colon
 
 class HonorReward(ParseObject):
     objects = dict()  # Dictionary to hold all HonorReward instances
@@ -31,6 +31,6 @@ class HonorReward(ParseObject):
 
 
     def _p_reward_processor(self, data):
-        data = asset_path_to_data(data["ObjectPath"])
+        data = asset_to_data(data)
         if "Properties" in data:
             return data["Properties"]#["PlayerStateProperty"]

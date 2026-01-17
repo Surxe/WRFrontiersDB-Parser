@@ -11,7 +11,7 @@ from parsers.localization_table import parse_localization
 from parsers.image import parse_image_asset_path
 from parsers.module_stat import ModuleStat
 
-from utils import ParseTarget, ParseAction, asset_path_to_data, asset_path_to_file_path, get_json_data, parse_colon_colon
+from utils import ParseTarget, ParseAction, asset_to_file_path, get_json_data, asset_to_data, parse_colon_colon
 
 class PilotTalent(ParseObject):
     objects = dict()  # Dictionary to hold all PilotTalent instances
@@ -31,13 +31,13 @@ class PilotTalent(ParseObject):
 
         self._process_key_to_parser_function(key_to_parser_function, props, log_descriptor='PilotTalent')
 
-    def _p_bp(self, data: dict):
-        bp_file_path = asset_path_to_file_path(data["AssetPathName"])
+    def _p_bp(self, asset: dict):
+        bp_file_path = asset_to_file_path(asset)
         bp_data = get_json_data(bp_file_path, index=0)
         if 'ClassDefaultObject' not in bp_data:
             return
         
-        cdo_data = asset_path_to_data(bp_data["ClassDefaultObject"]["ObjectPath"])
+        cdo_data = asset_to_data(bp_data["ClassDefaultObject"])
         props = cdo_data["Properties"]
 
         key_to_parser_function = {
@@ -118,7 +118,7 @@ class PilotTalent(ParseObject):
     def _p_stats(self, stats):
         parsed_stats = []
         for stat in stats:
-            stat_id = ModuleStat.get_from_asset_path(stat["Key"].split('SModuleStatInfo\'')[1])
+            stat_id = ModuleStat.create_from_asset_path(stat["Key"].split('SModuleStatInfo\'')[1]).id
             value = stat["Value"]
             parsed_stats.append({
                 "stat_id": stat_id,
@@ -136,8 +136,7 @@ class PilotTalent(ParseObject):
         for buff in buffs:
             parsed_buff = {}
 
-            buff_asset_path = buff["ObjectPath"]
-            buff_data = asset_path_to_data(buff_asset_path)
+            buff_data = asset_to_data(buff)
 
             parsed_buff = p_actor_class(buff_data["ClassDefaultObject"])
 

@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import logger, path_to_id, get_json_data, asset_path_to_data, OPTIONS
+from utils import logger, path_to_id, get_json_data, asset_to_data, OPTIONS
 from parsers.localization_table import parse_localization
 
 from parsers.object import ParseObject
@@ -54,21 +54,20 @@ class Pilot(ParseObject):
         return second_name
 
     def _p_pilot_type(self, data: dict):
-        return PilotType.get_from_asset_path(data["ObjectPath"])
+        return PilotType.create_from_asset(data).id
 
     def _p_pilot_class(self, data: dict):
-        return PilotClass.get_from_asset_path(data["ObjectPath"])
+        return PilotClass.create_from_asset(data).id
 
     def _p_personality(self, data: dict):
-        return PilotPersonality.get_from_asset_path(data["ObjectPath"])
+        return PilotPersonality.create_from_asset(data).id
 
     def _p_faction(self, data: dict):
-        asset_path = data["ObjectPath"]
-        return Faction.get_from_asset_path(asset_path)
+        return Faction.create_from_asset(data).id
     
     def _p_sell_price(self, data: dict):
         return {
-            "currency_id": Currency.get_from_asset_path(data["Currency"]["ObjectPath"]),
+            "currency_id": Currency.create_from_asset(data["Currency"]).id,
             "Amount": data["Amount"]
         }
     
@@ -78,13 +77,13 @@ class Pilot(ParseObject):
         logger.debug(f"Parsing {len(levels)} levels for {self.id}")
 
         for i, level in enumerate(levels):
-            level_data = asset_path_to_data(level["ObjectPath"])
+            level_data = asset_to_data(level)
             if level_data is None:
-                raise ValueError(f"Level data not found for asset path: {level['ObjectPath']}")
+                raise ValueError(f"Level data not found for asset: {level}")
             self.levels.append(dict())
         
             props = level_data["Properties"]
-            self.levels[i]["talent_type_id"] = PilotTalentType.get_from_asset_path(props["TalentType"]["ObjectPath"])
+            self.levels[i]["talent_type_id"] = PilotTalentType.create_from_asset(props["TalentType"]).id
             if "ReputationCost" in props:
                 self.levels[i]["reputation_cost"] = props["ReputationCost"]
             upgrade_cost = parse_currency(props["CurrencyCost"])
@@ -93,8 +92,7 @@ class Pilot(ParseObject):
             talents = props["Talents"]
             self.levels[i]["talents"] = []
             for talent in talents:
-                asset_path = talent["ObjectPath"]
-                talent_id = PilotTalent.get_from_asset_path(asset_path)
+                talent_id = PilotTalent.create_from_asset(talent).id
                 self.levels[i]["talents"].append(talent_id)
 
 def parse_pilot_wrapper(dir, file_name):

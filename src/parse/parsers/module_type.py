@@ -30,6 +30,4 @@ class ModuleType(ParseObject):
         self._process_key_to_parser_function(key_to_parser_function, props)
 
     def _p_module_category(self, data):
-        asset_path = data["ObjectPath"]
-
-        return ModuleCategory.get_from_asset_path(asset_path)
+        return ModuleCategory.create_from_asset(data).id

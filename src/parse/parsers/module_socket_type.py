@@ -38,8 +38,7 @@ class ModuleSocketType(ParseObject):
     def _p_compatible_modules(self, data):
         compatible_module_types = []
         for elem in data:
-            asset_path = elem["ObjectPath"]
-            module_type_id = ModuleType.get_from_asset_path(asset_path)
+            module_type_id = ModuleType.create_from_asset(elem).id
             compatible_module_types.append(module_type_id)
         
         return compatible_module_types

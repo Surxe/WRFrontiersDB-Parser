@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import ParseTarget, parse_colon_colon, logger, get_json_data, asset_path_to_file_path_and_index, asset_path_to_data, path_to_id, asset_path_to_file_path, OPTIONS, parse_editor_curve_data
+from utils import ParseTarget, parse_colon_colon, logger, asset_to_asset_path, asset_to_data, asset_to_asset_path, get_json_data, asset_path_to_file_path_and_index, asset_path_to_data, path_to_id, asset_path_to_file_path, OPTIONS, parse_editor_curve_data
 from parsers.localization_table import parse_localization
 
 from parsers.object import ParseObject
@@ -29,9 +29,9 @@ class GameMode(ParseObject):
 
     def _parse_bp(self, bp_path: str):
         bp_data = get_json_data(bp_path, index=0)
-        cdo_path = bp_data["ClassDefaultObject"]["ObjectPath"]
+        cdo_path = asset_to_asset_path(bp_data["ClassDefaultObject"])
         cdo_file_path, index = asset_path_to_file_path_and_index(cdo_path)
-        logger.debug(f"Parsing {self.__class__.__name__} BP data from {cdo_file_path}")
+        logger.debug(f"Parsing {self.__class__.__name__} BP data from {cdo_file_path}") #Need to do asset path extraction more manually here for access to cdo_file_path
         cdo_data = get_json_data(cdo_file_path, index=index)
         props = cdo_data["Properties"]
 
@@ -104,7 +104,7 @@ class GameMode(ParseObject):
         return parse_colon_colon(data["SelectionMethod"])
 
     def _p_match_reward(self, data):
-        data = asset_path_to_data(data["ObjectPath"])
+        data = asset_to_data(data)
         parsed_data = dict()
         for key, value in data["Properties"].items():
             if key != "ID":
@@ -115,7 +115,7 @@ class GameMode(ParseObject):
         return p_actor_class(data)
 
     def _p_titan_settings(self, data):
-        data = asset_path_to_data(data["ObjectPath"])["Properties"]
+        data = asset_to_data(data)["Properties"]
         
         key_to_parser_function = {
             "TitanCharge": "value",
@@ -137,7 +137,7 @@ class GameMode(ParseObject):
         })
 
     def _p_ability_charge_settings(self, data):
-        data = asset_path_to_data(data["ObjectPath"])
+        data = asset_to_data(data)
         if 'Properties' not in data:
             return
         data = data["Properties"]
@@ -153,17 +153,17 @@ class GameMode(ParseObject):
         })
 
     def _p_bot_names(self, data):
-        return BotNames.get_from_asset_path(data["ObjectPath"])
+        return BotNames.create_from_asset(data).id
         
     def _p_honor_system(self, data):
-        data = asset_path_to_data(data["ObjectPath"])
-        data = asset_path_to_data(data["ClassDefaultObject"]["ObjectPath"])
+        data = asset_to_data(data)
+        data = asset_to_data(data["ClassDefaultObject"])
         if 'Properties' not in data:
             return
         data = data["Properties"]["Rewards"]
         ids = []
         for honor_reward in data:
-            honor_reward_id = HonorReward.get_from_asset_path(honor_reward["ObjectPath"])
+            honor_reward_id = HonorReward.create_from_asset(honor_reward).id
             ids.append(honor_reward_id)
         return ids
 
@@ -180,7 +180,7 @@ def parse_game_modes(to_file=False):
     root_data = get_json_data(root_path, index=0)
     game_modes = root_data["Properties"]["GameModes"]
     for game_mode_entry in game_modes:
-        game_mode_asset_path = game_mode_entry["ObjectPath"]
+        game_mode_asset_path = asset_to_asset_path(game_mode_entry)
         game_mode_id = path_to_id(game_mode_asset_path)
         game_mode_file_path = asset_path_to_file_path(game_mode_asset_path)
         game_mode_data = get_json_data(game_mode_file_path)

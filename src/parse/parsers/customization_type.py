@@ -25,4 +25,4 @@ class CustomizationType(ParseObject):
         self._process_key_to_parser_function(key_to_parser_function, props)
 
     def _p_group_reward(self, data):
-        return GroupReward.get_from_asset_path(data["ObjectPath"])
+        return GroupReward.create_from_asset(data).id

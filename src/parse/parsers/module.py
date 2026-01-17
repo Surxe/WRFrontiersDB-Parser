@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import ParseTarget, logger, path_to_id, get_json_data, asset_path_to_data, parse_colon_colon, OPTIONS
+from utils import ParseTarget, logger, path_to_id, get_json_data, asset_to_data, asset_path_to_data, parse_colon_colon, OPTIONS
 from parsers.localization_table import parse_localization
 
 from parsers.object import ParseObject
@@ -63,15 +63,13 @@ class Module(ParseObject):
             logger.debug(f"Module {self.id} is not ready for production")
 
     def _p_module_rarity(self, data):
-        asset_path = data["ObjectPath"]
-        return ModuleRarity.get_from_asset_path(asset_path)
+        return ModuleRarity.create_from_asset(data).id
 
     def _p_character_modules(self, data):
         character_modules = []
         for character_module in data:
-            new_asset_path_name = character_module["Value"]["AssetPathName"]
             mount = parse_colon_colon(character_module["Key"]) # "ESCharacterModuleMountWay::Left" -> Left
-            character_module_id = CharacterModule.get_from_asset_path(new_asset_path_name)
+            character_module_id = CharacterModule.create_from_asset(character_module["Value"]).id
             character_modules.append({
                 "character_module_id": character_module_id,
                 "mount": mount,
@@ -82,13 +80,12 @@ class Module(ParseObject):
     def _p_module_tags(self, data):
         module_tags = []
         for elem in data:
-            asset_path = elem["ObjectPath"]
-            module_tag_id = ModuleTag.get_from_asset_path(asset_path)
+            module_tag_id = ModuleTag.create_from_asset(elem).id
             module_tags.append(module_tag_id)
         return module_tags
 
     def _p_module_scalar(self, data):
-        module_scalar_data = asset_path_to_data(data["ObjectPath"])
+        module_scalar_data = asset_to_data(data)
         scalars = self._p_scalars(module_scalar_data)
         if not scalars:
             return
@@ -97,8 +94,7 @@ class Module(ParseObject):
 
     def _p_ability_scalars(self, data):
         for elem in data:
-            asset_path = elem["ObjectPath"]
-            ability_scalar_data = asset_path_to_data(asset_path)
+            ability_scalar_data = asset_to_data(elem)
             scalars = self._p_scalars(ability_scalar_data)
 
             if not hasattr(self, "abilities_scalars"):
@@ -159,7 +155,7 @@ class Module(ParseObject):
         return ret
 
     def _p_parameter(self, data):
-        return ModuleStat.get_from_asset_path(data["ObjectPath"])
+        return ModuleStat.create_from_asset(data).id
     
     def _p_levels_data(self, data):
         module_rarity = self.module_rarity_id if hasattr(self, "module_rarity_id") else None
@@ -338,30 +334,25 @@ class Module(ParseObject):
         return text_tags
 
     def _p_faction(self, data):
-        asset_path = data["ObjectPath"]
-        return Faction.get_from_asset_path(asset_path)
+        return Faction.create_from_asset(data).id
 
     def _p_module_classes(self, data):
         module_classes_ids = []
         for elem in data:
-            asset_path = elem["ObjectPath"]
-            module_class_id = ModuleClass.get_from_asset_path(asset_path)
+            module_class_id = ModuleClass.create_from_asset(elem).id
             module_classes_ids.append(module_class_id)
         return module_classes_ids
 
     def _p_module_stats_table(self, data):
-        asset_path = data["ObjectPath"]
-        return ModuleStatsTable.get_from_asset_path(asset_path)     
+        return ModuleStatsTable.create_from_asset(data).id     
 
     def _p_module_type(self, data):
-        asset_path = data["ObjectPath"]
-        return ModuleType.get_from_asset_path(asset_path)
+        return ModuleType.create_from_asset(data).id
 
     def _p_sockets(self, data):
         module_socket_type_ids = []
         for elem in data:
-            asset_path = elem["Type"]["ObjectPath"]
-            module_socket_type_id = ModuleSocketType.get_from_asset_path(asset_path)
+            module_socket_type_id = ModuleSocketType.create_from_asset(elem["Type"]).id
             module_socket_type_ids.append(module_socket_type_id)
         return module_socket_type_ids
     

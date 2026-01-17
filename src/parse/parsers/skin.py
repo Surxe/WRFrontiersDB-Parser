@@ -28,4 +28,4 @@ class Skin(ParseObject):
     def _p_customization_rarity(self, data):
         if data is None:
             return
-        return CustomizationRarity.get_from_asset_path(data["ObjectPath"])
+        return CustomizationRarity.create_from_asset(data).id
