@@ -12,7 +12,7 @@ from parsers.image import Image, parse_image_asset_path
 from parsers.pilot import Pilot
 from parsers.module import Module
 from parsers.localization_table import parse_localization
-from utils import asset_path_to_data
+from utils import asset_path_to_data, asset_to_data
 
 class CharacterPreset(ParseObject):
     objects = dict()
@@ -74,9 +74,9 @@ def parse_factory_presets(to_file=False):
     props = root_data[0]["Properties"]
     
     if 'DefaultPresets' in props:
-        character_presets_data = asset_path_to_data(props["DefaultPresets"]["ObjectPath"])
+        character_presets_data = asset_to_data(props["DefaultPresets"])
     elif 'InitialPlayerRobots' in props:#older structure
-        character_presets_data = asset_path_to_data(props["InitialPlayerRobots"]["ObjectPath"]) 
+        character_presets_data = asset_to_data(props["InitialPlayerRobots"]) 
     else:
         logger.error("No default presets found in DA_Meta_Root data.")
         return
