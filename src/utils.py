@@ -50,6 +50,23 @@ def normalize_path(path: str) -> str:
 #    Unreal Engine Parsing    #
 ###############################
 
+# The two most front-facing functions
+def asset_to_data(asset: dict) -> dict:
+    asset_path = asset_to_asset_path(asset)
+    return asset_path_to_data(asset_path)
+def asset_to_file_path(asset: dict) -> str:
+    asset_path = asset_to_asset_path(asset)
+    return asset_path_to_file_path(asset_path)
+
+def asset_to_asset_path(asset: dict) -> dict:
+    if 'ObjectPath' in asset:
+        asset_path = asset["ObjectPath"]
+    elif 'AssetPathName' in asset:
+        asset_path = asset["AssetPathName"]
+    else:
+        raise ValueError("Asset must have either ObjectPath or AssetPathName")
+    return asset_path
+
 # Converts "asset_path_name" or "ObjectPath" to the actual file path
 def asset_path_to_file_path(asset_path):
     # Ensure OPTIONS is initialized
