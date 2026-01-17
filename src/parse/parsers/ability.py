@@ -5,17 +5,16 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parse.parsers.module_tag import ModuleTag
 from parsers.object import ParseObject
-from utils import logger, ParseTarget, ParseAction, process_key_to_parser_function, asset_path_to_data, parse_colon_colon, parse_editor_curve_data, merge_dicts
+from utils import logger, ParseTarget, ParseAction, process_key_to_parser_function, asset_to_asset_path, asset_to_data, asset_path_to_data, parse_colon_colon, parse_editor_curve_data, merge_dicts
 from parsers.image import parse_image_asset_path
 from parsers.localization_table import parse_localization
-from parsers.module_stat import ModuleStat
 
 class Ability(ParseObject):
     objects = dict()  # Dictionary to hold all Class instances
 
     def _parse(self):
         if 'ClassDefaultObject' in self.source_data:
-            data = asset_path_to_data(self.source_data["ClassDefaultObject"]["ObjectPath"])
+            data = asset_to_data(self.source_data["ClassDefaultObject"])
         else:
             data = self.source_data
         # Wrapper for main ability parsing
@@ -321,7 +320,7 @@ class Ability(ParseObject):
     def _p_pulling_action(self, data: dict):
         logger.debug(f"Parsing pulling action for {self.id}")
 
-        data = asset_path_to_data(data["ObjectPath"])
+        data = asset_to_data(data)
         if 'Template' in data:
             template_data = self._p_pulling_action(data["Template"])
         else:
@@ -348,7 +347,7 @@ class Ability(ParseObject):
 
 
     def _p_vertical_accel_curve(self, data: dict):
-        data = asset_path_to_data(data["ObjectPath"])["Properties"]
+        data = asset_to_data(data)["Properties"]
         return parse_editor_curve_data(data)
 
     def _p_distance_range(self, data: dict):
@@ -362,7 +361,7 @@ class Ability(ParseObject):
         )
 
     def _p_hacking_cast_action(self, data: dict):
-        data = asset_path_to_data(data["ObjectPath"])
+        data = asset_to_data(data)
 
         parsed_data = {}
         if 'Properties' in data:
@@ -396,7 +395,7 @@ class Ability(ParseObject):
         #EffectType can be Defensive, Attack, or numerical code like 16
     
     def _p_activate_weapons_action(self, data: dict):
-        data = asset_path_to_data(data["ObjectPath"])
+        data = asset_to_data(data)
         if data is None or data == [] or 'Properties' not in data:
             return
         return self._p_weapon_infos(data["Properties"]["WeaponInfos"])
@@ -404,7 +403,7 @@ class Ability(ParseObject):
     def _p_spawn_action(self, data: dict):
         logger.debug(f"Parsing spawn action for {self.id}")
 
-        spawn_action_data = asset_path_to_data(data["ObjectPath"])
+        spawn_action_data = asset_to_data(data)
 
         if 'Properties' not in spawn_action_data:
             return
@@ -434,7 +433,7 @@ class Ability(ParseObject):
     
     def _p_targeting_action(self, data: dict):
         logger.debug(f"Parsing targeting action for {self.id}")
-        targeting_action_data = asset_path_to_data(data["ObjectPath"])
+        targeting_action_data = asset_to_data(data)
 
         if targeting_action_data is None or targeting_action_data == [] or 'Properties' not in targeting_action_data:
             return
@@ -473,8 +472,8 @@ class Ability(ParseObject):
     def _p_confirmation_action(self, data: dict):
         logger.debug(f"Parsing confirmation action for {self.id}")
 
-        conf_ac_data = asset_path_to_data(data["ObjectPath"])
-        return self._p_targeting_action(conf_ac_data["Properties"]["TargetingAction"])
+        targeting_action_data = asset_to_data(data)
+        return self._p_targeting_action(targeting_action_data["Properties"]["TargetingAction"])
 
         
 
@@ -483,8 +482,8 @@ class Ability(ParseObject):
 
         parsed_projectile_types = []
         for projectile_type in data:
-            projectile_class_data = asset_path_to_data(projectile_type["ProjectileClass"]["ObjectPath"])
-            props = asset_path_to_data(projectile_class_data["ClassDefaultObject"]["ObjectPath"])["Properties"]
+            projectile_class_data = asset_to_data(projectile_type["ProjectileClass"])
+            props = asset_to_data(projectile_class_data["ClassDefaultObject"])["Properties"]
 
             key_to_parser_function = {
                 "UberGraphFrame": None,
@@ -575,7 +574,7 @@ class Ability(ParseObject):
     def _p_actions(self, list: dict):
         parsed_actions = []
         for elem in list:
-            data = asset_path_to_data(elem["ObjectPath"])
+            data = asset_to_data(elem)
             if 'Properties' not in data:
                 continue
             action_data = data["Properties"]
@@ -608,7 +607,7 @@ class Ability(ParseObject):
         return parsed_actions
 
     def _p_max_speed_modifier(self, data: dict):
-        data = asset_path_to_data(data["ObjectPath"])
+        data = asset_to_data(data)
         if "Properties" not in data:
             return
         parsed_data = dict()
@@ -621,7 +620,7 @@ class Ability(ParseObject):
 
     def _p_ai_condition(self, data: dict) -> dict:
         """Recursively parse and overlay AI condition and its template."""
-        condition_data = asset_path_to_data(data["ObjectPath"])
+        condition_data = asset_to_data(data)
         if not condition_data:
             return {}
         # Recursively parse template if present
@@ -649,7 +648,7 @@ class Ability(ParseObject):
     def _p_charge_trigger(self, data: dict):
         if data is None or data == []:
             return
-        data = asset_path_to_data(data["ObjectPath"])
+        data = asset_to_data(data)
         if 'Properties' not in data:
             return
         return data["Properties"]
@@ -670,7 +669,7 @@ class Ability(ParseObject):
 def p_armor_zones(list: list):
     armor_zone_names = []
     for elem in list:
-        armor_zone_asset_path = elem["ObjectPath"]
+        armor_zone_asset_path = asset_to_asset_path(elem)
         # armor zone file does not contain any front-facing information, so instead going to use the file name as a reference here
         armor_zone_name = armor_zone_asset_path.split("DA_ArmorZone_")[-1].split(".")[0] #../DA_ArmorZone_Torso.0 -> Torso
         armor_zone_names.append(armor_zone_name)
@@ -703,7 +702,7 @@ def p_expansion_settings(data: dict):
     return True # placeholder to indicate presence of expansion settings, which is enough for now
 
 def p_expansion_template(data: dict):
-    data = asset_path_to_data(data["ObjectPath"])
+    data = asset_to_data(data)
     if 'Properties' not in data:
         return
     props = data["Properties"]
@@ -722,7 +721,7 @@ def p_expansion_template(data: dict):
     })
 
 def p_movement_component(data: dict):
-    data = asset_path_to_data(data["ObjectPath"])
+    data = asset_to_data(data)
     if 'Properties' not in data:
         return
     key_to_parser_function = {
@@ -766,13 +765,13 @@ def p_movement_component(data: dict):
     })
 
 def p_focus_component(data: dict):
-    data = asset_path_to_data(data["ObjectPath"])
+    data = asset_to_data(data)
     if 'Properties' not in data:
         return
     return data["Properties"]
 
 def p_damage_applier(data: dict):
-    data = asset_path_to_data(data["ObjectPath"])["Properties"]
+    data = asset_to_data(data)["Properties"]
 
     key_to_parser_function = {
         "TickFunction": "value",
@@ -796,7 +795,7 @@ def p_weapon_infos(list: list):
 
     last_weapon_module_asset_path = None
     for weapon_info in list:
-        weapon_module_asset_path = weapon_info["WeaponModule"]["ObjectPath"]
+        weapon_module_asset_path = asset_to_asset_path(weapon_info["WeaponModule"])
         # Ensure the path is not different to the previous one
         if last_weapon_module_asset_path is not None and weapon_module_asset_path != last_weapon_module_asset_path:
             raise ValueError(
@@ -810,13 +809,13 @@ def p_weapon_infos(list: list):
 def p_physics_volume(data):
     invocs = {}
     for invoc in data["InvocationList"]:
-        invoc_data = asset_path_to_data(invoc["Object"]["ObjectPath"])["Properties"]
+        invoc_data = asset_to_data(invoc["Object"])["Properties"]
         fn_name = invoc["FunctionName"]
         invocs[fn_name] = invoc_data
     return invocs
 
 def p_collision_component(data):
-    data = asset_path_to_data(data["ObjectPath"])
+    data = asset_to_data(data)
     if 'Properties' not in data:
         return
     props = data["Properties"]
@@ -841,18 +840,18 @@ def p_collision_component(data):
     })
 
 def p_push_settings_class(data: dict):
-    data = asset_path_to_data(data["ObjectPath"])
+    data = asset_to_data(data)
     return p_pushing_settings(data["ClassDefaultObject"])
 
 def p_pushing_settings(data: dict):
-    data = asset_path_to_data(data["ObjectPath"])
+    data = asset_to_data(data)
     if 'Properties' not in data:
         return
     else:
         return data["Properties"]
 
 def p_transf_sphere_component(data: dict):
-    data = asset_path_to_data(data["ObjectPath"])
+    data = asset_to_data(data)
     if 'Properties' not in data:
         return
     props = data["Properties"]
@@ -878,7 +877,7 @@ def p_buffs(data: dict):
     return parsed_buffs
 
 def p_buff_area_component(data: dict):
-    data = asset_path_to_data(data["ObjectPath"])
+    data = asset_to_data(data)
     if 'Properties' not in data:
         return
     props = data["Properties"]
@@ -899,7 +898,7 @@ def p_prevent_focus(data: dict):
 
 def p_modifier(data):
     if isinstance(data, dict):
-        data = asset_path_to_data(data["ObjectPath"])
+        data = asset_to_data(data)
         if 'Properties' not in data:
             return
         props = data["Properties"]
@@ -964,7 +963,7 @@ def p_actor_class(data: dict):
         for elem in data:
             return p_actor_class(elem)
     elif type(data) is dict:
-        data = asset_path_to_data(data["ObjectPath"])
+        data = asset_to_data(data)
     elif type(data) is str:
         # is an asset path
         data = asset_path_to_data(data)
@@ -972,7 +971,7 @@ def p_actor_class(data: dict):
         raise ValueError("Invalid data format")
 
     if 'ClassDefaultObject' in data:
-        data = asset_path_to_data(data["ClassDefaultObject"]["ObjectPath"])
+        data = asset_to_data(data["ClassDefaultObject"])
     if 'Properties' not in data:
         return
     props = data["Properties"]
