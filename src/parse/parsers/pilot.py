@@ -74,6 +74,8 @@ class Pilot(ParseObject):
     def _p_levels(self, levels: list):
         self.levels = []
 
+        expected_rep_costs = [None, 1000, 2000, 5000, 10000]
+
         logger.debug(f"Parsing {len(levels)} levels for {self.id}")
 
         for i, level in enumerate(levels):
@@ -85,7 +87,11 @@ class Pilot(ParseObject):
             props = level_data["Properties"]
             self.levels[i]["talent_type_id"] = PilotTalentType.create_from_asset(props["TalentType"]).id
             if "ReputationCost" in props:
-                self.levels[i]["reputation_cost"] = props["ReputationCost"]
+                rep_cost = props["ReputationCost"]
+                expected_rep_cost = expected_rep_costs[i]
+                if rep_cost != expected_rep_cost:
+                    logger.error(f"Reputation cost for {self.id} level {i} is {rep_cost}, expected {expected_rep_cost} for frontend purposes")
+                self.levels[i]["reputation_cost"] = rep_cost
             upgrade_cost = parse_currency(props["CurrencyCost"])
             if upgrade_cost:
                 self.levels[i]["upgrade_cost"] = upgrade_cost
