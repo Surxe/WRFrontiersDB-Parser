@@ -27,7 +27,7 @@ from analysis import *
 def main():
     """Main parsing function - uses global OPTIONS singleton."""
     os.makedirs(OPTIONS.output_dir, exist_ok=True)
-    clear_dir(OPTIONS.output_dir)  # Clear the data directory before parsing
+    clear_dir(OPTIONS.output_dir)
 
     parse_localizations()
     parse_modules() #module relies on english localization being added to each key just as a helpful Ctrl+F reference

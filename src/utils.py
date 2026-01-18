@@ -28,9 +28,12 @@ def get_json_data(file_path: str, index: int | None = None) -> dict:
         logger.debug(f"Loaded data from {file_path}") #TODO: fix log level always being debug, change this to .trace
     return data
 
-def clear_dir(dir_path: str) -> None:
-    """Clear directory contents but keep the directory itself"""
+def clear_dir(dir_path: str, keep_git: bool = True) -> None:
+    """Clear directory contents but keep the directory itself. 
+    Keep the .git directory if keep_git is True."""
     for item in os.listdir(dir_path):
+        if item == ".git" and keep_git:
+            continue
         item_path = os.path.join(dir_path, item)
         if os.path.isdir(item_path):
             shutil.rmtree(item_path)
