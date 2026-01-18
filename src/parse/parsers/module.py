@@ -278,17 +278,7 @@ class Module(ParseObject):
                     
             parsed_levels.append(parsed_level)
 
-        # Categorize into constants and variables
-        categorized_parsed_levels = {}
-        constants_and_variables = self._separate_constants_and_variables(parsed_levels)
-        constants = constants_and_variables.get("constants")
-        variables = constants_and_variables.get("variables")
-        if constants:
-            categorized_parsed_levels["constants"] = constants
-        if variables:
-            categorized_parsed_levels["variables"] = variables
-
-        return categorized_parsed_levels
+        return self._separate_constants_and_variables(parsed_levels)
     
     def _separate_constants_and_variables(self, levels_data):
         """
@@ -319,10 +309,10 @@ class Module(ParseObject):
                 parsed_levels_variable_stats.append(parsed_level_variable_stats)
 
         ret = {}
-        if parsed_levels_variable_stats:
-            ret["variables"] = parsed_levels_variable_stats
         if parsed_constant_stats:
             ret["constants"] = parsed_constant_stats
+        if parsed_levels_variable_stats:
+            ret["variables"] = parsed_levels_variable_stats
         
         return ret
 
