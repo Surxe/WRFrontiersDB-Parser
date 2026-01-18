@@ -59,6 +59,12 @@ class Module(ParseObject):
         
         self._process_key_to_parser_function(key_to_parser_function, props)
 
+        # Patch production_status for module id's with "3dVar" in them.
+        if "3dVar" in self.id:
+            if getattr(self, "production_status", None) is not None:
+                logger.debug(f"Module {self.id} has production status {self.production_status} but is a 3d variation. Assuming this is not actually ready for production and removing prod status.")
+            del self.production_status
+
         if not hasattr(self, "production_status"):
             logger.debug(f"Module {self.id} is not ready for production")
 
