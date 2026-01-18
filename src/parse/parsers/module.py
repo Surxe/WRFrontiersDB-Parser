@@ -278,17 +278,20 @@ class Module(ParseObject):
                     
             parsed_levels.append(parsed_level)
 
-        # Categorize into constants and variables
-        categorized_parsed_levels = {}
         constants_and_variables = self._separate_constants_and_variables(parsed_levels)
-        constants = constants_and_variables.get("constants")
-        variables = constants_and_variables.get("variables")
-        if constants:
-            categorized_parsed_levels["constants"] = constants
-        if variables:
-            categorized_parsed_levels["variables"] = variables
 
-        return categorized_parsed_levels
+        # Validate that particular keys are always constants (for frontend purposes)
+        expected_constants = [
+            'module_class_id_1', 'module_class_id_2',
+            'module_tag_id_1', 'module_tag_id_2',
+            'module_faction_id',
+            'LoadCapacity', 'EnergyCapacity'
+        ]
+        for key in expected_constants:
+            if 'variables' in constants_and_variables and key in constants_and_variables["variables"]:
+                logger.error(f"Expected key {key} is a variable when it was expected to be a constant or null. For frontend purposes.")
+
+        return constants_and_variables
     
     def _separate_constants_and_variables(self, levels_data):
         """
@@ -319,10 +322,10 @@ class Module(ParseObject):
                 parsed_levels_variable_stats.append(parsed_level_variable_stats)
 
         ret = {}
-        if parsed_levels_variable_stats:
-            ret["variables"] = parsed_levels_variable_stats
         if parsed_constant_stats:
             ret["constants"] = parsed_constant_stats
+        if parsed_levels_variable_stats:
+            ret["variables"] = parsed_levels_variable_stats
         
         return ret
 
