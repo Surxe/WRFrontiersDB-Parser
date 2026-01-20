@@ -821,6 +821,7 @@ def p_collision_component(data):
     props = data["Properties"]
 
     key_to_parser_function = {
+        "BoxExtent": "value",
         "SphereRadius": "value",
         "AreaClassOverride": None,
         "bUseSystemDefaultObstacleAreaClass": None,
@@ -977,6 +978,7 @@ def p_actor_class(data: dict):
     props = data["Properties"]
 
     key_to_parser_function = {
+        "BoxExtent": "value",
         "HackingTime": "value", #kernel
         "Hacker": p_actor_class,
         "BuffEventStartMain": None,
@@ -1051,6 +1053,7 @@ def p_actor_class(data: dict):
         "CountermeasuresEffect": None, #vfx griffin
         "NewDamageDistribution": None, #contains no data, griffin
         "Min Health": "value", #griffin
+        "Color": None,
         "FriendColor": None,
         "HealingHostileColor": None,
         "HealingFriendColor": None,
