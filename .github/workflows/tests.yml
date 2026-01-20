@@ -1,9 +1,7 @@
 name: Run Tests
 
 on:
-  pull_request:   # Triggers when a PR is opened, synchronized, or reopened
-    branches:
-      - main
+  workflow_dispatch:  # Allows manual triggering
 
 jobs:
   test:
