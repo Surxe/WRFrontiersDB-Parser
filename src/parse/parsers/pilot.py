@@ -47,6 +47,19 @@ class Pilot(ParseObject):
 
         self._process_key_to_parser_function(key_to_parser_function, props)
 
+        # Patch production_status for pilots id's that were accidentally released early
+        pilots_to_patch = {
+            '2025-09-09': {
+                "DA_Pilot_Halloween_Dredge.0": True,
+                "DA_Pilot_Halloween_Emma.0": True,
+                "DA_Pilot_Rare_Giancarlo.0": True,
+            }
+        }
+        if OPTIONS.game_version in pilots_to_patch and self.id in pilots_to_patch[OPTIONS.game_version]:
+            if getattr(self, "production_status", None) is not None:
+                logger.debug(f"Pilot {self.id} has production status {self.production_status} but is in the list of pilots that were accidentally released early. Assuming this is not actually ready for production and removing prod status.")
+                del self.production_status
+
     def _p_second_name(self, data: dict):
         second_name = parse_localization(data)
         if 'InvariantString' in second_name and second_name["InvariantString"] == " ":
