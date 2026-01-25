@@ -23,6 +23,7 @@ from parsers.module_stats_table import ModuleStatsTable
 from parsers.currency import Currency
 from parsers.upgrade_cost import UpgradeCost
 from parsers.scrap_reward import ScrapReward
+from parsers.movement_type import MovementType
 from parsers.image import parse_image_asset_path, Image
 
 from typing import Literal
@@ -406,6 +407,7 @@ def parse_modules(to_file=False):
         Ability.to_file()
         UpgradeCost.to_file()
         ScrapReward.to_file()
+        MovementType.to_file()
         Image.to_file()
 
 if __name__ == "__main__":

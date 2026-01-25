@@ -5,7 +5,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import ParseObject
 from parsers.ability import Ability, p_movement_component, p_collision_component, p_actor_class
-from utils import ParseTarget, asset_to_data, parse_editor_curve_data, parse_colon_colon, parse_curve, merge_dicts, process_key_to_parser_function
+from parsers.movement_type import MovementType
+from utils import ParseTarget, asset_to_data, parse_colon_colon, parse_curve, merge_dicts, process_key_to_parser_function
 from loguru import logger
 
 class CharacterModule(ParseObject):
@@ -23,7 +24,7 @@ class CharacterModule(ParseObject):
             "ModuleDataAsset": None, # references index 0 which ofc references this spot, so ignoring it
             "Components": None,
             "Abilities": (self._p_abilities, "abilities_ids"),
-            "MovementType": p_movement_type, # too complicated to bother with; contains movement data as curve tables
+            "MovementType": (p_movement_type, "movement_type_id"), # too complicated to bother with; contains movement data as curve tables
             "FootstepSettings": None,
             "DefaultMaxSpeed": None,
             "LandingSoundEvent": None,
@@ -438,68 +439,4 @@ def p_this_distance_setting(data):
     })
 
 def p_movement_type(data):
-    props = asset_to_data(data)["Properties"]
-    
-    key_to_parser_function = {
-        "MaxMobility": "value",
-        "ChassisType": parse_colon_colon,
-        "Flying_Z_Friction": "value",
-        "MovementProperties": p_movement_properties,
-    }
-
-    return process_key_to_parser_function(key_to_parser_function, props, log_descriptor="MovementType", set_attrs=False, default_configuration={
-        'target': ParseTarget.MATCH_KEY
-    })
-
-def p_ecd_wrapper(data):
-    key_to_parser_function = {
-        "EditorCurveData": parse_editor_curve_data,
-        "ExternalCurve": "value",
-    }
-    return process_key_to_parser_function(key_to_parser_function, data, log_descriptor="EditorCurveDataWrapper", set_attrs=False, default_configuration={
-        'target': ParseTarget.MATCH_KEY
-    })
-
-def p_ecd_list(list):
-    parsed_list = []
-    for elem in list:
-        key = elem["Key"]
-        value = p_ecd_wrapper(elem["Value"])
-        parsed_list.append({key: value})
-    return parsed_list
-
-def p_movement_properties(list):
-    parsed_props = []
-    for entry in list:
-        props = asset_to_data(entry)["Properties"]
-
-        key_to_parser_function = {
-            "AccelerationDependenceOnSpeed": p_ecd_wrapper,
-            "AccelerationDependenceOnPitch": p_ecd_wrapper,
-            "YawRateDependenceOnSpeed": p_ecd_wrapper,
-            "StandingRotationThreshold": "value",
-            "StandingVelocityThreshold": "value",
-            "StandingRotationAngleDegrees": "value",
-            "MaxAngleToMoveForwards": "value",
-            "MaxAngleToMoveForwardsFalling": "value",
-            "MovingForcedTurnVelocityThreshold": "value",
-            "MovingForcedTurnVelocityMaxSpeedRatio": "value",
-            "FrictionVector": "value",
-            "FrictionVelocityCompensationMultiplier": "value",
-            "MaxSpeedDependenceOnDesiredYaw": p_ecd_wrapper,
-            "BrakingDecelerationDependenceOnSpeed": p_ecd_wrapper,
-            "EmergencyDecelerationDependenceOnInputOpposition": p_ecd_wrapper,
-            "MaxFallingSpeed": "value",
-            "FallingAcceleration": "value",
-            "FallingBrakingDeceleration": "value",
-            "FallingBrakingVelocityThreshold": "value",
-            "MeshRotationStiffnessDamping": "value",
-            "VelocityMultiplierOnWallAngleHit": p_ecd_list,
-            "MovingForcedTurnRate": "value",
-
-        }
-
-        parsed_props.append(process_key_to_parser_function(key_to_parser_function, props, log_descriptor="MovementProperties", set_attrs=False, default_configuration={
-            'target': ParseTarget.MATCH_KEY
-        }))
-    return parsed_props
+    return MovementType.create_from_asset(data).id

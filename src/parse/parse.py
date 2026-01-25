@@ -67,6 +67,7 @@ def main():
     ModuleStatsTable.to_file()
     UpgradeCost.to_file()
     ScrapReward.to_file()
+    MovementType.to_file()
 
     Pilot.to_file()
     PilotType.to_file()
