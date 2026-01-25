@@ -23,7 +23,7 @@ class CharacterModule(ParseObject):
             "ModuleDataAsset": None, # references index 0 which ofc references this spot, so ignoring it
             "Components": None,
             "Abilities": (self._p_abilities, "abilities_ids"),
-            "MovementType": None, # too complicated to bother with; contains movement data as curve tables
+            "MovementType": p_movement_type, # too complicated to bother with; contains movement data as curve tables
             "FootstepSettings": None,
             "DefaultMaxSpeed": None,
             "LandingSoundEvent": None,
@@ -436,3 +436,31 @@ def p_this_distance_setting(data):
     return process_key_to_parser_function(key_to_parser_function, data, log_descriptor="DistanceSetting", set_attrs=False, default_configuration={
         'target': ParseTarget.MATCH_KEY
     })
+
+def p_movement_type(data):
+    props = asset_to_data(data)["Properties"]
+    
+    key_to_parser_function = {
+        "MaxMobility": "value",
+        "ChassisType": parse_colon_colon,
+        "Flying_Z_Friction": "value",
+        "MovementProperties": p_movement_properties,
+    }
+
+    return process_key_to_parser_function(key_to_parser_function, props, log_descriptor="MovementType", set_attrs=False, default_configuration={
+        'target': ParseTarget.MATCH_KEY
+    })
+
+def p_movement_properties(list):
+    parsed_props = []
+    for entry in list:
+        props = asset_to_data[entry]
+
+        key_to_parser_function = {
+            
+        }
+
+        parsed_props.append(process_key_to_parser_function(key_to_parser_function, data, log_descriptor="MovementProperties", set_attrs=False, default_configuration={
+            'target': ParseTarget.MATCH_KEY
+        }))
+    return parsed_props
