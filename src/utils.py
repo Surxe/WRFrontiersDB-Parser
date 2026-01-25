@@ -171,41 +171,8 @@ def parse_colon_colon(data: str):
         raise ValueError(f"Data '{data}' contains more than one '::'.")
     return split[-1] # i.e. "ESWeaponReloadType::X" -> "X"
 
-expected_curve_data = {
-    "TangentMode": "RCTM_Auto",
-    "TangentWeightMode": "RCTWM_WeightedNone",
-    "ArriveTangent": 0.0,
-    "ArriveTangentWeight": 0.0,
-    "LeaveTangent": 0.0,
-    "LeaveTangentWeight": 0.0
-}
 def parse_editor_curve_data(data: dict):
-    if 'KeyHandlesToIndices' in data:
-        del data['KeyHandlesToIndices']
-    if not data:
-        return []
-
-    if 'Keys' not in data:
-        return data
-    else:
-        data = data["Keys"]
-
-    parsed_curve = []
-    for elem in data:
-        for expected_key, expected_value in expected_curve_data.items():
-            if expected_key not in elem:
-                raise ValueError(f"Missing expected key '{expected_key}' in curve data element")
-            if elem[expected_key] != expected_value:
-                raise ValueError(f"Unexpected value for key '{expected_key}' in curve data element: {elem[expected_key]} (expected: {expected_value})")
-        interp_mode = elem["InterpMode"]
-        parsed_elem = {
-            "Time": elem["Time"],
-            "Value": elem["Value"],
-            "InterpMode": interp_mode
-        }
-        parsed_curve.append(parsed_elem)
-
-    return parsed_curve
+    return data # used to be unique restructuring here, but it needs to be 1:1 now.
 
 def parse_curve(data: dict):
     if 'DistToDamage' in data and'EditorCurveData' in data["DistToDamage"]:
