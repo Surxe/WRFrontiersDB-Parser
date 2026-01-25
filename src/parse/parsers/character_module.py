@@ -5,7 +5,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import ParseObject
 from parsers.ability import Ability, p_movement_component, p_collision_component, p_actor_class
-from utils import ParseTarget, asset_to_data, asset_path_to_data, parse_colon_colon, parse_editor_curve_data, merge_dicts, process_key_to_parser_function
+from parsers.movement_type import MovementType
+from utils import ParseTarget, asset_to_data, parse_colon_colon, parse_curve, merge_dicts, process_key_to_parser_function
 from loguru import logger
 
 class CharacterModule(ParseObject):
@@ -23,7 +24,7 @@ class CharacterModule(ParseObject):
             "ModuleDataAsset": None, # references index 0 which ofc references this spot, so ignoring it
             "Components": None,
             "Abilities": (self._p_abilities, "abilities_ids"),
-            "MovementType": None, # too complicated to bother with; contains movement data as curve tables
+            "MovementType": (p_movement_type, "movement_type_id"), # too complicated to bother with; contains movement data as curve tables
             "FootstepSettings": None,
             "DefaultMaxSpeed": None,
             "LandingSoundEvent": None,
@@ -182,7 +183,7 @@ class CharacterModule(ParseObject):
                 "AbilityChargePointsOnHit": "value",
                 "TitanChargePerHit": "value",
                 "DirectDamage": "value",
-                "AoeDamage": parse_editor_curve_data,
+                "AoeDamage": parse_curve,
                 "FireFX": None,
                 "bContinuousFireFX": None,
                 "bHasArmorVisualImpact": None,
@@ -204,11 +205,11 @@ class CharacterModule(ParseObject):
                 "CollisionComponent": p_collision_component,
                 "MovementComponent": self._p_movement_component,
                 "DirectDamage": "value",
-                "AoeDamage": parse_editor_curve_data,
+                "AoeDamage": parse_curve,
                 "CanBeTransfused": None,
                 "CollisionProfileName": "value",
                 "MeshComponent": None,
-                "GravityChangeFromDistance": parse_editor_curve_data,
+                "GravityChangeFromDistance": parse_curve,
                 "NumberOfMulticomponent": "value",
                 "TracerFX": None,
                 "WaveRadiusParam": None,
@@ -226,7 +227,7 @@ class CharacterModule(ParseObject):
                 "DirectionParam": None,
                 "ExplosionSoundEvent": None,
                 "ExplosionFX": None,
-                "DistanceSettingsCurve": parse_editor_curve_data,
+                "DistanceSettingsCurve": parse_curve,
                 "bUseTracerOnEachComponent": "value",
                 "bAlwaysRelevant": None,
                 "InitialLifeSpan": "value",
@@ -291,7 +292,7 @@ class CharacterModule(ParseObject):
                 parsed_modifiers = []
                 for charge_modifier in data:
                     what = parse_colon_colon(charge_modifier["Key"])
-                    ecd = parse_editor_curve_data(charge_modifier["Value"])
+                    ecd = parse_curve(charge_modifier["Value"])
                     parsed_modifier = {
                         "what": what,
                         "CurveData": ecd,
@@ -367,7 +368,7 @@ class CharacterModule(ParseObject):
             "bUseFocusComponentAlignment": "value",
             "ProjectileClass": None,
             "HitError": "value",
-            "DistToInitialSpeed": parse_editor_curve_data,
+            "DistToInitialSpeed": parse_curve,
             "bBallisticModeForced": "value",
             "RangeReserve": "value",
         }
@@ -381,7 +382,7 @@ def get_default_key_to_parser_function():
         "DefaultArmor": "value",
         "DefaultShield": "value",
         "DefaultDirectDamage": "value",
-        "DefaultAoeDamage": parse_editor_curve_data,
+        "DefaultAoeDamage": parse_curve,
         "DefaultClipSize": "value",
         "DefaultProjectilesPerShot": "value",
         "DefaultProjectileSpeed": "value",
@@ -436,3 +437,6 @@ def p_this_distance_setting(data):
     return process_key_to_parser_function(key_to_parser_function, data, log_descriptor="DistanceSetting", set_attrs=False, default_configuration={
         'target': ParseTarget.MATCH_KEY
     })
+
+def p_movement_type(data):
+    return MovementType.create_from_asset(data).id

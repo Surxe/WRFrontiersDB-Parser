@@ -171,56 +171,16 @@ def parse_colon_colon(data: str):
         raise ValueError(f"Data '{data}' contains more than one '::'.")
     return split[-1] # i.e. "ESWeaponReloadType::X" -> "X"
 
-expected_curve_data = {
-    "TangentMode": "RCTM_Auto",
-    "TangentWeightMode": "RCTWM_WeightedNone",
-    "ArriveTangent": 0.0,
-    "ArriveTangentWeight": 0.0,
-    "LeaveTangent": 0.0,
-    "LeaveTangentWeight": 0.0
-}
 def parse_editor_curve_data(data: dict):
-    if 'DistToDamage' in data:
-        dist_data = data["DistToDamage"]
-    elif 'FloatCurve' in data:
-        dist_data = data['FloatCurve']
-    else:
-        dist_data = data
-    
-    if 'EditorCurveData' in dist_data:
-        dist_data = dist_data["EditorCurveData"]
+    return data # used to be unique restructuring here, but it needs to be 1:1 now.
 
-    if 'KeyHandlesToIndices' in dist_data:
-        del dist_data['KeyHandlesToIndices']
-    if not dist_data:
-        return
+def parse_curve(data: dict):
+    if 'DistToDamage' in data and'EditorCurveData' in data["DistToDamage"]:
+        data["DistToDamage"]["EditorCurveData"] = parse_editor_curve_data(data["DistToDamage"]["EditorCurveData"])
+    elif 'FloatCurve' in data and'EditorCurveData' in data["FloatCurve"]:
+        data["FloatCurve"]["EditorCurveData"] = parse_editor_curve_data(data["FloatCurve"]["EditorCurveData"])
 
-    if 'Keys' not in dist_data:
-        return dist_data
-    else:
-        dist_data = dist_data["Keys"]
-
-    parsed_curve = []
-    for elem in dist_data:
-        for expected_key, expected_value in expected_curve_data.items():
-            if expected_key not in elem:
-                raise ValueError(f"Missing expected key '{expected_key}' in curve data element")
-            if elem[expected_key] != expected_value:
-                raise ValueError(f"Unexpected value for key '{expected_key}' in curve data element: {elem[expected_key]} (expected: {expected_value})")
-        interp_mode = elem["InterpMode"]
-        parsed_elem = {
-            "Time": elem["Time"],
-            "Value": elem["Value"],
-            "InterpMode": interp_mode
-        }
-        parsed_curve.append(parsed_elem)
-
-    curve_data = parsed_curve
-
-    if 'DistToDamage' in data:
-        data["DistToDamage"] = curve_data
-        return data
-    return curve_data
+    return data
 
 ###############################
 #           String            #
