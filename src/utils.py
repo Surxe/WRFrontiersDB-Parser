@@ -179,29 +179,19 @@ expected_curve_data = {
     "LeaveTangent": 0.0,
     "LeaveTangentWeight": 0.0
 }
-def parse_curve(data: dict):
-    if 'DistToDamage' in data:
-        dist_data = data["DistToDamage"]
-    elif 'FloatCurve' in data:
-        dist_data = data['FloatCurve']
-    else:
-        dist_data = data
-    
-    if 'EditorCurveData' in dist_data:
-        dist_data = dist_data["EditorCurveData"]
+def parse_editor_curve_data(data: dict):
+    if 'KeyHandlesToIndices' in data:
+        del data['KeyHandlesToIndices']
+    if not data:
+        return []
 
-    if 'KeyHandlesToIndices' in dist_data:
-        del dist_data['KeyHandlesToIndices']
-    if not dist_data:
-        return
-
-    if 'Keys' not in dist_data:
-        return dist_data
+    if 'Keys' not in data:
+        return data
     else:
-        dist_data = dist_data["Keys"]
+        data = data["Keys"]
 
     parsed_curve = []
-    for elem in dist_data:
+    for elem in data:
         for expected_key, expected_value in expected_curve_data.items():
             if expected_key not in elem:
                 raise ValueError(f"Missing expected key '{expected_key}' in curve data element")
@@ -215,12 +205,15 @@ def parse_curve(data: dict):
         }
         parsed_curve.append(parsed_elem)
 
-    curve_data = parsed_curve
+    return parsed_curve
 
-    if 'DistToDamage' in data:
-        data["DistToDamage"] = curve_data
-        return data
-    return curve_data
+def parse_curve(data: dict):
+    if 'DistToDamage' in data and'EditorCurveData' in data["DistToDamage"]:
+        data["DistToDamage"]["EditorCurveData"] = parse_editor_curve_data(data["DistToDamage"]["EditorCurveData"])
+    elif 'FloatCurve' in data and'EditorCurveData' in data["FloatCurve"]:
+        data["FloatCurve"]["EditorCurveData"] = parse_editor_curve_data(data["FloatCurve"]["EditorCurveData"])
+
+    return data
 
 ###############################
 #           String            #
