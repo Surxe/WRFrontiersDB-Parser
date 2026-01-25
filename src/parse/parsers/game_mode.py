@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import ParseTarget, parse_colon_colon, logger, asset_to_asset_path, asset_to_data, asset_to_asset_path, get_json_data, asset_path_to_file_path_and_index, asset_path_to_data, path_to_id, asset_path_to_file_path, OPTIONS, parse_editor_curve_data
+from utils import ParseTarget, parse_colon_colon, logger, asset_to_asset_path, asset_to_data, asset_to_asset_path, get_json_data, asset_path_to_file_path_and_index, asset_path_to_data, path_to_id, asset_path_to_file_path, OPTIONS, parse_curve
 from parsers.localization_table import parse_localization
 
 from parsers.object import ParseObject
@@ -124,8 +124,8 @@ class GameMode(ParseObject):
             "BeaconSteal": "value",
             "BeaconCapture": "value",
             "LastMechLost": "value",
-            "TitansDiff": parse_editor_curve_data,
-            "ScoreDiff": parse_editor_curve_data,
+            "TitansDiff": parse_curve,
+            "ScoreDiff": parse_curve,
             "TitanReadyMessageClass": None,
             "EnemyTeamDeployedTitanMessageClass": None,
             "BeaconHold": "value",

@@ -179,7 +179,7 @@ expected_curve_data = {
     "LeaveTangent": 0.0,
     "LeaveTangentWeight": 0.0
 }
-def parse_editor_curve_data(data: dict):
+def parse_curve(data: dict):
     if 'DistToDamage' in data:
         dist_data = data["DistToDamage"]
     elif 'FloatCurve' in data:

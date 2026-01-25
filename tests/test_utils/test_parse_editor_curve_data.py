@@ -17,12 +17,12 @@ spec = importlib.util.spec_from_file_location("src_utils", os.path.join(src_path
 src_utils = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(src_utils)
 
-parse_editor_curve_data = src_utils.parse_editor_curve_data
+parse_curve = src_utils.parse_curve
 expected_curve_data = src_utils.expected_curve_data
 
 
 class TestParseEditorCurveData(unittest.TestCase):
-    """Test cases for the parse_editor_curve_data function."""
+    """Test cases for the parse_curve function."""
     
     def setUp(self):
         """Set up common test data."""
@@ -49,7 +49,7 @@ class TestParseEditorCurveData(unittest.TestCase):
     def test_empty_data_returns_none(self):
         """Test that empty data returns None."""
         data = {}
-        result = parse_editor_curve_data(data)
+        result = parse_curve(data)
         self.assertIsNone(result)
     
     def test_no_keys_returns_data_as_is(self):
@@ -58,7 +58,7 @@ class TestParseEditorCurveData(unittest.TestCase):
             "SomeProperty": "value",
             "AnotherProperty": 42
         }
-        result = parse_editor_curve_data(data)
+        result = parse_curve(data)
         self.assertEqual(result, data)
     
     def test_dist_to_damage_structure_with_keys(self):
@@ -70,7 +70,7 @@ class TestParseEditorCurveData(unittest.TestCase):
             "OtherProperty": "preserved"
         }
         
-        result = parse_editor_curve_data(data)
+        result = parse_curve(data)
         
         expected = {
             "DistToDamage": [self.expected_parsed_element],
@@ -86,7 +86,7 @@ class TestParseEditorCurveData(unittest.TestCase):
             }
         }
         
-        result = parse_editor_curve_data(data)
+        result = parse_curve(data)
         expected = [self.expected_parsed_element]
         self.assertEqual(result, expected)
     
@@ -96,7 +96,7 @@ class TestParseEditorCurveData(unittest.TestCase):
             "Keys": [self.valid_curve_element]
         }
         
-        result = parse_editor_curve_data(data)
+        result = parse_curve(data)
         expected = [self.expected_parsed_element]
         self.assertEqual(result, expected)
     
@@ -110,7 +110,7 @@ class TestParseEditorCurveData(unittest.TestCase):
             }
         }
         
-        result = parse_editor_curve_data(data)
+        result = parse_curve(data)
         expected = {
             "DistToDamage": [self.expected_parsed_element]
         }
@@ -123,7 +123,7 @@ class TestParseEditorCurveData(unittest.TestCase):
             "KeyHandlesToIndices": {"handle1": 0, "handle2": 1}
         }
         
-        result = parse_editor_curve_data(data)
+        result = parse_curve(data)
         expected = [self.expected_parsed_element]
         self.assertEqual(result, expected)
     
@@ -138,7 +138,7 @@ class TestParseEditorCurveData(unittest.TestCase):
             "Keys": [self.valid_curve_element, element2]
         }
         
-        result = parse_editor_curve_data(data)
+        result = parse_curve(data)
         
         expected_element2 = {
             "Time": 2.0,
@@ -158,7 +158,7 @@ class TestParseEditorCurveData(unittest.TestCase):
         }
         
         with self.assertRaises(ValueError) as context:
-            parse_editor_curve_data(data)
+            parse_curve(data)
         
         self.assertIn("Missing expected key 'TangentMode'", str(context.exception))
     
@@ -172,7 +172,7 @@ class TestParseEditorCurveData(unittest.TestCase):
         }
         
         with self.assertRaises(ValueError) as context:
-            parse_editor_curve_data(data)
+            parse_curve(data)
         
         self.assertIn("Unexpected value for key 'TangentMode'", str(context.exception))
         self.assertIn("WRONG_VALUE (expected: RCTM_Auto)", str(context.exception))
@@ -188,7 +188,7 @@ class TestParseEditorCurveData(unittest.TestCase):
                 data = {"Keys": [invalid_element]}
                 
                 with self.assertRaises(ValueError) as context:
-                    parse_editor_curve_data(data)
+                    parse_curve(data)
                 
                 self.assertIn(f"Unexpected value for key '{field_name}'", str(context.exception))
     
@@ -200,7 +200,7 @@ class TestParseEditorCurveData(unittest.TestCase):
         data = {"Keys": [invalid_element]}
         
         with self.assertRaises(KeyError):
-            parse_editor_curve_data(data)
+            parse_curve(data)
     
     def test_missing_value_field(self):
         """Test that missing Value field causes KeyError (not handled by function)."""
@@ -210,7 +210,7 @@ class TestParseEditorCurveData(unittest.TestCase):
         data = {"Keys": [invalid_element]}
         
         with self.assertRaises(KeyError):
-            parse_editor_curve_data(data)
+            parse_curve(data)
     
     def test_missing_interp_mode_field(self):
         """Test that missing InterpMode field causes KeyError (not handled by function)."""
@@ -220,7 +220,7 @@ class TestParseEditorCurveData(unittest.TestCase):
         data = {"Keys": [invalid_element]}
         
         with self.assertRaises(KeyError):
-            parse_editor_curve_data(data)
+            parse_curve(data)
     
     def test_game_curve_data_example(self):
         """Test with realistic game curve data."""
@@ -257,7 +257,7 @@ class TestParseEditorCurveData(unittest.TestCase):
             "MaxRange": 50.0
         }
         
-        result = parse_editor_curve_data(game_data)
+        result = parse_curve(game_data)
         
         expected = {
             "DistToDamage": [
@@ -283,7 +283,7 @@ class TestParseEditorCurveData(unittest.TestCase):
             "WeaponType": "Rifle"
         }
         
-        result = parse_editor_curve_data(data)
+        result = parse_curve(data)
         
         # Since DistToDamage is not at top level, data should be returned as-is
         self.assertEqual(result, data)
@@ -297,7 +297,7 @@ class TestParseEditorCurveData(unittest.TestCase):
             "Keys": [{"different": "data"}]  # This should be ignored
         }
         
-        result = parse_editor_curve_data(data)
+        result = parse_curve(data)
         expected = [self.expected_parsed_element]
         self.assertEqual(result, expected)
     
@@ -316,7 +316,7 @@ class TestParseEditorCurveData(unittest.TestCase):
             }
         }
         
-        result = parse_editor_curve_data(data)
+        result = parse_curve(data)
         expected = {
             "DistToDamage": [self.expected_parsed_element],
             "FloatCurve": {
@@ -331,7 +331,7 @@ class TestParseEditorCurveData(unittest.TestCase):
             "Keys": []
         }
         
-        result = parse_editor_curve_data(data)
+        result = parse_curve(data)
         expected = []
         self.assertEqual(result, expected)
     
@@ -346,7 +346,7 @@ class TestParseEditorCurveData(unittest.TestCase):
         
         data = {"Keys": [element_with_numbers]}
         
-        result = parse_editor_curve_data(data)
+        result = parse_curve(data)
         
         expected = [{
             "Time": 12.5,
@@ -365,7 +365,7 @@ class TestParseEditorCurveData(unittest.TestCase):
             "PreserveThis": "value"
         }
         
-        result = parse_editor_curve_data(original_data)
+        result = parse_curve(original_data)
         
         # The function should modify the original data in-place for DistToDamage
         expected = {
@@ -390,7 +390,7 @@ class TestParseEditorCurveData(unittest.TestCase):
         import copy
         data_before_call = copy.deepcopy(original_data)
         
-        result = parse_editor_curve_data(original_data)
+        result = parse_curve(original_data)
         
         # Original data should be unchanged for FloatCurve
         self.assertEqual(original_data, data_before_call)

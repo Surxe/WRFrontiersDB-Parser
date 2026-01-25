@@ -5,7 +5,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parse.parsers.module_tag import ModuleTag
 from parsers.object import ParseObject
-from utils import logger, ParseTarget, ParseAction, process_key_to_parser_function, asset_to_asset_path, asset_to_data, asset_path_to_data, parse_colon_colon, parse_editor_curve_data, merge_dicts
+from utils import logger, ParseTarget, ParseAction, process_key_to_parser_function, asset_to_asset_path, asset_to_data, asset_path_to_data, parse_colon_colon, parse_curve, merge_dicts
 from parsers.image import parse_image_asset_path
 from parsers.localization_table import parse_localization
 
@@ -41,7 +41,7 @@ class Ability(ParseObject):
             "ImpactPointsCount": "value",
             "ThinBeamTime": "value",
             "ThickBeamTime": "value",
-            "Damage": parse_editor_curve_data,
+            "Damage": parse_curve,
             "ActorMeshFXClass": None,
             "ActorClass": self._p_actor_class,
             "bStandaloneActor": "value",
@@ -209,7 +209,7 @@ class Ability(ParseObject):
             "SweepObjectTypes": None,
             "Swipe Impulse Magnitude": "value",  # grim scythe
             "On Collision Buff Duration": "value",
-            "On Collision AoE Damage": parse_editor_curve_data,
+            "On Collision AoE Damage": parse_curve,
             "SweepRadius": "value",
             "Explosion Impulse Magnitude": "value",
             "Explosion Radius": "value",
@@ -348,7 +348,7 @@ class Ability(ParseObject):
 
     def _p_vertical_accel_curve(self, data: dict):
         data = asset_to_data(data)["Properties"]
-        return parse_editor_curve_data(data)
+        return parse_curve(data)
 
     def _p_distance_range(self, data: dict):
         key_to_parser_function_map = {
@@ -500,7 +500,7 @@ class Ability(ParseObject):
                 "MovementComponent": self._p_movement_component,
                 "BuffsOnHit": self._p_actor_class,
                 "DirectDamage": "value",
-                "AoeDamage": parse_editor_curve_data,
+                "AoeDamage": parse_curve,
                 "VisualDamage": None,
                 "ExplosionSettings": None, #doesn't mention radius, looks too niche/complex to bother with
                 "OnComponentExploded": None, #references the same props, oddly
@@ -511,7 +511,7 @@ class Ability(ParseObject):
                 "EffectiveDistanceSettingsDefault": (self._p_distance, "EffectiveDistanceSettings"),
                 "MaxDistanceSettingsDefault": (self._p_distance, "MaxDistanceSettings"),
                 "DeathDistanceSettingsDefault": (self._p_distance, "DeathDistanceSettings"),
-                "DefaultDistanceSettings": (parse_editor_curve_data, "DefaultDistanceSettings"),
+                "DefaultDistanceSettings": (parse_curve, "DefaultDistanceSettings"),
                 "OwnerReactionOnHit": None, # voiceline
                 "VictimReactionOnHoming": None,
                 "VictimReactionOnHit": None, # voiceline
@@ -543,7 +543,7 @@ class Ability(ParseObject):
                 "bSetVFXSizeFromCollision": None, #repulsor
                 "ObstaclesCollisionComponent": None,
                 "bUseGravityChangeFromDistanceCurve": "value", #ghost turret
-                "GravityChangeFromDistance": parse_editor_curve_data,
+                "GravityChangeFromDistance": parse_curve,
                 "ContinuousPushing": None, #kinetic pulse, is empty
                 "PushingEffect": None, #NSI - vfx?
                 "AvoidMarker": None,
@@ -694,7 +694,7 @@ def p_expansion_settings(data: dict):
     # curves = asset_path_to_data(data["ExternalCurve"]["ObjectPath"])["FloatCurves"]
     # parsed_curves = []
     # for curve in curves:
-    #     parsed_curve = parse_editor_curve_data(curve)
+    #     parsed_curve = parse_curve(curve)
     #     if parsed_curve:
     #         parsed_curves.append(parsed_curve)
     # return parsed_curves
@@ -1073,9 +1073,9 @@ def p_actor_class(data: dict):
         "ProxyMeshFXFadeOutTime": None,
         "CameraFX": None,
         "DirectDamage": "value",
-        "AoeDamage": parse_editor_curve_data,
+        "AoeDamage": parse_curve,
         "DirectDamagePerSecond": "value",
-        "AoeDamagePerSecond": parse_editor_curve_data,
+        "AoeDamagePerSecond": parse_curve,
         "TickInterval": "value",
         "DamageExplosionSettings": None, #FX
         "Owner": None,
