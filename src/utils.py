@@ -23,9 +23,9 @@ def get_json_data(file_path: str, index: int | None = None) -> dict:
         raise ValueError(f"Error: {file_path} is empty or not a valid JSON file.")
     elif index is not None and isinstance(data, list):
         data = data[index]
-        logger.debug(f"Loaded data from {file_path} at index {index}") #TODO: fix log level always being debug, change this to .trace
+        logger.trace(f"Loaded data from {file_path} at index {index}")
     else:
-        logger.debug(f"Loaded data from {file_path}") #TODO: fix log level always being debug, change this to .trace
+        logger.trace(f"Loaded data from {file_path}")
     return data
 
 def clear_dir(dir_path: str, keep_git: bool = True) -> None:

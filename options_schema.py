@@ -102,10 +102,10 @@ OPTIONS_SCHEMA = {
     "LOG_LEVEL": {
         "env": "LOG_LEVEL",
         "arg": "--log-level",
-        "type": Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        "type": Literal["TRACE", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         "default": "DEBUG",
         "section": "Both",
-        "help": "Logging level. Must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL."
+        "help": "Logging level. Must be one of: TRACE, DEBUG, INFO, WARNING, ERROR, CRITICAL."
     },
     "OUTPUT_DIR": {
         "env": "OUTPUT_DIR",
