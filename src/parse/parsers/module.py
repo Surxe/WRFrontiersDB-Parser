@@ -215,7 +215,7 @@ class Module(ParseObject):
                         scrap_num_id = len(scrap_rewards_ids) + 1 #index the next scrap reward will be at, +1
                         module_lvl_scrapindex_id = f"{module_lvl_id}_scrap{scrap_num_id}"
                         scrap_reward = ScrapReward(module_lvl_scrapindex_id, scrap_reward_currency, scrap_reward_amount)
-                        scrap_rewards_ids.append(scrap_reward.to_ref())
+                        scrap_rewards_ids.append(scrap_reward.id)
 
             # Since these are id'd this way, why not just have them referenced in the Module level directly?
             # A few weeks before writing, every intel discount was reflected in the client-side costs of items

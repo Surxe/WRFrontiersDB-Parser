@@ -12,6 +12,7 @@ from parsers.localization import Localization
 from parsers.module import Module
 from parsers.module_type import ModuleType
 from parsers.module_category import ModuleCategory
+from parsers.module_rarity import ModuleRarity
 from parsers.character_module import CharacterModule
 from parsers.module_stat import ModuleStat
 from parsers.upgrade_cost import UpgradeCost
@@ -86,7 +87,7 @@ class Analysis:
                 continue
 
             # Ensure module rarity is added
-            module_rarity_id = module.module_rarity_id
+            module_rarity_id = ModuleRarity.ref_to_id(module.module_rarity_id)
             if module_rarity_id not in frequency_map:
                 frequency_map[module_rarity_id] = {}
 
@@ -537,10 +538,10 @@ class Analysis:
         module = Module.get_from_id(module_id)
         if getattr(module, 'production_status', None) != 'Ready':
             return None
-        module_rarity_id = module.module_rarity_id
+        module_rarity_id = ModuleRarity.ref_to_id(module.module_rarity_id)
         module_type_ref = getattr(module, 'module_type_id', '')
         module_type = ModuleType.get_from_ref(module_type_ref)
-        module_category_id = module_type.module_category_id
+        module_category_id = ModuleCategory.ref_to_id(module_type.module_category_id)
 
         rarity_standard_cost_and_scrap = standard_cost_and_scrap[module_rarity_id]
         for level, cost_scrap_data in rarity_standard_cost_and_scrap.items():
@@ -760,10 +761,10 @@ class Analysis:
     def get_ability_stat(self, module, i, stat_type: Literal['primary', 'secondary']):
         ability_scalars = module.abilities_scalars[i]
         stat_id_key = f'{stat_type}_stat_id'
-        stat_id = ability_scalars.get(stat_id_key)
-        if stat_id is None:
+        stat_ref = ability_scalars.get(stat_id_key)
+        if stat_ref is None:
             return None
-        module_stat = ModuleStat.objects.get(stat_id)
+        module_stat = ModuleStat.get_from_ref(stat_ref)
         return module_stat
 
     def analyze_ability_descriptions(self):
@@ -794,6 +795,7 @@ class Analysis:
 
                 # Determine module category
                 module_type = ModuleType.get_from_ref(module.module_type_id)
+                module_type_id = module_type.id
                 category = localization.localize_from_name(module_type.name)
                 module_type_character_type = getattr(module_type, 'character_type', "Robot")
                 if module_type_character_type != "Robot":
@@ -850,7 +852,7 @@ class Analysis:
                         add_category_if_missing()
                         result[lang_code][category][abi_name_str] = self.format_description(abi_desc_localized, primary_stat, secondary_stat, localization)
                 # Determine from module alone
-                elif module.module_type_id in ['DA_ModuleType_Ability3.0', 'DA_ModuleType_Ability4.0']: #skip shoulder type
+                elif module_type_id in ['DA_ModuleType_Ability3.0', 'DA_ModuleType_Ability4.0']: #skip shoulder type
                     abi_name = module_name_str
                     abi_desc = localization.localize_from_name(module.description)
                     
