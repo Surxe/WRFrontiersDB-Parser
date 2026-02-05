@@ -652,7 +652,8 @@ class Analysis:
             if not hasattr(fpreset, 'is_factory_preset') or not fpreset.is_factory_preset: #only look at factory presets, as character presets includes ai bots
                 continue
             for module_socket_name, module_data in fpreset.modules.items():
-                module_id = module_data['id']
+                module_ref = module_data['id']
+                module_id = Module.get_from_ref(module_ref).id
 
                 this_module_upgrade_costs, module_category_id = self.get_module_upgrade_costs(module_id, standard_cost_and_scrap)
                 logger.debug(f"Adding upgrade cost for factory preset: {fpreset_id}")
@@ -792,7 +793,7 @@ class Analysis:
                     continue
 
                 # Determine module category
-                module_type = ModuleType.objects.get(module.module_type_id)
+                module_type = ModuleType.get_from_ref(module.module_type_id)
                 category = localization.localize_from_name(module_type.name)
                 module_type_character_type = getattr(module_type, 'character_type', "Robot")
                 if module_type_character_type != "Robot":
@@ -825,7 +826,7 @@ class Analysis:
 
                     # Add each ability's formatted description
                     for i, ability_ref in enumerate(abilities_ids):
-                        ability = Ability.get_from_ref(ability_id)
+                        ability = Ability.get_from_ref(ability_ref)
                         ability_name = getattr(ability, 'name', None)
                         ability_description = getattr(ability, 'description', None)
                         if ability_name is None:
