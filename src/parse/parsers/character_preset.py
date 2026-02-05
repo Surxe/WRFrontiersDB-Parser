@@ -46,7 +46,7 @@ class CharacterPreset(ParseObject):
     def _p_modules(self, data):
         modules = {}
         for index, module_entry in enumerate(data):
-            module_id = Module.create_from_asset(module_entry["Module"], sub_index=False).id
+            module_id = Module.create_from_asset(module_entry["Module"], sub_index=False).to_ref()
             socket_name = module_entry["ParentSocket"]
             parent_socket_index = module_entry["ParentModuleIndex"]
             # determine parent_socket_name by using the parent_socket_index lookup in modules
@@ -62,7 +62,7 @@ class CharacterPreset(ParseObject):
         return modules
     
     def _p_pilot(self, data):
-        pilot = Pilot.create_from_asset(data["PilotAsset"]).id
+        pilot = Pilot.create_from_asset(data["PilotAsset"]).to_ref()
         return pilot
     
     def set_is_factory_preset(self, is_factory_preset):

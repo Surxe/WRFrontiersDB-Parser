@@ -22,6 +22,6 @@ class DropTeam(ParseObject):
     def _p_characters(self, data):
         ids = []
         for elem in data:
-            preset_id = CharacterPreset.create_from_asset(elem).id
+            preset_id = CharacterPreset.create_from_asset(elem).to_ref()
             ids.append(preset_id)
         return ids

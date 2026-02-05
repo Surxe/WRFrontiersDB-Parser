@@ -120,10 +120,10 @@ class Analysis:
                                     )
                 
                 # Register upgrade cost
-                upgrade_cost_id = level_data.get('upgrade_cost_id')
-                if upgrade_cost_id is None:
+                upgrade_cost_ref = level_data.get('upgrade_cost_id')
+                if upgrade_cost_ref is None:
                     continue
-                upgrade_cost = UpgradeCost.objects[upgrade_cost_id]
+                upgrade_cost = UpgradeCost.get_from_ref(upgrade_cost_ref)
                 currency_id = upgrade_cost.currency_id
                 currency_amount = upgrade_cost.amount
                 register_amount('upgrade_cost', level, currency_id, currency_amount)
@@ -534,12 +534,12 @@ class Analysis:
                 return None
         
         logger.debug(f"Getting upgrade costs for module: {module_id}")
-        module = Module.objects[module_id]
+        module = Module.get_from_id(module_id)
         if getattr(module, 'production_status', None) != 'Ready':
             return None
         module_rarity_id = module.module_rarity_id
-        module_type_id = getattr(module, 'module_type_id', '')
-        module_type = ModuleType.objects[module_type_id]
+        module_type_ref = getattr(module, 'module_type_id', '')
+        module_type = ModuleType.get_from_ref(module_type_ref)
         module_category_id = module_type.module_category_id
 
         rarity_standard_cost_and_scrap = standard_cost_and_scrap[module_rarity_id]
@@ -819,21 +819,21 @@ class Analysis:
                     character_module_mounts = module.character_module_mounts
                     if len(character_module_mounts) > 1:
                         logger.error(f"Structure change: Module {module_id} with abilities_scalars has multiple character module mounts.")
-                    character_module_id = character_module_mounts[0]['character_module_id']
-                    character_module = CharacterModule.objects[character_module_id]
+                    character_module_ref = character_module_mounts[0]['character_module_id']
+                    character_module = CharacterModule.get_from_ref(character_module_ref)
                     abilities_ids = character_module.abilities_ids
 
                     # Add each ability's formatted description
-                    for i, ability_id in enumerate(abilities_ids):
-                        ability = Ability.objects[ability_id]
+                    for i, ability_ref in enumerate(abilities_ids):
+                        ability = Ability.get_from_ref(ability_id)
                         ability_name = getattr(ability, 'name', None)
                         ability_description = getattr(ability, 'description', None)
                         if ability_name is None:
-                            abi_name_localized = f"Unnamed Ability {ability_id}"
+                            abi_name_localized = f"Unnamed Ability {ability_ref}"
                         else:
                             abi_name_localized = localization.localize_from_name(ability_name)
                         if ability_description is None:
-                            abi_desc_localized = f"No Description for Ability {ability_id}"
+                            abi_desc_localized = f"No Description for Ability {ability_ref}"
                         else:
                             abi_desc_localized = localization.localize_from_name(ability_description) # "Deploys a device that reduces damage by {Resist} for {Duration}"
                         
@@ -845,7 +845,7 @@ class Analysis:
 
                         abi_name_str = f"{module_name_str}'s {abi_name_localized}"
                         
-                        logger.debug(f"Creating parameterized description for ability {ability_id} for module {module_id} from abilities_scalars")
+                        logger.debug(f"Creating parameterized description for ability {ability_ref} for module {module_id} from abilities_scalars")
                         add_category_if_missing()
                         result[lang_code][category][abi_name_str] = self.format_description(abi_desc_localized, primary_stat, secondary_stat, localization)
                 # Determine from module alone
@@ -854,8 +854,8 @@ class Analysis:
                     abi_desc = localization.localize_from_name(module.description)
                     
                     module_scalars = module.module_scalars
-                    primary_stat = ModuleStat.objects[module_scalars["primary_stat_id"]]
-                    secondary_stat = ModuleStat.objects[module_scalars["secondary_stat_id"]]
+                    primary_stat = ModuleStat.get_from_ref(module_scalars["primary_stat_id"])
+                    secondary_stat = ModuleStat.get_from_ref(module_scalars["secondary_stat_id"])
                     if not validate_param_presence(primary_stat, secondary_stat):
                         continue
 

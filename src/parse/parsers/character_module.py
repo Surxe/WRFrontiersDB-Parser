@@ -328,7 +328,7 @@ class CharacterModule(ParseObject):
     def _p_abilities(self, list: list):
         parsed_abilities = []
         for ability in list:
-            ability_id = Ability.create_from_asset(ability).id
+            ability_id = Ability.create_from_asset(ability).to_ref()
             parsed_abilities.append(ability_id)
         return parsed_abilities
 
@@ -439,4 +439,4 @@ def p_this_distance_setting(data):
     })
 
 def p_movement_type(data):
-    return MovementType.create_from_asset(data).id
+    return MovementType.create_from_asset(data).to_ref()

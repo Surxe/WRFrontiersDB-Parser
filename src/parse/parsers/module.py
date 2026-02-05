@@ -70,13 +70,13 @@ class Module(ParseObject):
             logger.debug(f"Module {self.id} is not ready for production")
 
     def _p_module_rarity(self, data):
-        return ModuleRarity.create_from_asset(data).id
+        return ModuleRarity.create_from_asset(data).to_ref()
 
     def _p_character_modules(self, data):
         character_modules = []
         for character_module in data:
             mount = parse_colon_colon(character_module["Key"]) # "ESCharacterModuleMountWay::Left" -> Left
-            character_module_id = CharacterModule.create_from_asset(character_module["Value"]).id
+            character_module_id = CharacterModule.create_from_asset(character_module["Value"]).to_ref()
             character_modules.append({
                 "character_module_id": character_module_id,
                 "mount": mount,
@@ -87,7 +87,7 @@ class Module(ParseObject):
     def _p_module_tags(self, data):
         module_tags = []
         for elem in data:
-            module_tag_id = ModuleTag.create_from_asset(elem).id
+            module_tag_id = ModuleTag.create_from_asset(elem).to_ref()
             module_tags.append(module_tag_id)
         return module_tags
 
@@ -123,12 +123,12 @@ class Module(ParseObject):
         
         # Determine which stats need to be inverted (reciprocal taken of) based on if the stat has exponent/scaler that are negative
         def format_stat_value(value, stat_type: Literal["primary", "secondary"]):
-            stat_id = parsed_scalars.get("primary_stat_id") if stat_type == "primary" else parsed_scalars.get("secondary_stat_id")
-            if stat_id is None:
+            stat_ref = parsed_scalars.get("primary_stat_id") if stat_type == "primary" else parsed_scalars.get("secondary_stat_id")
+            if stat_ref is None:
                 return False
-            stat_obj = ModuleStat.objects.get(stat_id, None)
+            stat_obj = ModuleStat.get_from_ref(stat_ref)
             if stat_obj is None:
-                logger.warning(f"Warning: Module {self.id} references {stat_type} ModuleStat {stat_id} which does not exist")
+                logger.warning(f"Warning: Module {self.id} references {stat_type} ModuleStat {stat_ref} which does not exist")
                 return False
             return stat_obj.format_value(value)
 
@@ -162,7 +162,7 @@ class Module(ParseObject):
         return ret
 
     def _p_parameter(self, data):
-        return ModuleStat.create_from_asset(data).id
+        return ModuleStat.create_from_asset(data).to_ref()
     
     def _p_levels_data(self, data):
         module_rarity = self.module_rarity_id if hasattr(self, "module_rarity_id") else None
@@ -199,7 +199,7 @@ class Module(ParseObject):
                 # consciously not excluding 0 amounts, as it messes up ability to check if its a constant or a variable
                 if upgrade_currency is not None and upgrade_currency != "None": #it may be None if its say a torso ability module, as the ability is not what costs currency to upgrade, rather the module its attached to (torso) will have the cost
                     upgrade_cost = UpgradeCost(module_lvl_id, upgrade_currency, upgrade_cost_amount) 
-                    parsed_level["upgrade_cost_id"] = upgrade_cost.id
+                    parsed_level["upgrade_cost_id"] = upgrade_cost.to_ref()
 
             scrap_rewards_ids = []
             def p_scrap_reward_amount(first_or_second):
@@ -215,7 +215,7 @@ class Module(ParseObject):
                         scrap_num_id = len(scrap_rewards_ids) + 1 #index the next scrap reward will be at, +1
                         module_lvl_scrapindex_id = f"{module_lvl_id}_scrap{scrap_num_id}"
                         scrap_reward = ScrapReward(module_lvl_scrapindex_id, scrap_reward_currency, scrap_reward_amount)
-                        scrap_rewards_ids.append(scrap_reward.id)
+                        scrap_rewards_ids.append(scrap_reward.to_ref())
 
             # Since these are id'd this way, why not just have them referenced in the Module level directly?
             # A few weeks before writing, every intel discount was reflected in the client-side costs of items
@@ -344,25 +344,25 @@ class Module(ParseObject):
         return text_tags
 
     def _p_faction(self, data):
-        return Faction.create_from_asset(data).id
+        return Faction.create_from_asset(data).to_ref()
 
     def _p_module_classes(self, data):
         module_classes_ids = []
         for elem in data:
-            module_class_id = ModuleClass.create_from_asset(elem).id
+            module_class_id = ModuleClass.create_from_asset(elem).to_ref()
             module_classes_ids.append(module_class_id)
         return module_classes_ids
 
     def _p_module_stats_table(self, data):
-        return ModuleStatsTable.create_from_asset(data).id     
+        return ModuleStatsTable.create_from_asset(data).to_ref() 
 
     def _p_module_type(self, data):
-        return ModuleType.create_from_asset(data).id
+        return ModuleType.create_from_asset(data).to_ref()
 
     def _p_sockets(self, data):
         module_socket_type_ids = []
         for elem in data:
-            module_socket_type_id = ModuleSocketType.create_from_asset(elem["Type"]).id
+            module_socket_type_id = ModuleSocketType.create_from_asset(elem["Type"]).to_ref()
             module_socket_type_ids.append(module_socket_type_id)
         return module_socket_type_ids
     

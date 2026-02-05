@@ -803,7 +803,7 @@ def p_weapon_infos(list: list):
             )
         last_weapon_module_asset_path = weapon_module_asset_path
 
-    weapon_module_id = CharacterModule.create_from_asset_path(last_weapon_module_asset_path).id
+    weapon_module_id = CharacterModule.create_from_asset_path(last_weapon_module_asset_path).to_ref()
     return weapon_module_id
 
 def p_physics_volume(data):
@@ -910,7 +910,7 @@ def p_modifier(data):
 def p_ability_classes(data: dict):
     ids = []
     for ability_class in data:
-        ability_id = Ability.create_from_asset(ability_class).id
+        ability_id = Ability.create_from_asset(ability_class).to_ref()
         ids.append(ability_id)
     return ids
 
@@ -920,7 +920,7 @@ def p_weapon_selectors(data: list):
         tag = ws["ModuleTag"]
         if tag is None:
             continue
-        module_tag_id = ModuleTag.create_from_asset(tag).id
+        module_tag_id = ModuleTag.create_from_asset(tag).to_ref()
         weapon_selectors.append({"module_tag_id": module_tag_id})
 
     if weapon_selectors:
@@ -934,7 +934,7 @@ def p_ability_selectors(data: list):
             allowed_placement_types.append(parse_colon_colon(aptype))
         module_tags = []
         for mtag in aselector["ModuleTags"]:
-            module_tag_id = ModuleTag.create_from_asset(mtag).id
+            module_tag_id = ModuleTag.create_from_asset(mtag).to_ref()
             module_tags.append({"module_tag_id": module_tag_id})
         
         ability_selector = {}
@@ -950,7 +950,7 @@ def p_ability_selectors(data: list):
 def p_module_tag_selector(data: list):
     module_tags = []
     for elem in data:
-        module_tag_id = ModuleTag.create_from_asset(elem).id
+        module_tag_id = ModuleTag.create_from_asset(elem).to_ref()
         module_tags.append({"module_tag_id": module_tag_id})
     return module_tags
     
@@ -1181,7 +1181,7 @@ def p_actor_class(data: dict):
         "FocusComponent": p_focus_component,
         "PassiveWeaponComponent": None, #contains no data
         "SoundSystemComponent": None,
-        "WeaponInfos": p_weapon_infos,
+        "WeaponInfos": p_weapon_infos, #cant use action.attribute here because set_attrs=False below
         "EnemyMaterialInstance": None,
         "FriendMaterialInstance": None,
         "bCanBeDamaged": "value",

@@ -32,7 +32,7 @@ class ModuleCategory(ParseObject):
     def _p_ui_stats(self, data):
         ids = []
         for elem in data:
-            ids.append(ModuleStat.create_from_asset(elem).id)
+            ids.append(ModuleStat.create_from_asset(elem).to_ref())
         return ids
     
     def _p_type_ui_stats(self, data):
@@ -40,9 +40,9 @@ class ModuleCategory(ParseObject):
 
         parsed = []
         for elem in data:
-            stat_id = ModuleStat.create_from_asset(elem["ModuleStat"]).id
+            stat_id = ModuleStat.create_from_asset(elem["ModuleStat"]).to_ref()
             _, module_type = ModuleType.get_from_asset(elem["ModuleType"]) #must always avoid creating module types at this point as it will recursively search for a module category and recursion loop. Module categories can be parsed thru another source to avoid infinite loop
-            module_type_id = module_type.id if module_type else None
+            module_type_id = module_type.to_ref() if module_type else None
             parsed.append({
                 'module_stat_id': stat_id,
                 'module_type_id': module_type_id

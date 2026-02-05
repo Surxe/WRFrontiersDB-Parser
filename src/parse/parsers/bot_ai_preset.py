@@ -28,7 +28,7 @@ class BotAIPreset(ParseObject):
     def _p_drop_teams(self, data):
         ids = []
         for elem in data:
-            drop_team_id = DropTeam.create_from_asset(elem).id
+            drop_team_id = DropTeam.create_from_asset(elem).to_ref()
             ids.append(drop_team_id)
         return ids
 
@@ -50,9 +50,8 @@ def parse_bot_ai_presets(to_file=False):
     
     for bot_preset_entry in bot_presets_by_level:
         level = bot_preset_entry["Key"]
-        bot_preset_id = BotAIPreset.create_from_asset(bot_preset_entry["Value"]).id
+        bot_preset = BotAIPreset.create_from_asset(bot_preset_entry["Value"])
         # Ensure it doesn't already have a level
-        bot_preset = BotAIPreset.objects[bot_preset_id]
         if hasattr(bot_preset, "levels"):
             bot_preset.levels.append(level)
         else:
@@ -62,11 +61,10 @@ def parse_bot_ai_presets(to_file=False):
     for bot_preset_entry in bot_presets_by_league:
         league_asset_path = bot_preset_entry["Key"]
         logger.debug(f"Found league path {league_asset_path}")
-        league_id = League.create_from_asset_path(league_asset_path).id # Just to validate it exists
+        league_id = League.create_from_asset_path(league_asset_path).to_ref() # Just to validate it exists
         league_id = league_id #placeholder
-        bot_preset_id = BotAIPreset.create_from_asset(bot_preset_entry["Value"]).id
+        bot_preset = BotAIPreset.create_from_asset(bot_preset_entry["Value"])
         # Ensure it doesn't already have a league
-        bot_preset = BotAIPreset.objects[bot_preset_id]
         if hasattr(bot_preset, "league_ids"):
             bot_preset.league_ids.append(league_id)
         else:

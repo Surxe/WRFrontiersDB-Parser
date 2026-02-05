@@ -54,20 +54,20 @@ class Pilot(ParseObject):
         return second_name
 
     def _p_pilot_type(self, data: dict):
-        return PilotType.create_from_asset(data).id
+        return PilotType.create_from_asset(data).to_ref()
 
     def _p_pilot_class(self, data: dict):
-        return PilotClass.create_from_asset(data).id
+        return PilotClass.create_from_asset(data).to_ref()
 
     def _p_personality(self, data: dict):
-        return PilotPersonality.create_from_asset(data).id
+        return PilotPersonality.create_from_asset(data).to_ref()
 
     def _p_faction(self, data: dict):
-        return Faction.create_from_asset(data).id
+        return Faction.create_from_asset(data).to_ref()
     
     def _p_sell_price(self, data: dict):
         return {
-            "currency_id": Currency.create_from_asset(data["Currency"]).id,
+            "currency_id": Currency.create_from_asset(data["Currency"]).to_ref(),
             "Amount": data["Amount"]
         }
     
@@ -85,7 +85,7 @@ class Pilot(ParseObject):
             self.levels.append(dict())
         
             props = level_data["Properties"]
-            self.levels[i]["talent_type_id"] = PilotTalentType.create_from_asset(props["TalentType"]).id
+            self.levels[i]["talent_type_id"] = PilotTalentType.create_from_asset(props["TalentType"]).to_ref()
             if "ReputationCost" in props:
                 rep_cost = props["ReputationCost"]
                 expected_rep_cost = expected_rep_costs[i]
@@ -98,7 +98,7 @@ class Pilot(ParseObject):
             talents = props["Talents"]
             self.levels[i]["talents"] = []
             for talent in talents:
-                talent_id = PilotTalent.create_from_asset(talent).id
+                talent_id = PilotTalent.create_from_asset(talent).to_ref()
                 self.levels[i]["talents"].append(talent_id)
 
 def parse_pilot_wrapper(dir, file_name):
