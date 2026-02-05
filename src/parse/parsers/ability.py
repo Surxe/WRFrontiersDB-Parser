@@ -959,6 +959,9 @@ def p_module_tag_selector_or(data: list):
     if module_tags:
         return {"list_operator": "Or", "module_tags": module_tags}
 
+def p_path_curve(data: dict):
+    return parse_curve(asset_to_data(data)["Properties"])
+
 def p_actor_class(data: dict):
     if type(data) is list:
         for elem in data:
@@ -1170,7 +1173,7 @@ def p_actor_class(data: dict):
         "VFXRadiusOffset": None,
         "StartImpulseHorizontal": "value",
         "StartImpulseVertical": "value",
-        "PathCurve": None, #galvanic screen uses tangent EditorCurveData, ignoring for now. #TODO
+        "PathCurve": p_path_curve,
         "DamageApplier": p_damage_applier,
         "PerModuleColliderComponent": None,
         "OpenTime": "value", #ghost turret
