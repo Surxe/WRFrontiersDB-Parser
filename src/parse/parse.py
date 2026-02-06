@@ -37,7 +37,7 @@ def main():
     parse_bot_ai_presets()
     parse_factory_presets()
     parse_powerups()
-    analyze()
+    #analyze()
 
 
     ProgressionTable.to_file()

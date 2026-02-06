@@ -824,10 +824,10 @@ class Analysis:
                         logger.error(f"Structure change: Module {module_id} with abilities_scalars has multiple character module mounts.")
                     character_module_ref = character_module_mounts[0]['character_module_id']
                     character_module = CharacterModule.get_from_ref(character_module_ref)
-                    abilities_ids = character_module.abilities_ids
+                    abilities_refs = character_module.abilities_refs
 
                     # Add each ability's formatted description
-                    for i, ability_ref in enumerate(abilities_ids):
+                    for i, ability_ref in enumerate(abilities_refs):
                         ability = Ability.get_from_ref(ability_ref)
                         ability_name = getattr(ability, 'name', None)
                         ability_description = getattr(ability, 'description', None)

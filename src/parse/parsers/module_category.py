@@ -24,7 +24,7 @@ class ModuleCategory(ParseObject):
             "IsVisual": "value",
             "ModuleTypeUIStats": (self._p_type_ui_stats, "module_type_ui_stats"),
             "RingErrorText": None,
-            "UIStats": (self._p_ui_stats, "ui_stats"),
+            "UIStats": (self._p_ui_stats, "ui_stats_refs"),
         }
         
         self._process_key_to_parser_function(key_to_parser_function, props)
@@ -44,8 +44,8 @@ class ModuleCategory(ParseObject):
             _, module_type = ModuleType.get_from_asset(elem["ModuleType"]) #must always avoid creating module types at this point as it will recursively search for a module category and recursion loop. Module categories can be parsed thru another source to avoid infinite loop
             module_type_id = module_type.to_ref() if module_type else None
             parsed.append({
-                'module_stat_id': stat_id,
-                'module_type_id': module_type_id
+                'module_stat_ref': stat_id,
+                'module_type_ref': module_type_id
             })
 
         return parsed

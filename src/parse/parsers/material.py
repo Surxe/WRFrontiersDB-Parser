@@ -19,9 +19,9 @@ class Material(ParseObject):
             "MaterialName": (parse_localization, "name"),
             "MaterialDescription": (parse_localization, "description"),
             "MaterialIcon": (parse_image_asset_path, "icon_path"),
-            "Type": (self._p_customization_type, "customization_type_id"),
+            "Type": (self._p_customization_type, "customization_type_ref"),
             "SubMaterialContainers": None,
-            "Rarity": (self._p_customization_rarity, "customization_rarity_id"),
+            "Rarity": (self._p_customization_rarity, "customization_rarity_ref"),
             "ID": None,
         }
 

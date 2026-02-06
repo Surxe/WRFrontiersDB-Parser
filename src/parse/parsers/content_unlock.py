@@ -23,7 +23,7 @@ class ContentUnlock(ParseObject):
             "TypeName": (parse_localization, "type_name"),
             "UnlockMesh": None, 
             "VisibleInUI": "value",
-            "GroupReward": (lambda group_reward: GroupReward.create_from_asset(group_reward).to_ref(), "group_reward_id"),
+            "GroupReward": (lambda group_reward: GroupReward.create_from_asset(group_reward).to_ref(), "group_reward_ref"),
             "ID": None,
         }
 

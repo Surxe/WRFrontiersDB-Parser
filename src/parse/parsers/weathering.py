@@ -19,9 +19,9 @@ class Weathering(ParseObject):
             "WeatheringName": (parse_localization, "name"),
             "WeatheringDescription": (parse_localization, "description"),
             "WeatheringIcon": (parse_image_asset_path, "icon_path"),
-            "Type": (self._p_customization_type, "customization_type_id"),
+            "Type": (self._p_customization_type, "customization_type_ref"),
             "WeatheringParams": None,
-            "Rarity": (self._p_customization_rarity, "customization_rarity_id"),
+            "Rarity": (self._p_customization_rarity, "customization_rarity_ref"),
             "ID": None,
         }
 

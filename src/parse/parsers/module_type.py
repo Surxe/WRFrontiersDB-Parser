@@ -15,7 +15,7 @@ class ModuleType(ParseObject):
         props = self.source_data["Properties"]
 
         key_to_parser_function = {
-            "Category": (self._p_module_category, "module_category_id"),
+            "Category": (self._p_module_category, "module_category_ref"),
             "HumanName": (parse_localization, "name"),
             "Description": parse_localization,
             "BlueprintName": parse_localization,

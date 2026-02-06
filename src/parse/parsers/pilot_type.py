@@ -16,9 +16,9 @@ class PilotType(ParseObject):
         props = self.source_data["Properties"]
 
         key_to_parser_function = {
-            "RarityDataAsset": (self._p_rarity_data_asset, "rarity_id"),
+            "RarityDataAsset": (self._p_rarity_data_asset, "rarity_ref"),
             "ItemTypeName": (parse_localization, "name"),
-            "GroupReward": (self._p_group_reward, "group_reward_id"),
+            "GroupReward": (self._p_group_reward, "group_reward_ref"),
             "PictureWidgetClass": None,
             "SortOrder": "value",
             "HasExtendedBio": "value",

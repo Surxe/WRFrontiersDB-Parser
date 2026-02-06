@@ -13,7 +13,7 @@ class ModuleClass(ParseObject):
         props = self.source_data["Properties"]
 
         key_to_parser_function = {
-            "CharacterClassDataAsset": (self._p_character_class, "character_class_id"),
+            "CharacterClassDataAsset": (self._p_character_class, "character_class_ref"),
             "ID": None,
         }
 

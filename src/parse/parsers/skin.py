@@ -19,7 +19,7 @@ class Skin(ParseObject):
             "SkinDescription": (parse_localization, "description"),
             "SkinIcon": (parse_image_asset_path, "icon_path"),
             "Skin": None, #lists decals, materials, weathering etc.. Not worth parsing
-            "Rarity": (self._p_customization_rarity, "customization_rarity_id"),
+            "Rarity": (self._p_customization_rarity, "customization_rarity_ref"),
             "ID": None,
         }
 

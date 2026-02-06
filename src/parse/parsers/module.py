@@ -40,20 +40,20 @@ class Module(ParseObject):
             "ProductionStatus": (parse_colon_colon, "production_status"),
             "IsUniversalMounted": None,
             "InventoryIcon": (parse_image_asset_path, "inventory_icon_path"),
-            "ModuleRarity": (self._p_module_rarity, "module_rarity_id"),
+            "ModuleRarity": (self._p_module_rarity, "module_rarity_ref"),
             "CharacterModules": (self._p_character_modules, "character_module_mounts"),
-            "ModuleTags": (self._p_module_tags, "module_tags_ids"),
+            "ModuleTags": (self._p_module_tags, "module_tags_refs"),
             "ModuleScaler": (self._p_module_scalar, None),
             "AbilityScalers": (self._p_ability_scalars, None),
             "Title": (parse_localization, "name"),
             "Description": (parse_localization, "description"),
             "TextTags": (self._p_text_tags, "text_tags"),
-            "Faction": (self._p_faction, "faction_id"),
-            "ModuleClasses": (self._p_module_classes, "module_classes_ids"),
+            "Faction": (self._p_faction, "faction_ref"),
+            "ModuleClasses": (self._p_module_classes, "module_classes_refs"),
             "PreviewVideoPath": None,
-            "ModuleStatsTable": (self._p_module_stats_table, "module_stats_table_id"),
-            "ModuleType": (self._p_module_type, "module_type_id"),
-            "Sockets": (self._p_sockets, "module_socket_type_ids"),
+            "ModuleStatsTable": (self._p_module_stats_table, "module_stats_table_ref"),
+            "ModuleType": (self._p_module_type, "module_type_ref"),
+            "Sockets": (self._p_sockets, "module_socket_type_refs"),
             "Levels": None,
             "ID": None,
         }
@@ -73,16 +73,16 @@ class Module(ParseObject):
         return ModuleRarity.create_from_asset(data).to_ref()
 
     def _p_character_modules(self, data):
-        character_modules = []
+        character_module_refs = []
         for character_module in data:
             mount = parse_colon_colon(character_module["Key"]) # "ESCharacterModuleMountWay::Left" -> Left
-            character_module_id = CharacterModule.create_from_asset(character_module["Value"]).to_ref()
-            character_modules.append({
-                "character_module_id": character_module_id,
+            character_module_ref = CharacterModule.create_from_asset(character_module["Value"]).to_ref()
+            character_module_refs.append({
+                "character_module_ref": character_module_ref,
                 "mount": mount,
             })
 
-        return character_modules
+        return character_module_refs
                 
     def _p_module_tags(self, data):
         module_tags = []
@@ -111,8 +111,8 @@ class Module(ParseObject):
     def _p_scalars(self, data):
         key_to_parser_function = {
             "LevelsData": (self._p_levels_data, "levels"),
-            "PrimaryStatMetaInformation": (self._p_parameter, "primary_stat_id"),
-            "SecondaryStatMetaInformation": (self._p_parameter, "secondary_stat_id"),
+            "PrimaryStatMetaInformation": (self._p_parameter, "primary_stat_ref"),
+            "SecondaryStatMetaInformation": (self._p_parameter, "secondary_stat_ref"),
             "ModuleName": ("value", "module_name"),
             "bAllowStatsReporting": None,
         }
@@ -123,7 +123,7 @@ class Module(ParseObject):
         
         # Determine which stats need to be inverted (reciprocal taken of) based on if the stat has exponent/scaler that are negative
         def format_stat_value(value, stat_type: Literal["primary", "secondary"]):
-            stat_ref = parsed_scalars.get("primary_stat_id") if stat_type == "primary" else parsed_scalars.get("secondary_stat_id")
+            stat_ref = parsed_scalars.get("primary_stat_ref") if stat_type == "primary" else parsed_scalars.get("secondary_stat_ref")
             if stat_ref is None:
                 return False
             stat_obj = ModuleStat.get_from_ref(stat_ref)
@@ -152,7 +152,7 @@ class Module(ParseObject):
 
         ret = dict()
         for key, value in parsed_scalars.items():
-            if key in ["levels", "primary_stat_id", "secondary_stat_id", "module_name"]:
+            if key in ["levels", "primary_stat_ref", "secondary_stat_ref", "module_name"]:
                 ret[key] = value
             else:
                 if "default_scalars" not in ret:
@@ -165,9 +165,9 @@ class Module(ParseObject):
         return ModuleStat.create_from_asset(data).to_ref()
     
     def _p_levels_data(self, data):
-        module_rarity = self.module_rarity_id if hasattr(self, "module_rarity_id") else None
+        module_rarity = self.module_rarity_ref if hasattr(self, "module_rarity_ref") else None
         if module_rarity is None:
-            logger.warning(f"Warning: Module {self.id} level {level_num} is missing module_rarity_id")
+            logger.warning(f"Warning: Module {self.id} level {level_num} is missing module_rarity_ref")
 
         parsed_levels = []
         for level in data:
@@ -199,7 +199,7 @@ class Module(ParseObject):
                 # consciously not excluding 0 amounts, as it messes up ability to check if its a constant or a variable
                 if upgrade_currency is not None and upgrade_currency != "None": #it may be None if its say a torso ability module, as the ability is not what costs currency to upgrade, rather the module its attached to (torso) will have the cost
                     upgrade_cost = UpgradeCost(module_lvl_id, upgrade_currency, upgrade_cost_amount) 
-                    parsed_level["upgrade_cost_id"] = upgrade_cost.to_ref()
+                    parsed_level["upgrade_cost_ref"] = upgrade_cost.to_ref()
 
             scrap_rewards_ids = []
             def p_scrap_reward_amount(first_or_second):
@@ -257,7 +257,7 @@ class Module(ParseObject):
             add_to_parsed_level_if_not_none("module_class_id_2", p_module_class_tag_fac("Class", "2"))
             add_to_parsed_level_if_not_none("module_tag_id_1", p_module_class_tag_fac("Tag", "1"))
             add_to_parsed_level_if_not_none("module_tag_id_2", p_module_class_tag_fac("Tag", "2"))
-            add_to_parsed_level_if_not_none("module_faction_id", p_module_class_tag_fac("Faction", "0"))
+            add_to_parsed_level_if_not_none("module_faction_ref", p_module_class_tag_fac("Faction", "0"))
 
 
             # Parse load/energy capacity
@@ -291,7 +291,7 @@ class Module(ParseObject):
         expected_constants = [
             'module_class_id_1', 'module_class_id_2',
             'module_tag_id_1', 'module_tag_id_2',
-            'module_faction_id',
+            'module_faction_ref',
             'LoadCapacity', 'EnergyCapacity'
         ]
         for key in expected_constants:
@@ -347,11 +347,11 @@ class Module(ParseObject):
         return Faction.create_from_asset(data).to_ref()
 
     def _p_module_classes(self, data):
-        module_classes_ids = []
+        module_classes_refs = []
         for elem in data:
-            module_class_id = ModuleClass.create_from_asset(elem).to_ref()
-            module_classes_ids.append(module_class_id)
-        return module_classes_ids
+            module_class_ref = ModuleClass.create_from_asset(elem).to_ref()
+            module_classes_refs.append(module_class_ref)
+        return module_classes_refs
 
     def _p_module_stats_table(self, data):
         return ModuleStatsTable.create_from_asset(data).to_ref() 
@@ -360,11 +360,11 @@ class Module(ParseObject):
         return ModuleType.create_from_asset(data).to_ref()
 
     def _p_sockets(self, data):
-        module_socket_type_ids = []
+        module_socket_type_refs = []
         for elem in data:
-            module_socket_type_id = ModuleSocketType.create_from_asset(elem["Type"]).to_ref()
-            module_socket_type_ids.append(module_socket_type_id)
-        return module_socket_type_ids
+            module_socket_type_ref = ModuleSocketType.create_from_asset(elem["Type"]).to_ref()
+            module_socket_type_refs.append(module_socket_type_ref)
+        return module_socket_type_refs
     
 def find_module_element(path):
     """

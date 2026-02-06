@@ -17,7 +17,7 @@ class CustomizationRarity(ParseObject):
         props = self.source_data["Properties"]
 
         key_to_parser_function = {
-            "RarityDataAsset": (self._p_rarity, "rarity_id"), 
+            "RarityDataAsset": (self._p_rarity, "rarity_ref"), 
             "ID": None,
         }
 

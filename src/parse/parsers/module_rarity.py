@@ -14,7 +14,7 @@ class ModuleRarity(ParseObject):
 
         key_to_parser_function = {
             "SortOrder": "value",
-            "RarityDataAsset": (self._p_rarity_data_asset, "rarity_id"),
+            "RarityDataAsset": (self._p_rarity_data_asset, "rarity_ref"),
         }
         
         self._process_key_to_parser_function(key_to_parser_function, props)

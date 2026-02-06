@@ -118,10 +118,10 @@ class PilotTalent(ParseObject):
     def _p_stats(self, stats):
         parsed_stats = []
         for stat in stats:
-            stat_id = ModuleStat.create_from_asset_path(stat["Key"].split('SModuleStatInfo\'')[1]).to_ref()
+            stat_ref = ModuleStat.create_from_asset_path(stat["Key"].split('SModuleStatInfo\'')[1]).to_ref()
             value = stat["Value"]
             parsed_stats.append({
-                "stat_id": stat_id,
+                "stat_ref": stat_ref,
                 "value": value
             })
 
