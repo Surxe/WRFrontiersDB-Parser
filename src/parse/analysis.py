@@ -20,6 +20,8 @@ from parsers.scrap_reward import ScrapReward
 from parsers.character_preset import CharacterPreset
 from parsers.ability import Ability
 
+INTEL_CURRENCY_REF = 'OBJID_Currency::DA_Meta_Currency_Intel'
+
 class Analysis:
     def __init__(self):
         # Upgrade cost & Scrap reward
@@ -257,9 +259,9 @@ class Analysis:
             'difference': <intel_discounted_cost_amount - standard_cost_amount>,
             'percent_difference': <(intel_discounted_cost_amount - standard_cost_amount) / standard_cost_amount>,
         """
-        if 'DA_Meta_Currency_Intel' not in level_data:
+        if INTEL_CURRENCY_REF not in level_data:
             return None
-        intel_currency_data = level_data['DA_Meta_Currency_Intel']
+        intel_currency_data = level_data[INTEL_CURRENCY_REF]
         if 'upgrade_cost' not in intel_currency_data:
             return None
         discounted_cost = self.get_most_freq_amount(intel_currency_data['upgrade_cost'], n=2, allow_outliers=True)
@@ -293,7 +295,7 @@ class Analysis:
             for level, currency_data in levels_data.items():
                 intel_discounted_cost_amount = self.get_intel_discounted_cost(currency_data)
                 cumulative_intel_discounted_cost += intel_discounted_cost_amount['cost'] if intel_discounted_cost_amount is not None else 0
-                standard_cost = standard_cost_and_scrap[module_rarity_ref][level].get('DA_Meta_Currency_Intel', {}).get('upgrade_cost', 0)
+                standard_cost = standard_cost_and_scrap[module_rarity_ref][level].get(INTEL_CURRENCY_REF, {}).get('upgrade_cost', 0)
                 cumulative_standard_cost += standard_cost
                 if intel_discounted_cost_amount is not None:
                     intel_discount_cost[module_rarity_ref]["levels"][level] = intel_discounted_cost_amount
