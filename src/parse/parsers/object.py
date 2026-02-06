@@ -126,18 +126,25 @@ class ParseObject: #generic object that all classes extend
         Given Module instance with id=DA_Module_AmmoGen
         Returns: OBJID_Module::DA_Module_AmmoGen
         """
-        return f"OBJID_{self.__class__.__name__}::{self.id}"
+        return self.id_to_ref(self.id)
 
     @classmethod
-    def ref_to_id(cls, ref: str):
+    def ref_to_id(cls, ref: str | None):
         """OBJID_Module::DA_Module_AmmoGen -> DA_Module_AmmoGen"""
+        if ref is None:
+            raise ValueError(f"Reference string for class {cls.__name__} is None")
         parts = ref.split('::')
         if len(parts) != 2:
-            raise ValueError(f"Invalid reference string: {ref}")
+            raise ValueError(f"Invalid reference string for class {cls.__name__}: {ref}")
         id = parts[1]
         if parts[0] != f"OBJID_{cls.__name__}":
-            raise ValueError(f"Invalid reference string: {ref}")
+            raise ValueError(f"Invalid reference string for class {cls.__name__}: {ref}")
         return id
+
+    @classmethod
+    def id_to_ref(cls, id: str):
+        """DA_Module_AmmoGen -> OBJID_Module::DA_Module_AmmoGen"""
+        return f"OBJID_{cls.__name__}::{id}"
 
     @classmethod
     def get_from_ref(cls, ref: str):

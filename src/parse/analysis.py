@@ -59,9 +59,9 @@ class Analysis:
     ########################################
     """
         {
-            <module_rarity_id>: {
+            <module_rarity_ref>: {
                 <level>: {
-                    <currency_id>: {
+                    <currency_ref>: {
                         'upgrade_cost': {
                             <upgrade_cost_amount>: count,
                         },
@@ -87,47 +87,47 @@ class Analysis:
                 continue
 
             # Ensure module rarity is added
-            module_rarity_id = ModuleRarity.ref_to_id(module.module_rarity_id)
-            if module_rarity_id not in frequency_map:
-                frequency_map[module_rarity_id] = {}
+            module_rarity_ref = ModuleRarity.ref_to_id(module.module_rarity_ref)
+            if module_rarity_ref not in frequency_map:
+                frequency_map[module_rarity_ref] = {}
 
             # Iterate levels
             level_variables = module_scalars.get('variables', [])
             for level_index, level_data in enumerate(level_variables):
                 level = level_index + 1
                 # Ensure level is added
-                if level not in frequency_map[module_rarity_id]:
-                    frequency_map[module_rarity_id][level] = {}
+                if level not in frequency_map[module_rarity_ref]:
+                    frequency_map[module_rarity_ref][level] = {}
                 
-                def register_amount(_type: Literal['scrap_reward', 'upgrade_cost'], level, currency_id, amount):
-                    if currency_id not in frequency_map[module_rarity_id][level]:
-                        frequency_map[module_rarity_id][level][currency_id] = {}
-                    if _type not in frequency_map[module_rarity_id][level][currency_id]:
-                        frequency_map[module_rarity_id][level][currency_id][_type] = {}
-                    if amount not in frequency_map[module_rarity_id][level][currency_id][_type]:
-                        frequency_map[module_rarity_id][level][currency_id][_type][amount] = 0
-                    frequency_map[module_rarity_id][level][currency_id][_type][amount] += 1
+                def register_amount(_type: Literal['scrap_reward', 'upgrade_cost'], level, currency_ref, amount):
+                    if currency_ref not in frequency_map[module_rarity_ref][level]:
+                        frequency_map[module_rarity_ref][level][currency_ref] = {}
+                    if _type not in frequency_map[module_rarity_ref][level][currency_ref]:
+                        frequency_map[module_rarity_ref][level][currency_ref][_type] = {}
+                    if amount not in frequency_map[module_rarity_ref][level][currency_ref][_type]:
+                        frequency_map[module_rarity_ref][level][currency_ref][_type][amount] = 0
+                    frequency_map[module_rarity_ref][level][currency_ref][_type][amount] += 1
 
                 # Register each scrap reward
-                scrap_rewards_ids = level_data.get('scrap_rewards_ids', [None])
-                for scrap_reward_id in scrap_rewards_ids:
-                    scrap_reward = ScrapReward.objects.get(scrap_reward_id)
+                scrap_rewards_refs = level_data.get('scrap_rewards_refs', [])
+                for scrap_reward_ref in scrap_rewards_refs:
+                    scrap_reward = ScrapReward.get_from_ref(scrap_reward_ref)
                     if scrap_reward is None:
                         continue
                     register_amount('scrap_reward', 
                                     level, 
-                                    scrap_reward.currency_id, 
+                                    scrap_reward.currency_ref, 
                                     scrap_reward.amount
                                     )
                 
                 # Register upgrade cost
-                upgrade_cost_ref = level_data.get('upgrade_cost_id')
+                upgrade_cost_ref = level_data.get('upgrade_cost_ref')
                 if upgrade_cost_ref is None:
                     continue
                 upgrade_cost = UpgradeCost.get_from_ref(upgrade_cost_ref)
-                currency_id = upgrade_cost.currency_id
+                currency_ref = upgrade_cost.currency_ref
                 currency_amount = upgrade_cost.amount
-                register_amount('upgrade_cost', level, currency_id, currency_amount)
+                register_amount('upgrade_cost', level, currency_ref, currency_amount)
 
         def sort_frequency_map(frequency_map):
             """Sort each amount_data by frequency descending
@@ -138,13 +138,13 @@ class Analysis:
 
             Also sort each level's data
             """
-            for module_rarity_id, levels_data in frequency_map.items():
+            for module_rarity_ref, levels_data in frequency_map.items():
                 for level, currency_data in levels_data.items():
-                    frequency_map[module_rarity_id][level] = sort_dict(frequency_map[module_rarity_id][level]) #sort currency_id level
-                    for currency_id, type_data in currency_data.items():
+                    frequency_map[module_rarity_ref][level] = sort_dict(frequency_map[module_rarity_ref][level]) #sort currency_ref level
+                    for currency_ref, type_data in currency_data.items():
                         for _type, amount_data in type_data.items():
                             sorted_amount_data = dict(sorted(amount_data.items(), key=lambda item: item[1], reverse=True))
-                            frequency_map[module_rarity_id][level][currency_id][_type] = sorted_amount_data
+                            frequency_map[module_rarity_ref][level][currency_ref][_type] = sorted_amount_data
             return frequency_map
 
         return sort_frequency_map(frequency_map)
@@ -176,14 +176,14 @@ class Analysis:
 
     def determine_standard_cost_and_scrap(self, frequency_map):
         """
-        For each module rarity & level & currency_id, determine the most frequent upgrade cost
-        Assign that upgrade cost as the standard upgrade cost for that module rarity & level & currency_id
+        For each module rarity & level & currency_ref, determine the most frequent upgrade cost
+        Assign that upgrade cost as the standard upgrade cost for that module rarity & level & currency_ref
 
         Returns:
             {
                 <module_rarity>: {
                     <level>: {
-                        <currency_id>: {
+                        <currency_ref>: {
                             'upgrade_cost': <amount>,
                             'scrap_rewards': <amount>,
                         }
@@ -195,32 +195,32 @@ class Analysis:
 
         # Next, determine the most frequent upgrade cost & scrap reward
         standard_cost_and_scrap = {}
-        for module_rarity_id, levels_data in frequency_map.items():
-            if module_rarity_id not in standard_cost_and_scrap:
-                standard_cost_and_scrap[module_rarity_id] = {}
+        for module_rarity_ref, levels_data in frequency_map.items():
+            if module_rarity_ref not in standard_cost_and_scrap:
+                standard_cost_and_scrap[module_rarity_ref] = {}
             for level, currency_data in levels_data.items():
-                if level not in standard_cost_and_scrap[module_rarity_id]:
-                    standard_cost_and_scrap[module_rarity_id][level] = {}
-                for currency_id, type_data in currency_data.items():
-                    if currency_id not in standard_cost_and_scrap[module_rarity_id][level]:
-                        standard_cost_and_scrap[module_rarity_id][level][currency_id] = {}
+                if level not in standard_cost_and_scrap[module_rarity_ref]:
+                    standard_cost_and_scrap[module_rarity_ref][level] = {}
+                for currency_ref, type_data in currency_data.items():
+                    if currency_ref not in standard_cost_and_scrap[module_rarity_ref][level]:
+                        standard_cost_and_scrap[module_rarity_ref][level][currency_ref] = {}
 
                     # Determine most frequent scrap reward
                     scrap_rewards_freq = type_data.get('scrap_reward', {})
                     if scrap_rewards_freq:
                         most_frequent_scrap_reward = self.get_most_freq_amount(scrap_rewards_freq)
-                        standard_cost_and_scrap[module_rarity_id][level][currency_id]['scrap_reward'] = most_frequent_scrap_reward
+                        standard_cost_and_scrap[module_rarity_ref][level][currency_ref]['scrap_reward'] = most_frequent_scrap_reward
                     
                     # Determine most frequent upgrade cost
                     upgrade_costs_freq = type_data.get('upgrade_cost', {})
                     if upgrade_costs_freq:
                         most_frequent_upgrade_cost = self.get_most_freq_amount(upgrade_costs_freq)
-                        standard_cost_and_scrap[module_rarity_id][level][currency_id]['upgrade_cost'] = most_frequent_upgrade_cost
+                        standard_cost_and_scrap[module_rarity_ref][level][currency_ref]['upgrade_cost'] = most_frequent_upgrade_cost
 
         # Then, ensure upgrade_cost and scrap_reward in each entry, default to 0 otherwise
-        for module_rarity_id, levels_data in standard_cost_and_scrap.items():
+        for module_rarity_ref, levels_data in standard_cost_and_scrap.items():
             for level, currency_data in levels_data.items():
-                for currency_id, cost_and_scrap in currency_data.items():
+                for currency_ref, cost_and_scrap in currency_data.items():
                     if 'upgrade_cost' not in cost_and_scrap:
                         cost_and_scrap['upgrade_cost'] = 0
                     if 'scrap_reward' not in cost_and_scrap:
@@ -284,20 +284,20 @@ class Analysis:
             }
         """
         intel_discount_cost = {}
-        for module_rarity_id, levels_data in cost_scrap_frequency_map.items():
-            if module_rarity_id not in intel_discount_cost:
-                intel_discount_cost[module_rarity_id] = {}
-                intel_discount_cost[module_rarity_id]["levels"] = {}
+        for module_rarity_ref, levels_data in cost_scrap_frequency_map.items():
+            if module_rarity_ref not in intel_discount_cost:
+                intel_discount_cost[module_rarity_ref] = {}
+                intel_discount_cost[module_rarity_ref]["levels"] = {}
             cumulative_intel_discounted_cost = 0
             cumulative_standard_cost = 0
             for level, currency_data in levels_data.items():
                 intel_discounted_cost_amount = self.get_intel_discounted_cost(currency_data)
                 cumulative_intel_discounted_cost += intel_discounted_cost_amount['cost'] if intel_discounted_cost_amount is not None else 0
-                standard_cost = standard_cost_and_scrap[module_rarity_id][level].get('DA_Meta_Currency_Intel', {}).get('upgrade_cost', 0)
+                standard_cost = standard_cost_and_scrap[module_rarity_ref][level].get('DA_Meta_Currency_Intel', {}).get('upgrade_cost', 0)
                 cumulative_standard_cost += standard_cost
                 if intel_discounted_cost_amount is not None:
-                    intel_discount_cost[module_rarity_id]["levels"][level] = intel_discounted_cost_amount
-            intel_discount_cost[module_rarity_id]["cumulative"] = self.get_relative_cost(cumulative_standard_cost, cumulative_intel_discounted_cost)
+                    intel_discount_cost[module_rarity_ref]["levels"][level] = intel_discounted_cost_amount
+            intel_discount_cost[module_rarity_ref]["cumulative"] = self.get_relative_cost(cumulative_standard_cost, cumulative_intel_discounted_cost)
         return intel_discount_cost
 
 
@@ -391,7 +391,7 @@ class Analysis:
 
             for key in level_base.keys():
                 logger.debug(f"Calculating diff for key: {key} in module: {module_id}")
-                if key in superficial_keys or key in {'scrap_rewards_ids', 'upgrade_cost_id'}:
+                if key in superficial_keys or key in {'scrap_rewards_refs', 'upgrade_cost_ref'}:
                     continue
                 else:
                     add_diff(key, calc_diff(level_base[key], level_max[key], module_id))
@@ -413,7 +413,7 @@ class Analysis:
         def get_more_is_better_map(stat_keys_to_rank):
             # if stat_key is not in map.keys(); search by ModuleStat.short_key
             # if stat_key is in map, use it as:
-            # {stat_key: module_stat_id: str or <more_is_better>: bool}
+            # {stat_key: module_stat_ref: str or <more_is_better>: bool}
             stat_to_more_is_better = {
                 "ChargeDuration": "DA_ModuleStat_ChargeDrain.0",
                 "Cooldown": "DA_ModuleStat_Cooldown.0",
@@ -492,14 +492,14 @@ class Analysis:
     ############################
     #   Module Upgrade Costs   #
     ############################
-    def get_module_upgrade_costs(self, module_id, standard_cost_and_scrap):
+    def get_module_upgrade_costs(self, module_ref, standard_cost_and_scrap):
         """
         Returns:
             None if module is not production ready
 
-            (<upgrade_costs_dict>, module_category_id) where
+            (<upgrade_costs_dict>, module_category_ref) where
             upgrade_costs_dict = {
-                <currency_id>: <total_upgrade_cost_amount>,
+                <currency_ref>: <total_upgrade_cost_amount>,
             }
             
         """
@@ -509,23 +509,23 @@ class Analysis:
             """
             Args:
                 cost_scrap_data = {
-                    <currency_id>: {
+                    <currency_ref>: {
                         'upgrade_cost': <amount>,
                         'scrap_reward': <amount>,
                     }
                 }
 
             Returns:
-                (<currency_id>, <upgrade_cost_amount>)
+                (<currency_ref>, <upgrade_cost_amount>)
 
                 None if no non-zero upgrade cost found or multiple non-zero upgrade costs found
             """
 
             found_nonzero_pairs = []
-            for currency_id, cost_and_scrap in cost_scrap_data.items():
+            for currency_ref, cost_and_scrap in cost_scrap_data.items():
                 upgrade_cost = cost_and_scrap.get('upgrade_cost', 0)
                 if upgrade_cost > 0:
-                    found_nonzero_pairs.append((currency_id, upgrade_cost))
+                    found_nonzero_pairs.append((currency_ref, upgrade_cost))
             if len(found_nonzero_pairs) == 0:
                 return None
             elif len(found_nonzero_pairs) == 1:
@@ -534,52 +534,53 @@ class Analysis:
                 logger.error(f"Structure change: multiple non-zero upgrade costs found: {found_nonzero_pairs}")
                 return None
         
-        logger.debug(f"Getting upgrade costs for module: {module_id}")
-        module = Module.get_from_id(module_id)
+        logger.debug(f"Getting upgrade costs for module: {module_ref}")
+        module = Module.get_from_ref(module_ref)
         if getattr(module, 'production_status', None) != 'Ready':
             return None
-        module_rarity_id = ModuleRarity.ref_to_id(module.module_rarity_id)
-        module_type_ref = getattr(module, 'module_type_id', '')
+        module_rarity_ref = ModuleRarity.ref_to_id(module.module_rarity_ref)
+        module_type_ref = getattr(module, 'module_type_ref', '')
         module_type = ModuleType.get_from_ref(module_type_ref)
-        module_category_id = ModuleCategory.ref_to_id(module_type.module_category_id)
+        module_category_ref = ModuleCategory.ref_to_id(module_type.module_category_ref)
 
-        rarity_standard_cost_and_scrap = standard_cost_and_scrap[module_rarity_id]
+        rarity_standard_cost_and_scrap = standard_cost_and_scrap[module_rarity_ref]
         for level, cost_scrap_data in rarity_standard_cost_and_scrap.items():
-            logger.debug(f"Adding upgrade cost for module: {module_id}, level: {level}")
+            logger.debug(f"Adding upgrade cost for module: {module_ref}, level: {level}")
 
             # use the most frequent upgrade cost for this module rarity & level, as opposed to whats in data
             upgrade_cost_pair = get_upgrade_cost_from_standard(cost_scrap_data)
 
             # add to total
             if upgrade_cost_pair is not None:
-                currency_id, upgrade_cost_amount = upgrade_cost_pair
-                if currency_id not in module_upgrade_costs:
-                    module_upgrade_costs[currency_id] = 0
-                module_upgrade_costs[currency_id] += upgrade_cost_amount
+                currency_ref, upgrade_cost_amount = upgrade_cost_pair
+                if currency_ref not in module_upgrade_costs:
+                    module_upgrade_costs[currency_ref] = 0
+                module_upgrade_costs[currency_ref] += upgrade_cost_amount
 
-        return module_upgrade_costs, module_category_id
+        return module_upgrade_costs, module_category_ref
     
     def get_modules_upgrade_costs(self, standard_cost_and_scrap):
         """
         Returns:
             {
                 <module_id>: {
-                    "module_category_id": <module_category_id>,
+                    "module_category_ref": <module_category_ref>,
                     "upgrade_costs": {
-                        <currency_id>: <total_upgrade_cost_amount>,
+                        <currency_ref>: <total_upgrade_cost_amount>,
                     }
                 }
             }
         """
 
         modules_upgrade_costs = {}
-        for module_id in Module.objects.keys():
-            result = self.get_module_upgrade_costs(module_id, standard_cost_and_scrap)
+        for module_id, module in Module.objects.items():
+            module_ref = module.to_ref()
+            result = self.get_module_upgrade_costs(module_ref, standard_cost_and_scrap)
             if result is None:
                 continue
-            upgrade_costs, module_category_id = result
+            upgrade_costs, module_category_ref = result
             modules_upgrade_costs[module_id] = {
-                "module_category_id": module_category_id,
+                "module_category_ref": module_category_ref,
                 "upgrade_costs": upgrade_costs
             }
         return modules_upgrade_costs
@@ -597,10 +598,10 @@ class Analysis:
             if this_module_upgrade is None:
                 continue
             this_module_upgrade_costs = this_module_upgrade["upgrade_costs"]
-            for currency_id, upgrade_cost_amount in this_module_upgrade_costs.items():
+            for currency_ref, upgrade_cost_amount in this_module_upgrade_costs.items():
                 if 'total_upgrade_cost' not in level_diffs_by_module[module_id]:
                     level_diffs_by_module[module_id]['total_upgrade_cost'] = {}
-                level_diffs_by_module[module_id]['total_upgrade_cost'][f'{currency_id}'] = upgrade_cost_amount
+                level_diffs_by_module[module_id]['total_upgrade_cost'][f'{currency_ref}'] = upgrade_cost_amount
 
         return level_diffs_by_module
     
@@ -613,21 +614,21 @@ class Analysis:
             {
                 <character_preset_id>: {
                     "total": {
-                        <currency_id>: <total_upgrade_cost_amount>,
+                        <currency_ref>: <total_upgrade_cost_amount>,
                     },
                     "weapons": { #weapons
-                        <currency_id>: <total_upgrade_cost_amount>,
+                        <currency_ref>: <total_upgrade_cost_amount>,
                     }
                     "frame": { #frame meaning torso, chassis, shoulders
-                        <currency_id>: <total_upgrade_cost_amount>,
+                        <currency_ref>: <total_upgrade_cost_amount>,
                     },
                     "gears": { #supply, cycle, misc gear
-                        <currency_id>: <total_upgrade_cost_amount>,
+                        <currency_ref>: <total_upgrade_cost_amount>,
                     }
                 }
             }
         """
-        # category_name: [module_category_id]
+        # category_name: [module_category_ref]
         category_map = {
             "weapons": ['DA_ModuleCategory_Weapon.0'],
             "frame": [
@@ -638,31 +639,30 @@ class Analysis:
             "gears": ['DA_ModuleCategory_Ability.0'],
             "total": [] #special case to sum all
         }
-        def register_upgrade_costs_to_category(module_category_id, upgrade_costs, preset_costs):
+        def register_upgrade_costs_to_category(module_category_ref, upgrade_costs, preset_costs):
             for category_name, category_module_ids in category_map.items():
-                if category_name == "total" or module_category_id in category_module_ids:
+                if category_name == "total" or module_category_ref in category_module_ids:
                     if category_name not in preset_costs:
                         preset_costs[category_name] = {}
-                    for currency_id, upgrade_cost_amount in upgrade_costs.items():
-                        if currency_id not in preset_costs[category_name]:
-                            preset_costs[category_name][currency_id] = 0
-                        preset_costs[category_name][currency_id] += upgrade_cost_amount
+                    for currency_ref, upgrade_cost_amount in upgrade_costs.items():
+                        if currency_ref not in preset_costs[category_name]:
+                            preset_costs[category_name][currency_ref] = 0
+                        preset_costs[category_name][currency_ref] += upgrade_cost_amount
 
         character_preset_costs = {}
         for fpreset_id, fpreset in CharacterPreset.objects.items():
             if not hasattr(fpreset, 'is_factory_preset') or not fpreset.is_factory_preset: #only look at factory presets, as character presets includes ai bots
                 continue
             for module_socket_name, module_data in fpreset.modules.items():
-                module_ref = module_data['id']
-                module_id = Module.get_from_ref(module_ref).id
+                module_ref = module_data['module_ref']
 
-                this_module_upgrade_costs, module_category_id = self.get_module_upgrade_costs(module_id, standard_cost_and_scrap)
+                this_module_upgrade_costs, module_category_ref = self.get_module_upgrade_costs(module_ref, standard_cost_and_scrap)
                 logger.debug(f"Adding upgrade cost for factory preset: {fpreset_id}")
 
-                # For each currency_id, add to the fpreset's total
+                # For each currency_ref, add to the fpreset's total
                 if fpreset_id not in character_preset_costs:
                         character_preset_costs[fpreset_id] = {}
-                register_upgrade_costs_to_category(module_category_id, this_module_upgrade_costs, character_preset_costs[fpreset_id])
+                register_upgrade_costs_to_category(module_category_ref, this_module_upgrade_costs, character_preset_costs[fpreset_id])
 
         return character_preset_costs
     
@@ -671,7 +671,7 @@ class Analysis:
     # Grand total upgrade cost #
     ############################
     def calculate_total_upgrade_costs(self, modules_upgrade_costs):
-        total_upgrade_costs = {}  # <currency_id>: <total_upgrade_cost_amount>
+        total_upgrade_costs = {}  # <currency_ref>: <total_upgrade_cost_amount>
         for module_id, module in Module.objects.items():
             # Ensure its production ready module
             if getattr(module, 'production_status', None) != 'Ready':
@@ -680,15 +680,15 @@ class Analysis:
             # Determine the non-zero upgrade cost for this module
             this_module_upgrade = modules_upgrade_costs[module_id]
             this_module_upgrade_costs = this_module_upgrade["upgrade_costs"]
-            module_category_id = this_module_upgrade["module_category_id"]
-            is_shoulder = module_category_id == 'DA_ModuleCategory_Shoulder.0'
+            module_category_ref = this_module_upgrade["module_category_ref"]
+            is_shoulder = module_category_ref == 'DA_ModuleCategory_Shoulder.0'
             quantity = 2 if is_shoulder else 1
 
             # Add to grand total
-            for currency_id, upgrade_cost_amount in this_module_upgrade_costs.items():
-                if currency_id not in total_upgrade_costs:
-                    total_upgrade_costs[currency_id] = 0
-                total_upgrade_costs[currency_id] += upgrade_cost_amount * quantity
+            for currency_ref, upgrade_cost_amount in this_module_upgrade_costs.items():
+                if currency_ref not in total_upgrade_costs:
+                    total_upgrade_costs[currency_ref] = 0
+                total_upgrade_costs[currency_ref] += upgrade_cost_amount * quantity
 
         return total_upgrade_costs
     
@@ -760,8 +760,8 @@ class Analysis:
     # For a given ability scalar index, get the primary or secondary stat object
     def get_ability_stat(self, module, i, stat_type: Literal['primary', 'secondary']):
         ability_scalars = module.abilities_scalars[i]
-        stat_id_key = f'{stat_type}_stat_id'
-        stat_ref = ability_scalars.get(stat_id_key)
+        stat_ref_key = f'{stat_type}_stat_ref'
+        stat_ref = ability_scalars.get(stat_ref_key)
         if stat_ref is None:
             return None
         module_stat = ModuleStat.get_from_ref(stat_ref)
@@ -774,7 +774,7 @@ class Analysis:
         Returns:
             {
                 "<lang_code>": {
-                    "<module_category_id>": {
+                    "<module_category_ref>": {
                         "<ability_name_str>": "Deploys a device that reduces the reload time of allies within `Primary`m by `Secondary`%.
                     }
                 }
@@ -790,12 +790,12 @@ class Analysis:
                 # Skip if missing critical attributes
                 if not hasattr(module, 'production_status') or module.production_status != 'Ready':
                     continue
-                if not hasattr(module, 'module_type_id'):
+                if not hasattr(module, 'module_type_ref'):
                     continue
 
                 # Determine module category
-                module_type = ModuleType.get_from_ref(module.module_type_id)
-                module_type_id = module_type.id
+                module_type = ModuleType.get_from_ref(module.module_type_ref)
+                module_type_ref = module_type.id
                 category = localization.localize_from_name(module_type.name)
                 module_type_character_type = getattr(module_type, 'character_type', "Robot")
                 if module_type_character_type != "Robot":
@@ -822,7 +822,7 @@ class Analysis:
                     character_module_mounts = module.character_module_mounts
                     if len(character_module_mounts) > 1:
                         logger.error(f"Structure change: Module {module_id} with abilities_scalars has multiple character module mounts.")
-                    character_module_ref = character_module_mounts[0]['character_module_id']
+                    character_module_ref = character_module_mounts[0]['character_module_ref']
                     character_module = CharacterModule.get_from_ref(character_module_ref)
                     abilities_refs = character_module.abilities_refs
 
@@ -852,13 +852,13 @@ class Analysis:
                         add_category_if_missing()
                         result[lang_code][category][abi_name_str] = self.format_description(abi_desc_localized, primary_stat, secondary_stat, localization)
                 # Determine from module alone
-                elif module_type_id in ['DA_ModuleType_Ability3.0', 'DA_ModuleType_Ability4.0']: #skip shoulder type
+                elif module_type_ref in ['DA_ModuleType_Ability3.0', 'DA_ModuleType_Ability4.0']: #skip shoulder type
                     abi_name = module_name_str
                     abi_desc = localization.localize_from_name(module.description)
                     
                     module_scalars = module.module_scalars
-                    primary_stat = ModuleStat.get_from_ref(module_scalars["primary_stat_id"])
-                    secondary_stat = ModuleStat.get_from_ref(module_scalars["secondary_stat_id"])
+                    primary_stat = ModuleStat.get_from_ref(module_scalars["primary_stat_ref"])
+                    secondary_stat = ModuleStat.get_from_ref(module_scalars["secondary_stat_ref"])
                     if not validate_param_presence(primary_stat, secondary_stat):
                         continue
 
@@ -872,7 +872,7 @@ class Analysis:
         """
         ability_descriptions = {
             "<lang_code>": {
-                "<module_category_id>": {
+                "<module_category_ref>": {
                     "<ability_name_str>": "Deploys a device that reduces the reload time of allies within `Primary`m by `Secondary`%.
                 }
             }

@@ -193,15 +193,16 @@ class Module(ParseObject):
             # Parse upgrade and scrap currencies
             module_lvl_id = f"{self.id}_lvl{level_num}"
             if "UpgradeCurrency" in level and "UpgradeCost" in level:
-                upgrade_currency = level["UpgradeCurrency"]
+                upgrade_currency_id = level["UpgradeCurrency"]
                 upgrade_cost_amount = level["UpgradeCost"]
                 
                 # consciously not excluding 0 amounts, as it messes up ability to check if its a constant or a variable
-                if upgrade_currency is not None and upgrade_currency != "None": #it may be None if its say a torso ability module, as the ability is not what costs currency to upgrade, rather the module its attached to (torso) will have the cost
-                    upgrade_cost = UpgradeCost(module_lvl_id, upgrade_currency, upgrade_cost_amount) 
+                if upgrade_currency_id is not None and upgrade_currency_id != "None": #it may be None if its say a torso ability module, as the ability is not what costs currency to upgrade, rather the module its attached to (torso) will have the cost
+                    upgrade_currency_ref = Currency.id_to_ref(upgrade_currency_id)
+                    upgrade_cost = UpgradeCost(module_lvl_id, upgrade_currency_ref, upgrade_cost_amount) 
                     parsed_level["upgrade_cost_ref"] = upgrade_cost.to_ref()
 
-            scrap_rewards_ids = []
+            scrap_rewards_refs = []
             def p_scrap_reward_amount(first_or_second):
                 """
                 first_or_second: "First" or "Second"
@@ -209,13 +210,14 @@ class Module(ParseObject):
                 scrap_reward_amount_key = f"{first_or_second}ScrapRewardAmount"
                 scrap_reward_currency_key = f"{first_or_second}ScrapRewardCurrency"
                 if scrap_reward_currency_key in level and scrap_reward_amount_key in level:
-                    scrap_reward_currency = level[scrap_reward_currency_key]
+                    scrap_reward_currency_id = level[scrap_reward_currency_key]
                     scrap_reward_amount = level[scrap_reward_amount_key]
-                    if scrap_reward_currency is not None and scrap_reward_currency != "None": # consciously not excluding 0 amounts, as it messes up ability to check if its a constant or a variable
-                        scrap_num_id = len(scrap_rewards_ids) + 1 #index the next scrap reward will be at, +1
+                    if scrap_reward_currency_id is not None and scrap_reward_currency_id != "None": # consciously not excluding 0 amounts, as it messes up ability to check if its a constant or a variable
+                        scrap_num_id = len(scrap_rewards_refs) + 1 #index the next scrap reward will be at, +1
+                        scrap_currency_ref = Currency.id_to_ref(scrap_reward_currency_id)
                         module_lvl_scrapindex_id = f"{module_lvl_id}_scrap{scrap_num_id}"
-                        scrap_reward = ScrapReward(module_lvl_scrapindex_id, scrap_reward_currency, scrap_reward_amount)
-                        scrap_rewards_ids.append(scrap_reward.id)
+                        scrap_reward = ScrapReward(module_lvl_scrapindex_id, scrap_currency_ref, scrap_reward_amount)
+                        scrap_rewards_refs.append(scrap_reward.to_ref())
 
             # Since these are id'd this way, why not just have them referenced in the Module level directly?
             # A few weeks before writing, every intel discount was reflected in the client-side costs of items
@@ -227,8 +229,8 @@ class Module(ParseObject):
                 
             p_scrap_reward_amount("First")
             p_scrap_reward_amount("Second")
-            if scrap_rewards_ids:
-                parsed_level["scrap_rewards_ids"] = scrap_rewards_ids
+            if scrap_rewards_refs:
+                parsed_level["scrap_rewards_refs"] = scrap_rewards_refs
 
 
             # Parse module class and tags
