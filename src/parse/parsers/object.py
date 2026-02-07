@@ -15,6 +15,8 @@ class ParseObject: #generic object that all classes extend
         self.id = id
         if id == "" and source_data == {}:
             return
+        if id.startswith('OBJID_'):
+            raise ValueError(f"Object ID should be just the ID, not the full reference: {id}")
         self._parse()
 
         self.objects[id] = self  # Store the instance in the class dictionary
@@ -66,15 +68,12 @@ class ParseObject: #generic object that all classes extend
         return obj_as_dict
 
     @classmethod
-    def get_from_id(cls, id):
+    def get_from_id(cls, id, default=None):
         """
-        Returns an object from the class dictionary by its ID.
-        If the object does not exist, it returns None.
+        Returns an object from the class dictionary by its ID, else default
         """
-        if id not in cls.objects:
-            return None
-        else:
-            return cls.objects[id]
+        # yes, this is a .get() wrapper. I know. Consider it paranoid future proofing.
+        return cls.objects.get(id, default)
 
     @classmethod
     def get_from_asset_path(cls, asset_path: str):
@@ -121,6 +120,37 @@ class ParseObject: #generic object that all classes extend
 
         return obj
 
+    def to_ref(self):
+        """
+        Returns a reference string for the object.
+        Given Module instance with id=DA_Module_AmmoGen
+        Returns: OBJID_Module::DA_Module_AmmoGen
+        """
+        return self.id_to_ref(self.id)
+
+    @classmethod
+    def ref_to_id(cls, ref: str | None):
+        """OBJID_Module::DA_Module_AmmoGen -> DA_Module_AmmoGen"""
+        if ref is None:
+            raise ValueError(f"Reference string for class {cls.__name__} is None")
+        parts = ref.split('::')
+        if len(parts) != 2:
+            raise ValueError(f"Invalid reference string for class {cls.__name__}: {ref}")
+        id = parts[1]
+        if parts[0] != f"OBJID_{cls.__name__}":
+            raise ValueError(f"Invalid reference string for class {cls.__name__}: {ref}")
+        return id
+
+    @classmethod
+    def id_to_ref(cls, id: str):
+        """DA_Module_AmmoGen -> OBJID_Module::DA_Module_AmmoGen"""
+        return f"OBJID_{cls.__name__}::{id}"
+
+    @classmethod
+    def get_from_ref(cls, ref: str):
+        """Get an object from it's reference string (see to_ref())"""
+        return cls.objects[(cls.ref_to_id(ref))]
+    
     @classmethod
     def objects_to_dict(cls):
         """

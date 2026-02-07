@@ -59,10 +59,10 @@ class GameMode(ParseObject):
             "TitanSettings": (self._p_titan_settings, "titan_settings"),
             "AbilityChargeSettings": (self._p_ability_charge_settings, "ability_charge_settings"),
             "KillCameraActorClass": None,
-            "BotNames": (self._p_bot_names, "bot_names"),
+            "BotNames": (self._p_bot_names, "bot_names_ref"),
             "RibbonSystemClass": None,
             "PostCombatPipelineClass": None, #UI
-            "HonorSystemClass": (self._p_honor_system, "honor_system"),
+            "HonorSystemClass": (self._p_honor_system, "honor_rewards_refs"),
             "DefaultPawnClass": None,
             "DefaultBotsConfig": None, #Intermediate for all modes; overridden server side by the list in meta root
             "DefaultPlayerName": None, #"Terminator" lmao
@@ -153,7 +153,7 @@ class GameMode(ParseObject):
         })
 
     def _p_bot_names(self, data):
-        return BotNames.create_from_asset(data).id
+        return BotNames.create_from_asset(data).to_ref()
         
     def _p_honor_system(self, data):
         data = asset_to_data(data)
@@ -161,11 +161,11 @@ class GameMode(ParseObject):
         if 'Properties' not in data:
             return
         data = data["Properties"]["Rewards"]
-        ids = []
+        refs = []
         for honor_reward in data:
-            honor_reward_id = HonorReward.create_from_asset(honor_reward).id
-            ids.append(honor_reward_id)
-        return ids
+            honor_reward_ref = HonorReward.create_from_asset(honor_reward).to_ref()
+            refs.append(honor_reward_ref)
+        return refs
 
     def _p_beacon_pts(self, data):
         parsed_data = dict()

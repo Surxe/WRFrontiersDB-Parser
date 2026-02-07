@@ -12,16 +12,30 @@
 * **File Path**
   * **Executable File Path** → `cmd` (e.g., none currently)
   * **Other File Path** → `file` (e.g., `log_file`, `asset_file`, `version_file`)
-* **Path** - Generic - Ideally is changed to either dir, cmd, or file
+* **Path** - Generic - Old convention, ideally is changed to either dir, cmd, or file
 
 ### Function/Method Naming
-* **Private methods** - Methods that use (not just have) `self` arg. Prefixed with `_` (e.g., `_process_schema`)
+#### Methods
+* **Private methods** - Methods that use (not just have) `self` arg and are not intended to be used externally. Prefixed with `_` (e.g., `_process_schema`)
+* **Public methods** - Methods that use (not just have) `self` arg and are intended to be used externally. Not prefixed with `_`
+
+#### Variables
+* Data is an id - `currency_id` - (e.g. `DA_Module_AmmoFabricator.0`)
+* Data is a list of ids - `currencies_ids` - (e.g. `['DA_Module_AmmoFabricator.0']`)
+* Data is a ref - `currency_ref` - (e.g. `OBJID_Currency::DA_Module_AmmoFabricator.0`)
+* Data is a list of refs - `currencies_refs` - (e.g. `['OBJID_Currency::DA_Module_AmmoFabricator.0']`)
+* Data is a dictionary that contains refs - `character_module_mounts` -
+```python
+character_module_mounts = {
+    'mount': 'Left',
+    'character_module_ref': 'OBJID_CharacterModule::DA_Module_AmmoFabricator.0',
+}
+```
+
   
 ## File & Directory Structure
 
 ### Case
-* **Installation directories** - PascalCase (e.g., `BatchExport/`, `DepotDownlader/`)
-  * Match repository's case style for WRFrontiersDB-Data
 * **Documentation files** - ALLCAPSNOSPACE (e.g., `README.md`, `STANDARDS.md`)
 * **Other directories/files** - snake_case (e.g., `parsers/`, `build_scripts/`, `parse.py`)
 
@@ -38,10 +52,8 @@
 * **Section Option** - A sub-option of the section's root option (e.g., `OUTPUT_DIR` under `SHOULD_PARSE`)
 
 ### Logging Standards
-* **Log Levels** - `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`
+* **Log Levels** - `TRACE`, `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`
 * **Sensitive Data** - Password fields masked with `***HIDDEN***`
-* **Process Logging** - Format: `[process: {name}] {message}`
-* **Timer Logging** - Include start/end timestamps and elapsed time
 
 ## Testing Conventions
 

@@ -36,10 +36,10 @@ class Pilot(ParseObject):
             "ReactionSet": None,
             "HangarReactionSet": None,
             "PilotSkin": None,
-            "Rarity": (self._p_pilot_type, "pilot_type_id"),
-            "PilotClass": (self._p_pilot_class, "pilot_class_id"),
-            "Personality": (self._p_personality, "personality_id"),
-            "Faction": (self._p_faction, "faction_id"),
+            "Rarity": (self._p_pilot_type, "pilot_type_ref"),
+            "PilotClass": (self._p_pilot_class, "pilot_class_ref"),
+            "Personality": (self._p_personality, "personality_ref"),
+            "Faction": (self._p_faction, "faction_ref"),
             "SellPrice": (parse_currency, "sell_price"),
             "Levels": (self._p_levels, "levels"), #
             "ID": None,
@@ -54,20 +54,20 @@ class Pilot(ParseObject):
         return second_name
 
     def _p_pilot_type(self, data: dict):
-        return PilotType.create_from_asset(data).id
+        return PilotType.create_from_asset(data).to_ref()
 
     def _p_pilot_class(self, data: dict):
-        return PilotClass.create_from_asset(data).id
+        return PilotClass.create_from_asset(data).to_ref()
 
     def _p_personality(self, data: dict):
-        return PilotPersonality.create_from_asset(data).id
+        return PilotPersonality.create_from_asset(data).to_ref()
 
     def _p_faction(self, data: dict):
-        return Faction.create_from_asset(data).id
+        return Faction.create_from_asset(data).to_ref()
     
     def _p_sell_price(self, data: dict):
         return {
-            "currency_id": Currency.create_from_asset(data["Currency"]).id,
+            "currency_ref": Currency.create_from_asset(data["Currency"]).to_ref(),
             "Amount": data["Amount"]
         }
     
@@ -85,7 +85,7 @@ class Pilot(ParseObject):
             self.levels.append(dict())
         
             props = level_data["Properties"]
-            self.levels[i]["talent_type_id"] = PilotTalentType.create_from_asset(props["TalentType"]).id
+            self.levels[i]["talent_type_ref"] = PilotTalentType.create_from_asset(props["TalentType"]).to_ref()
             if "ReputationCost" in props:
                 rep_cost = props["ReputationCost"]
                 expected_rep_cost = expected_rep_costs[i]
@@ -96,10 +96,10 @@ class Pilot(ParseObject):
             if upgrade_cost:
                 self.levels[i]["upgrade_cost"] = upgrade_cost
             talents = props["Talents"]
-            self.levels[i]["talents"] = []
+            self.levels[i]["talents_refs"] = []
             for talent in talents:
-                talent_id = PilotTalent.create_from_asset(talent).id
-                self.levels[i]["talents"].append(talent_id)
+                talent_ref = PilotTalent.create_from_asset(talent).to_ref()
+                self.levels[i]["talents_refs"].append(talent_ref)
 
 def parse_pilot_wrapper(dir, file_name):
     if not file_name.endswith(".json"):

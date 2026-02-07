@@ -40,20 +40,20 @@ class Module(ParseObject):
             "ProductionStatus": (parse_colon_colon, "production_status"),
             "IsUniversalMounted": None,
             "InventoryIcon": (parse_image_asset_path, "inventory_icon_path"),
-            "ModuleRarity": (self._p_module_rarity, "module_rarity_id"),
+            "ModuleRarity": (self._p_module_rarity, "module_rarity_ref"),
             "CharacterModules": (self._p_character_modules, "character_module_mounts"),
-            "ModuleTags": (self._p_module_tags, "module_tags_ids"),
+            "ModuleTags": (self._p_module_tags, "module_tags_refs"),
             "ModuleScaler": (self._p_module_scalar, None),
             "AbilityScalers": (self._p_ability_scalars, None),
             "Title": (parse_localization, "name"),
             "Description": (parse_localization, "description"),
             "TextTags": (self._p_text_tags, "text_tags"),
-            "Faction": (self._p_faction, "faction_id"),
-            "ModuleClasses": (self._p_module_classes, "module_classes_ids"),
+            "Faction": (self._p_faction, "faction_ref"),
+            "ModuleClasses": (self._p_module_classes, "module_classes_refs"),
             "PreviewVideoPath": None,
-            "ModuleStatsTable": (self._p_module_stats_table, "module_stats_table_id"),
-            "ModuleType": (self._p_module_type, "module_type_id"),
-            "Sockets": (self._p_sockets, "module_socket_type_ids"),
+            "ModuleStatsTable": (self._p_module_stats_table, "module_stats_table_ref"),
+            "ModuleType": (self._p_module_type, "module_type_ref"),
+            "Sockets": (self._p_sockets, "module_socket_type_refs"),
             "Levels": None,
             "ID": None,
         }
@@ -70,24 +70,24 @@ class Module(ParseObject):
             logger.debug(f"Module {self.id} is not ready for production")
 
     def _p_module_rarity(self, data):
-        return ModuleRarity.create_from_asset(data).id
+        return ModuleRarity.create_from_asset(data).to_ref()
 
     def _p_character_modules(self, data):
-        character_modules = []
+        character_module_refs = []
         for character_module in data:
             mount = parse_colon_colon(character_module["Key"]) # "ESCharacterModuleMountWay::Left" -> Left
-            character_module_id = CharacterModule.create_from_asset(character_module["Value"]).id
-            character_modules.append({
-                "character_module_id": character_module_id,
+            character_module_ref = CharacterModule.create_from_asset(character_module["Value"]).to_ref()
+            character_module_refs.append({
+                "character_module_ref": character_module_ref,
                 "mount": mount,
             })
 
-        return character_modules
+        return character_module_refs
                 
     def _p_module_tags(self, data):
         module_tags = []
         for elem in data:
-            module_tag_id = ModuleTag.create_from_asset(elem).id
+            module_tag_id = ModuleTag.create_from_asset(elem).to_ref()
             module_tags.append(module_tag_id)
         return module_tags
 
@@ -111,8 +111,8 @@ class Module(ParseObject):
     def _p_scalars(self, data):
         key_to_parser_function = {
             "LevelsData": (self._p_levels_data, "levels"),
-            "PrimaryStatMetaInformation": (self._p_parameter, "primary_stat_id"),
-            "SecondaryStatMetaInformation": (self._p_parameter, "secondary_stat_id"),
+            "PrimaryStatMetaInformation": (self._p_parameter, "primary_stat_ref"),
+            "SecondaryStatMetaInformation": (self._p_parameter, "secondary_stat_ref"),
             "ModuleName": ("value", "module_name"),
             "bAllowStatsReporting": None,
         }
@@ -123,12 +123,12 @@ class Module(ParseObject):
         
         # Determine which stats need to be inverted (reciprocal taken of) based on if the stat has exponent/scaler that are negative
         def format_stat_value(value, stat_type: Literal["primary", "secondary"]):
-            stat_id = parsed_scalars.get("primary_stat_id") if stat_type == "primary" else parsed_scalars.get("secondary_stat_id")
-            if stat_id is None:
+            stat_ref = parsed_scalars.get("primary_stat_ref") if stat_type == "primary" else parsed_scalars.get("secondary_stat_ref")
+            if stat_ref is None:
                 return False
-            stat_obj = ModuleStat.objects.get(stat_id, None)
+            stat_obj = ModuleStat.get_from_ref(stat_ref)
             if stat_obj is None:
-                logger.warning(f"Warning: Module {self.id} references {stat_type} ModuleStat {stat_id} which does not exist")
+                logger.warning(f"Warning: Module {self.id} references {stat_type} ModuleStat {stat_ref} which does not exist")
                 return False
             return stat_obj.format_value(value)
 
@@ -152,7 +152,7 @@ class Module(ParseObject):
 
         ret = dict()
         for key, value in parsed_scalars.items():
-            if key in ["levels", "primary_stat_id", "secondary_stat_id", "module_name"]:
+            if key in ["levels", "primary_stat_ref", "secondary_stat_ref", "module_name"]:
                 ret[key] = value
             else:
                 if "default_scalars" not in ret:
@@ -162,12 +162,12 @@ class Module(ParseObject):
         return ret
 
     def _p_parameter(self, data):
-        return ModuleStat.create_from_asset(data).id
+        return ModuleStat.create_from_asset(data).to_ref()
     
     def _p_levels_data(self, data):
-        module_rarity = self.module_rarity_id if hasattr(self, "module_rarity_id") else None
+        module_rarity = self.module_rarity_ref if hasattr(self, "module_rarity_ref") else None
         if module_rarity is None:
-            logger.warning(f"Warning: Module {self.id} level {level_num} is missing module_rarity_id")
+            logger.warning(f"Warning: Module {self.id} level {level_num} is missing module_rarity_ref")
 
         parsed_levels = []
         for level in data:
@@ -193,15 +193,16 @@ class Module(ParseObject):
             # Parse upgrade and scrap currencies
             module_lvl_id = f"{self.id}_lvl{level_num}"
             if "UpgradeCurrency" in level and "UpgradeCost" in level:
-                upgrade_currency = level["UpgradeCurrency"]
+                upgrade_currency_id = level["UpgradeCurrency"]
                 upgrade_cost_amount = level["UpgradeCost"]
                 
                 # consciously not excluding 0 amounts, as it messes up ability to check if its a constant or a variable
-                if upgrade_currency is not None and upgrade_currency != "None": #it may be None if its say a torso ability module, as the ability is not what costs currency to upgrade, rather the module its attached to (torso) will have the cost
-                    upgrade_cost = UpgradeCost(module_lvl_id, upgrade_currency, upgrade_cost_amount) 
-                    parsed_level["upgrade_cost_id"] = upgrade_cost.id
+                if upgrade_currency_id is not None and upgrade_currency_id != "None": #it may be None if its say a torso ability module, as the ability is not what costs currency to upgrade, rather the module its attached to (torso) will have the cost
+                    upgrade_currency_ref = Currency.id_to_ref(upgrade_currency_id)
+                    upgrade_cost = UpgradeCost(module_lvl_id, upgrade_currency_ref, upgrade_cost_amount) 
+                    parsed_level["upgrade_cost_ref"] = upgrade_cost.to_ref()
 
-            scrap_rewards_ids = []
+            scrap_rewards_refs = []
             def p_scrap_reward_amount(first_or_second):
                 """
                 first_or_second: "First" or "Second"
@@ -209,13 +210,14 @@ class Module(ParseObject):
                 scrap_reward_amount_key = f"{first_or_second}ScrapRewardAmount"
                 scrap_reward_currency_key = f"{first_or_second}ScrapRewardCurrency"
                 if scrap_reward_currency_key in level and scrap_reward_amount_key in level:
-                    scrap_reward_currency = level[scrap_reward_currency_key]
+                    scrap_reward_currency_id = level[scrap_reward_currency_key]
                     scrap_reward_amount = level[scrap_reward_amount_key]
-                    if scrap_reward_currency is not None and scrap_reward_currency != "None": # consciously not excluding 0 amounts, as it messes up ability to check if its a constant or a variable
-                        scrap_num_id = len(scrap_rewards_ids) + 1 #index the next scrap reward will be at, +1
+                    if scrap_reward_currency_id is not None and scrap_reward_currency_id != "None": # consciously not excluding 0 amounts, as it messes up ability to check if its a constant or a variable
+                        scrap_num_id = len(scrap_rewards_refs) + 1 #index the next scrap reward will be at, +1
+                        scrap_currency_ref = Currency.id_to_ref(scrap_reward_currency_id)
                         module_lvl_scrapindex_id = f"{module_lvl_id}_scrap{scrap_num_id}"
-                        scrap_reward = ScrapReward(module_lvl_scrapindex_id, scrap_reward_currency, scrap_reward_amount)
-                        scrap_rewards_ids.append(scrap_reward.id)
+                        scrap_reward = ScrapReward(module_lvl_scrapindex_id, scrap_currency_ref, scrap_reward_amount)
+                        scrap_rewards_refs.append(scrap_reward.to_ref())
 
             # Since these are id'd this way, why not just have them referenced in the Module level directly?
             # A few weeks before writing, every intel discount was reflected in the client-side costs of items
@@ -227,8 +229,8 @@ class Module(ParseObject):
                 
             p_scrap_reward_amount("First")
             p_scrap_reward_amount("Second")
-            if scrap_rewards_ids:
-                parsed_level["scrap_rewards_ids"] = scrap_rewards_ids
+            if scrap_rewards_refs:
+                parsed_level["scrap_rewards_refs"] = scrap_rewards_refs
 
 
             # Parse module class and tags
@@ -247,17 +249,24 @@ class Module(ParseObject):
                 if module_classtagfac_id == 'None':
                     return None
 
-                return module_classtagfac_id
+                if class_or_tag == "Class":
+                    ref = ModuleClass.id_to_ref(module_classtagfac_id)
+                elif class_or_tag == "Tag":
+                    ref = ModuleTag.id_to_ref(module_classtagfac_id)
+                elif class_or_tag == "Faction":
+                    ref = Faction.id_to_ref(module_classtagfac_id)
+
+                return ref
             
             def add_to_parsed_level_if_not_none(key, value):
                 if value is not None:
                     parsed_level[key] = value
 
-            add_to_parsed_level_if_not_none("module_class_id_1", p_module_class_tag_fac("Class", "1"))
-            add_to_parsed_level_if_not_none("module_class_id_2", p_module_class_tag_fac("Class", "2"))
-            add_to_parsed_level_if_not_none("module_tag_id_1", p_module_class_tag_fac("Tag", "1"))
-            add_to_parsed_level_if_not_none("module_tag_id_2", p_module_class_tag_fac("Tag", "2"))
-            add_to_parsed_level_if_not_none("module_faction_id", p_module_class_tag_fac("Faction", "0"))
+            add_to_parsed_level_if_not_none("module_class_ref_1", p_module_class_tag_fac("Class", "1"))
+            add_to_parsed_level_if_not_none("module_class_ref_2", p_module_class_tag_fac("Class", "2"))
+            add_to_parsed_level_if_not_none("module_tag_ref_1", p_module_class_tag_fac("Tag", "1"))
+            add_to_parsed_level_if_not_none("module_tag_ref_2", p_module_class_tag_fac("Tag", "2"))
+            add_to_parsed_level_if_not_none("module_faction_ref", p_module_class_tag_fac("Faction", "0"))
 
 
             # Parse load/energy capacity
@@ -289,9 +298,9 @@ class Module(ParseObject):
 
         # Validate that particular keys are always constants (for frontend purposes)
         expected_constants = [
-            'module_class_id_1', 'module_class_id_2',
-            'module_tag_id_1', 'module_tag_id_2',
-            'module_faction_id',
+            'module_class_ref_1', 'module_class_ref_2',
+            'module_tag_ref_1', 'module_tag_ref_2',
+            'module_faction_ref',
             'LoadCapacity', 'EnergyCapacity'
         ]
         for key in expected_constants:
@@ -344,27 +353,27 @@ class Module(ParseObject):
         return text_tags
 
     def _p_faction(self, data):
-        return Faction.create_from_asset(data).id
+        return Faction.create_from_asset(data).to_ref()
 
     def _p_module_classes(self, data):
-        module_classes_ids = []
+        module_classes_refs = []
         for elem in data:
-            module_class_id = ModuleClass.create_from_asset(elem).id
-            module_classes_ids.append(module_class_id)
-        return module_classes_ids
+            module_class_ref = ModuleClass.create_from_asset(elem).to_ref()
+            module_classes_refs.append(module_class_ref)
+        return module_classes_refs
 
     def _p_module_stats_table(self, data):
-        return ModuleStatsTable.create_from_asset(data).id     
+        return ModuleStatsTable.create_from_asset(data).to_ref() 
 
     def _p_module_type(self, data):
-        return ModuleType.create_from_asset(data).id
+        return ModuleType.create_from_asset(data).to_ref()
 
     def _p_sockets(self, data):
-        module_socket_type_ids = []
+        module_socket_type_refs = []
         for elem in data:
-            module_socket_type_id = ModuleSocketType.create_from_asset(elem["Type"]).id
-            module_socket_type_ids.append(module_socket_type_id)
-        return module_socket_type_ids
+            module_socket_type_ref = ModuleSocketType.create_from_asset(elem["Type"]).to_ref()
+            module_socket_type_refs.append(module_socket_type_ref)
+        return module_socket_type_refs
     
 def find_module_element(path):
     """

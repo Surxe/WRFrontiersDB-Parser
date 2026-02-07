@@ -21,17 +21,17 @@ class Decal(ParseObject):
             "DecalName": (parse_localization, "name"), 
             "DecalDescription": (parse_localization, "description"),
             "DecalIcon": (parse_image_asset_path, "icon_path"),
-            "Type": (self._p_type, "customization_type_id"),
+            "Type": (self._p_type, "customization_type_ref"),
             "DecalAtlas": None,
             "DecalParams": None,
-            "Rarity": (self._p_customization_rarity, "customization_rarity_id"),
+            "Rarity": (self._p_customization_rarity, "customization_rarity_ref"),
             "ID": None,
         }
 
         self._process_key_to_parser_function(key_to_parser_function, props)
 
     def _p_type(self, data):
-        return CustomizationType.create_from_asset(data).id
+        return CustomizationType.create_from_asset(data).to_ref()
 
     def _p_customization_rarity(self, data):
-        return CustomizationRarity.create_from_asset(data).id
+        return CustomizationRarity.create_from_asset(data).to_ref()

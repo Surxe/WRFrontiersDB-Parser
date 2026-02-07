@@ -54,15 +54,15 @@ class ProgressionTable(ParseObject):
             "ReputationPoints": self._confirm_0,
             "Currencies": (lambda currencies: [parse_currency(currency) for currency in currencies], "currencies"),
             "CharacterModules": (self._p_modules, "modules"),
-            "Blueprints": (lambda blueprints: [Module.create_from_asset(blueprint).id for blueprint in blueprints], "blueprints_ids"),
+            "Blueprints": (lambda blueprints: [Module.create_from_asset(blueprint).to_ref() for blueprint in blueprints], "blueprints_refs"),
             "Characters": self._confirm_empty,
-            "ContentUnlocks": (lambda content_unlocks: [ContentUnlock.create_from_asset(content_unlock).id for content_unlock in content_unlocks], "content_unlocks_ids"),
+            "ContentUnlocks": (lambda content_unlocks: [ContentUnlock.create_from_asset(content_unlock).to_ref() for content_unlock in content_unlocks], "content_unlocks_refs"),
             "Premium": self._confirm_empty,
-            "Decals": (lambda decals: [Decal.create_from_asset(decals["Decal"]).id for decals in decals], "decals_ids"),
-            "Materials": (lambda materials: [Material.create_from_asset(material["Material"]).id for material in materials], "materials_ids"),
+            "Decals": (lambda decals: [Decal.create_from_asset(decals["Decal"]).to_ref() for decals in decals], "decals_refs"),
+            "Materials": (lambda materials: [Material.create_from_asset(material["Material"]).to_ref() for material in materials], "materials_refs"),
             "GlobalDecals": self._confirm_empty,
-            "Weathering": (lambda weathering: [Weathering.create_from_asset(weather["Weathering"]).id for weather in weathering], "weatherings_ids"),
-            "CharacterSkins": (lambda skins: [Skin.create_from_asset(skin["Skin"]).id for skin in skins], "skins_ids"),
+            "Weathering": (lambda weathering: [Weathering.create_from_asset(weather["Weathering"]).to_ref() for weather in weathering], "weatherings_refs"),
+            "CharacterSkins": (lambda skins: [Skin.create_from_asset(skin["Skin"]).to_ref() for skin in skins], "skins_refs"),
             "CharacterSetups": self._confirm_empty,
             "PilotRewards": (self._p_pilots, "pilots"),
             "ModuleVariantRewards": self._confirm_empty,
@@ -90,8 +90,9 @@ class ProgressionTable(ParseObject):
         parsed_pilots = []
         for element in data:
             parsed_p = dict()
-            pilot_id, _ = Pilot.get_from_asset(element["Pilot"])
-            parsed_p["pilot_id"] = pilot_id
+            _, pilot = Pilot.get_from_asset(element["Pilot"])
+            pilot_ref = pilot.to_ref()
+            parsed_p["pilot_ref"] = pilot_ref
             parsed_p["level"] = element["Level"]
             parsed_pilots.append(parsed_p)
         return parsed_pilots

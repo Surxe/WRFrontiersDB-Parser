@@ -14,10 +14,10 @@ class ModuleRarity(ParseObject):
 
         key_to_parser_function = {
             "SortOrder": "value",
-            "RarityDataAsset": (self._p_rarity_data_asset, "rarity_id"),
+            "RarityDataAsset": (self._p_rarity_data_asset, "rarity_ref"),
         }
         
         self._process_key_to_parser_function(key_to_parser_function, props)
 
     def _p_rarity_data_asset(self, data):
-        return Rarity.create_from_asset(data).id
+        return Rarity.create_from_asset(data).to_ref()

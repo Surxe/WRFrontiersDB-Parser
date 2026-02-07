@@ -23,8 +23,8 @@ class CharacterModule(ParseObject):
             "ModuleLevel": "value", #no clue what this means, its an integer like 17
             "ModuleDataAsset": None, # references index 0 which ofc references this spot, so ignoring it
             "Components": None,
-            "Abilities": (self._p_abilities, "abilities_ids"),
-            "MovementType": (p_movement_type, "movement_type_id"), # too complicated to bother with; contains movement data as curve tables
+            "Abilities": (self._p_abilities, "abilities_refs"),
+            "MovementType": (p_movement_type, "movement_type_ref"), # too complicated to bother with; contains movement data as curve tables
             "FootstepSettings": None,
             "DefaultMaxSpeed": None,
             "LandingSoundEvent": None,
@@ -94,7 +94,7 @@ class CharacterModule(ParseObject):
         
         # Store data that wasn't parsed separately into defaultable_data
         other_data = dict()
-        keys_to_store_as_attrs = ['module_scaler', 'fire_modes', 'abilities_ids']
+        keys_to_store_as_attrs = ['module_scaler', 'fire_modes', 'abilities_refs']
         for key, value in parsed_data.items():
             if key not in keys_to_store_as_attrs:
                 other_data[key] = value
@@ -328,8 +328,8 @@ class CharacterModule(ParseObject):
     def _p_abilities(self, list: list):
         parsed_abilities = []
         for ability in list:
-            ability_id = Ability.create_from_asset(ability).id
-            parsed_abilities.append(ability_id)
+            ability_ref = Ability.create_from_asset(ability).to_ref()
+            parsed_abilities.append(ability_ref)
         return parsed_abilities
 
     def _p_reload_type(self, data):
@@ -439,4 +439,4 @@ def p_this_distance_setting(data):
     })
 
 def p_movement_type(data):
-    return MovementType.create_from_asset(data).id
+    return MovementType.create_from_asset(data).to_ref()

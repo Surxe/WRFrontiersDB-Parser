@@ -22,9 +22,9 @@ class Ability(ParseObject):
         for key, value in overlayed_data.items():
             setattr(self, key, value)
 
-        # Locate WeaponInfos under the misc attribute and move it to the weapon_id attribute
+        # Locate WeaponInfos under the misc attribute and move it to the weapon_char_module_ref attribute
         if hasattr(self, 'misc') and 'spawn_actor_action' in self.misc and 'ActorClass' in self.misc['spawn_actor_action'] and 'WeaponInfos' in self.misc['spawn_actor_action']['ActorClass']:
-            self.weapon_id = self.misc['spawn_actor_action']['ActorClass'].pop('WeaponInfos')
+            self.weapon_char_module_ref = self.misc['spawn_actor_action']['ActorClass'].pop('WeaponInfos')
 
     def _parse_from_data(self, source_data: dict):
         props = source_data.get("Properties")
@@ -160,8 +160,8 @@ class Ability(ParseObject):
             "TargetingMarkerClass": None,
             "AssistanceRadius": None,
             "RetributionAnimTime": None,
-            "WeaponInfos": {"parser": self._p_weapon_infos, "action": ParseAction.ATTRIBUTE, "target": "weapon_id"}, # ares retribution and volta tesla coil
-            "ActivateWeaponsAction": {"parser": self._p_activate_weapons_action, "action": ParseAction.ATTRIBUTE, "target": "weapon_id"},
+            "WeaponInfos": {"parser": self._p_weapon_infos, "action": ParseAction.ATTRIBUTE, "target": "weapon_char_module_ref"}, # ares retribution and volta tesla coil
+            "ActivateWeaponsAction": {"parser": self._p_activate_weapons_action, "action": ParseAction.ATTRIBUTE, "target": "weapon_char_module_ref"},
             "TurnSpeed": None, #homign pack
             "CruiseHeightRange": None,
             "CruiseRollSeconds": None,
@@ -803,7 +803,7 @@ def p_weapon_infos(list: list):
             )
         last_weapon_module_asset_path = weapon_module_asset_path
 
-    weapon_module_id = CharacterModule.create_from_asset_path(last_weapon_module_asset_path).id
+    weapon_module_id = CharacterModule.create_from_asset_path(last_weapon_module_asset_path).to_ref()
     return weapon_module_id
 
 def p_physics_volume(data):
@@ -908,11 +908,11 @@ def p_modifier(data):
         return data
 
 def p_ability_classes(data: dict):
-    ids = []
+    refs = []
     for ability_class in data:
-        ability_id = Ability.create_from_asset(ability_class).id
-        ids.append(ability_id)
-    return ids
+        ability_ref = Ability.create_from_asset(ability_class).to_ref()
+        refs.append(ability_ref)
+    return refs
 
 def p_weapon_selectors(data: list):
     weapon_selectors = []
@@ -920,7 +920,7 @@ def p_weapon_selectors(data: list):
         tag = ws["ModuleTag"]
         if tag is None:
             continue
-        module_tag_id = ModuleTag.create_from_asset(tag).id
+        module_tag_id = ModuleTag.create_from_asset(tag).to_ref()
         weapon_selectors.append({"module_tag_id": module_tag_id})
 
     if weapon_selectors:
@@ -934,7 +934,7 @@ def p_ability_selectors(data: list):
             allowed_placement_types.append(parse_colon_colon(aptype))
         module_tags = []
         for mtag in aselector["ModuleTags"]:
-            module_tag_id = ModuleTag.create_from_asset(mtag).id
+            module_tag_id = ModuleTag.create_from_asset(mtag).to_ref()
             module_tags.append({"module_tag_id": module_tag_id})
         
         ability_selector = {}
@@ -948,16 +948,19 @@ def p_ability_selectors(data: list):
         return ability_selectors
     
 def p_module_tag_selector(data: list):
-    module_tags = []
+    module_tags_refs = []
     for elem in data:
-        module_tag_id = ModuleTag.create_from_asset(elem).id
-        module_tags.append({"module_tag_id": module_tag_id})
-    return module_tags
+        module_tag_ref = ModuleTag.create_from_asset(elem).to_ref()
+        module_tags_refs.append({"module_tag_ref": module_tag_ref})
+    return module_tags_refs
     
 def p_module_tag_selector_or(data: list):
     module_tags = p_module_tag_selector(data)
     if module_tags:
-        return {"list_operator": "Or", "module_tags": module_tags}
+        return {"list_operator": "Or", "module_tags_refs": module_tags}
+
+def p_path_curve(data: dict):
+    return parse_curve(asset_to_data(data)["Properties"])
 
 def p_actor_class(data: dict):
     if type(data) is list:
@@ -1170,7 +1173,7 @@ def p_actor_class(data: dict):
         "VFXRadiusOffset": None,
         "StartImpulseHorizontal": "value",
         "StartImpulseVertical": "value",
-        "PathCurve": None, #galvanic screen uses tangent EditorCurveData, ignoring for now. #TODO
+        "PathCurve": p_path_curve,
         "DamageApplier": p_damage_applier,
         "PerModuleColliderComponent": None,
         "OpenTime": "value", #ghost turret
@@ -1178,7 +1181,7 @@ def p_actor_class(data: dict):
         "FocusComponent": p_focus_component,
         "PassiveWeaponComponent": None, #contains no data
         "SoundSystemComponent": None,
-        "WeaponInfos": p_weapon_infos,
+        "WeaponInfos": p_weapon_infos, #cant use action.attribute here because set_attrs=False below
         "EnemyMaterialInstance": None,
         "FriendMaterialInstance": None,
         "bCanBeDamaged": "value",
@@ -1246,7 +1249,7 @@ def p_actor_class(data: dict):
         "SpeedMultiplier": "value", #matriarch nanite field
         "MaxAccelMultiplier": "value",
         "ArmorRegenPercentPerSecond": "value",
-        "AbilityClasses": p_ability_classes, #orbital strike powerup
+        "AbilityClasses": (p_ability_classes, "abilities_refs"), #orbital strike powerup
         "MaxAbilitiesInvocationsCount": "value",
         "ProjectileArmorDamageMult": "value",
         "ProjectileShieldDamageMult": "value",

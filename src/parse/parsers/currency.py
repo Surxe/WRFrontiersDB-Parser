@@ -67,9 +67,9 @@ def parse_currency(data):
     elif currency_data is None:
         raise Exception(f"Structure change: {Currency.__class__.__name__} {Currency.id} has currency data with no Currency but Amount is {current_amount} and length of array is {len(data)}.")
     
-    currency_id = Currency.create_from_asset(currency_data).id
+    currency_ref = Currency.create_from_asset(currency_data).to_ref()
 
     return {
-        "currency_id": currency_id,
+        "currency_ref": currency_ref,
         "amount": current_amount
     }

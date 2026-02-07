@@ -8,12 +8,12 @@ from parsers.object import ParseObject
 class UpgradeCost(ParseObject):
     objects = dict()  # Dictionary to hold all UpgradeCost instances
 
-    def __init__(self, id, currency_id, amount):
+    def __init__(self, id, currency_ref, amount):
         super().__init__(id, {
-            "currency_id": currency_id,
+            "currency_ref": currency_ref,
             "amount": amount
         })
         
     def _parse(self):
-        self.currency_id = self.source_data.get("currency_id")
+        self.currency_ref = self.source_data.get("currency_ref")
         self.amount = self.source_data.get("amount")

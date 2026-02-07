@@ -28,7 +28,7 @@ class ModuleSocketType(ParseObject):
             "FilterOptions": None,
             "SortingOptions": None,
             "bCanBeChangedByUser": "value",
-            "CompatibleModules": (self._p_compatible_modules, "compatible_module_types_ids"),
+            "CompatibleModules": (self._p_compatible_modules, "compatible_module_types_refs"),
             "Required": "value",
             "ID": None,
         }
@@ -36,9 +36,9 @@ class ModuleSocketType(ParseObject):
         self._process_key_to_parser_function(key_to_parser_function, props)
 
     def _p_compatible_modules(self, data):
-        compatible_module_types = []
+        compatible_module_types_refs = []
         for elem in data:
-            module_type_id = ModuleType.create_from_asset(elem).id
-            compatible_module_types.append(module_type_id)
+            module_type_ref = ModuleType.create_from_asset(elem).to_ref()
+            compatible_module_types_refs.append(module_type_ref)
         
-        return compatible_module_types
+        return compatible_module_types_refs

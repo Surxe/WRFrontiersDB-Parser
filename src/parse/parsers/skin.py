@@ -19,7 +19,7 @@ class Skin(ParseObject):
             "SkinDescription": (parse_localization, "description"),
             "SkinIcon": (parse_image_asset_path, "icon_path"),
             "Skin": None, #lists decals, materials, weathering etc.. Not worth parsing
-            "Rarity": (self._p_customization_rarity, "customization_rarity_id"),
+            "Rarity": (self._p_customization_rarity, "customization_rarity_ref"),
             "ID": None,
         }
 
@@ -28,4 +28,4 @@ class Skin(ParseObject):
     def _p_customization_rarity(self, data):
         if data is None:
             return
-        return CustomizationRarity.create_from_asset(data).id
+        return CustomizationRarity.create_from_asset(data).to_ref()

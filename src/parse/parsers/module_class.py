@@ -13,11 +13,11 @@ class ModuleClass(ParseObject):
         props = self.source_data["Properties"]
 
         key_to_parser_function = {
-            "CharacterClassDataAsset": (self._p_character_class, "character_class_id"),
+            "CharacterClassDataAsset": (self._p_character_class, "character_class_ref"),
             "ID": None,
         }
 
         self._process_key_to_parser_function(key_to_parser_function, props)
 
     def _p_character_class(self, data):
-        return CharacterClass.create_from_asset(data).id
+        return CharacterClass.create_from_asset(data).to_ref()

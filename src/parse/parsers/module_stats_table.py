@@ -13,16 +13,16 @@ class ModuleStatsTable(ParseObject):
         props = self.source_data["Properties"]
 
         key_to_parser_function = {
-            "AllModuleStats": (self._p_all_module_stats, "stats_ids"),
+            "AllModuleStats": (self._p_all_module_stats, "stats_refs"),
         }
 
         self._process_key_to_parser_function(key_to_parser_function, props)
 
 
     def _p_all_module_stats(self, data):
-        parsed_stats = dict()
+        parsed_stats_refs = dict()
         for stat_key, stat_data in data.items():
-            stat_id = ModuleStat.create_from_asset(stat_data).id
-            parsed_stats[stat_key] = stat_id
+            stat_ref = ModuleStat.create_from_asset(stat_data).to_ref()
+            parsed_stats_refs[stat_key] = stat_ref
         
-        return parsed_stats
+        return parsed_stats_refs

@@ -13,15 +13,15 @@ class DropTeam(ParseObject):
         props = self.source_data["Properties"]
 
         key_to_parser_function = {
-            "Characters": self._p_characters,
+            "Characters": (self._p_characters, "character_presets_refs"),
             "ID": None,
         }
 
         self._process_key_to_parser_function(key_to_parser_function, props)
 
     def _p_characters(self, data):
-        ids = []
+        refs = []
         for elem in data:
-            preset_id = CharacterPreset.create_from_asset(elem).id
-            ids.append(preset_id)
-        return ids
+            preset_ref = CharacterPreset.create_from_asset(elem).to_ref()
+            refs.append(preset_ref)
+        return refs
