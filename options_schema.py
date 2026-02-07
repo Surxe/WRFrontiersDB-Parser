@@ -79,6 +79,16 @@ OPTIONS_SCHEMA = {
         "depends_on": ["SHOULD_PUSH_DATA"],
         "help": "Target branch to push data to in the data repository."
     },
+    "SHOULD_RECLONE": {
+        "env": "SHOULD_RECLONE",
+        "arg": "--should-reclone",
+        "type": bool,
+        "default": True,
+        "section": "Push Data",
+        "depends_on": ["SHOULD_PUSH_DATA"],
+        "help": "Whether to reclone the data repository from scratch before pushing data. If false, will assume the repository is already cloned at GH_DATA_REPO_DIR and is currently checked out.",
+        "help_extended": "Recommended to be True unless running in bulk."
+    },
     "GH_DATA_REPO_PAT": {
         "env": "GH_DATA_REPO_PAT",
         "arg": "--gh-data-repo-pat",
@@ -89,6 +99,16 @@ OPTIONS_SCHEMA = {
         "sensitive": True,
         "help": "PAT token to the GitHub repository that stores the data.",
         "example": "github_pat_XXXXXXXXXXXXXXXX"
+    },
+    "GH_DATA_REPO_DIR": {
+        "env": "GH_DATA_REPO_DIR",
+        "arg": "--gh-data-repo-dir",
+        "type": Path,
+        "default": 'WRFrontiersDB-Data',
+        "section": "Store Data",
+        "depends_on": ["SHOULD_PUSH_DATA"],
+        "help": "Directory of the GitHub repository that stores the data, relative to the current working directory.",
+        "example": Path("C:/WRFrontiersDB/Data")
     },
     "TRIGGER_DATA_WORKFLOW": {
         "env": "TRIGGER_DATA_WORKFLOW",

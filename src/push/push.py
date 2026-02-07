@@ -110,10 +110,14 @@ def configure_git_repo(repo_dir):
     """
     logger.debug("Configuring Git settings...")
     
+    # Ensure the remote URL contains the PAT for authentication
+    data_repo_url = f"https://{OPTIONS.gh_data_repo_pat}@github.com/Surxe/WRFrontiersDB-Data.git"
+    
     commands = [
         ['git', 'config', '--local', 'user.email', 'parser@example.com'],
         ['git', 'config', '--local', 'user.name', 'Parser'],
-        ['git', 'config', '--local', 'credential.helper', '']
+        ['git', 'config', '--local', 'credential.helper', ''],
+        ['git', 'remote', 'set-url', 'origin', data_repo_url]
     ]
     
     for cmd in commands:
@@ -381,6 +385,11 @@ def upload_textures(repo_dir, texture_output_dir, game_version):
     
     return True
 
+def ensure_is_repo_dir(repo_dir):
+    """Ensure the directory is a Git repository."""
+    if not os.path.exists(os.path.join(repo_dir, '.git')):
+        raise ValueError(f"Directory {repo_dir} is not a Git repository")
+
 def main():
     """Main function that orchestrates the data pushing process. Uses global OPTIONS singleton."""
     # Quit early if neither push option is enabled
@@ -389,22 +398,30 @@ def main():
         return
     
     # Validate target branch
-    valid_branches = ['testing-grounds', 'main']
+    valid_branches = ['testing-grounds', 'main', 'dev']
     if OPTIONS.target_branch not in valid_branches:
         raise ValueError(f"Invalid branch '{OPTIONS.target_branch}'. Only {valid_branches} are allowed.")
     
     # Configuration
     data_repo_url = f"https://{OPTIONS.gh_data_repo_pat}@github.com/Surxe/WRFrontiersDB-Data.git"
-    data_repo_dir = "WRFrontiersDB-Data"
+    data_repo_dir = OPTIONS.gh_data_repo_dir
     output_dir = OPTIONS.output_dir or "output"
     
     logger.info(f"Using game version: {OPTIONS.game_version}")
     logger.info(f"Using branch: {OPTIONS.target_branch}")
     logger.info(f"Using output directory: {output_dir}")
+
+    # Cleanup - remove cloned repository if choosing to reclone
+    if OPTIONS.should_reclone and os.path.exists(data_repo_dir):
+        logger.debug(f"Cleaning up {data_repo_dir}...")
+        shutil.rmtree(data_repo_dir, ignore_errors=True)
     
     try:
-        # Clone or refresh data repository
-        clone_data_repo(data_repo_url, data_repo_dir)
+        if OPTIONS.should_reclone:
+            # Clone or refresh data repository
+            clone_data_repo(data_repo_url, data_repo_dir)
+        else:
+            ensure_is_repo_dir(data_repo_dir)
         
         # Configure Git settings
         configure_git_repo(data_repo_dir)
@@ -449,8 +466,3 @@ def main():
     except Exception as e:
         logger.error(f"Error during push process: {e}")
         raise
-    finally:
-        # Cleanup - remove cloned repository
-        if os.path.exists(data_repo_dir):
-            logger.debug(f"Cleaning up {data_repo_dir}...")
-            shutil.rmtree(data_repo_dir, ignore_errors=True)
