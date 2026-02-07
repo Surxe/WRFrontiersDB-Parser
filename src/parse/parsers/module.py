@@ -249,16 +249,23 @@ class Module(ParseObject):
                 if module_classtagfac_id == 'None':
                     return None
 
-                return module_classtagfac_id
+                if class_or_tag == "Class":
+                    ref = ModuleClass.id_to_ref(module_classtagfac_id)
+                elif class_or_tag == "Tag":
+                    ref = ModuleTag.id_to_ref(module_classtagfac_id)
+                elif class_or_tag == "Faction":
+                    ref = Faction.id_to_ref(module_classtagfac_id)
+
+                return ref
             
             def add_to_parsed_level_if_not_none(key, value):
                 if value is not None:
                     parsed_level[key] = value
 
-            add_to_parsed_level_if_not_none("module_class_id_1", p_module_class_tag_fac("Class", "1"))
-            add_to_parsed_level_if_not_none("module_class_id_2", p_module_class_tag_fac("Class", "2"))
-            add_to_parsed_level_if_not_none("module_tag_id_1", p_module_class_tag_fac("Tag", "1"))
-            add_to_parsed_level_if_not_none("module_tag_id_2", p_module_class_tag_fac("Tag", "2"))
+            add_to_parsed_level_if_not_none("module_class_ref_1", p_module_class_tag_fac("Class", "1"))
+            add_to_parsed_level_if_not_none("module_class_ref_2", p_module_class_tag_fac("Class", "2"))
+            add_to_parsed_level_if_not_none("module_tag_ref_1", p_module_class_tag_fac("Tag", "1"))
+            add_to_parsed_level_if_not_none("module_tag_ref_2", p_module_class_tag_fac("Tag", "2"))
             add_to_parsed_level_if_not_none("module_faction_ref", p_module_class_tag_fac("Faction", "0"))
 
 
@@ -291,8 +298,8 @@ class Module(ParseObject):
 
         # Validate that particular keys are always constants (for frontend purposes)
         expected_constants = [
-            'module_class_id_1', 'module_class_id_2',
-            'module_tag_id_1', 'module_tag_id_2',
+            'module_class_ref_1', 'module_class_ref_2',
+            'module_tag_ref_1', 'module_tag_ref_2',
             'module_faction_ref',
             'LoadCapacity', 'EnergyCapacity'
         ]
