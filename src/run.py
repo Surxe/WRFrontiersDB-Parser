@@ -1,5 +1,6 @@
 
 import sys
+from datetime import datetime
 
 from pathlib import Path
 import argparse
@@ -59,6 +60,8 @@ def main():
 
     from optionsconfig import logger
 
+    logger.info(f"WRFrontiersDB-Parser@run.py started at time {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
     if options.should_parse:
         logger.debug(f"should_parse is set to {options.should_parse}, proceeding with parsing.")
         parse_main()
@@ -68,6 +71,8 @@ def main():
     if options.should_push_data:
         logger.debug(f"should_push_data is set to {options.should_push_data}, proceeding with pushing data.")
         push_main()
+
+    logger.info(f"WRFrontiersDB-Parser@run.py finished at time {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 if __name__ == "__main__":
     main()

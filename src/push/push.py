@@ -398,7 +398,7 @@ def main():
         return
     
     # Validate target branch
-    valid_branches = ['testing-grounds', 'main']
+    valid_branches = ['testing-grounds', 'main', 'dev']
     if OPTIONS.target_branch not in valid_branches:
         raise ValueError(f"Invalid branch '{OPTIONS.target_branch}'. Only {valid_branches} are allowed.")
     
