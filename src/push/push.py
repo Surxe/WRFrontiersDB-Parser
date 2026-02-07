@@ -110,10 +110,14 @@ def configure_git_repo(repo_dir):
     """
     logger.debug("Configuring Git settings...")
     
+    # Ensure the remote URL contains the PAT for authentication
+    data_repo_url = f"https://{OPTIONS.gh_data_repo_pat}@github.com/Surxe/WRFrontiersDB-Data.git"
+    
     commands = [
         ['git', 'config', '--local', 'user.email', 'parser@example.com'],
         ['git', 'config', '--local', 'user.name', 'Parser'],
-        ['git', 'config', '--local', 'credential.helper', '']
+        ['git', 'config', '--local', 'credential.helper', ''],
+        ['git', 'remote', 'set-url', 'origin', data_repo_url]
     ]
     
     for cmd in commands:
@@ -406,6 +410,11 @@ def main():
     logger.info(f"Using game version: {OPTIONS.game_version}")
     logger.info(f"Using branch: {OPTIONS.target_branch}")
     logger.info(f"Using output directory: {output_dir}")
+
+    # Cleanup - remove cloned repository if choosing to reclone
+    if OPTIONS.should_reclone and os.path.exists(data_repo_dir):
+        logger.debug(f"Cleaning up {data_repo_dir}...")
+        shutil.rmtree(data_repo_dir, ignore_errors=True)
     
     try:
         if OPTIONS.should_reclone:
@@ -457,8 +466,3 @@ def main():
     except Exception as e:
         logger.error(f"Error during push process: {e}")
         raise
-    finally:
-        # Cleanup - remove cloned repository
-        if os.path.exists(data_repo_dir):
-            logger.debug(f"Cleaning up {data_repo_dir}...")
-            shutil.rmtree(data_repo_dir, ignore_errors=True)

@@ -86,7 +86,7 @@ OPTIONS_SCHEMA = {
         "default": True,
         "section": "Push Data",
         "depends_on": ["SHOULD_PUSH_DATA"],
-        "help": "Whether to reclone the data repository from scratch before pushing data. If false, will assume the repository is already cloned at GH_DATA_REPO_DIR and is current.",
+        "help": "Whether to reclone the data repository from scratch before pushing data. If false, will assume the repository is already cloned at GH_DATA_REPO_DIR and is currently checked out.",
         "help_extended": "Recommended to be True unless running in bulk."
     },
     "GH_DATA_REPO_PAT": {
