@@ -89,7 +89,7 @@ class Analysis:
                 continue
 
             # Ensure module rarity is added
-            module_rarity_ref = ModuleRarity.ref_to_id(module.module_rarity_ref)
+            module_rarity_ref = module.module_rarity_ref
             if module_rarity_ref not in frequency_map:
                 frequency_map[module_rarity_ref] = {}
 
@@ -352,9 +352,9 @@ class Analysis:
 
             return level_base, level_max
         
-        def calc_diff(val1, val2, module_id):
+        def calc_diff(val1, val2, module_ref):
             if not isinstance(val1, (int, float)) or not isinstance(val2, (int, float)):
-                raise TypeError(f"Invalid type for value in module {module_id}, val1 {val1} val2 {val2}")
+                raise TypeError(f"Invalid type for value in module {module_ref}, val1 {val1} val2 {val2}")
             if val1 == 0 and val2 == 0:
                 diff_value = 0 #no div by 0 necessary to deem this true
             elif val1 != 0:
@@ -396,10 +396,10 @@ class Analysis:
                 if key in superficial_keys or key in {'scrap_rewards_refs', 'upgrade_cost_ref'}:
                     continue
                 else:
-                    add_diff(key, calc_diff(level_base[key], level_max[key], module_id))
+                    module_ref = Module.id_to_ref(module_id)
+                    add_diff(key, calc_diff(level_base[key], level_max[key], module_ref))
 
-            
-            level_diffs[module_id] = {
+            level_diffs[module_ref] = {
                 'stats_percent_increase': dict(sorted(diff.items()))
             }
 
@@ -540,10 +540,10 @@ class Analysis:
         module = Module.get_from_ref(module_ref)
         if getattr(module, 'production_status', None) != 'Ready':
             return None
-        module_rarity_ref = ModuleRarity.ref_to_id(module.module_rarity_ref)
+        module_rarity_ref = module.module_rarity_ref
         module_type_ref = getattr(module, 'module_type_ref', '')
         module_type = ModuleType.get_from_ref(module_type_ref)
-        module_category_ref = ModuleCategory.ref_to_id(module_type.module_category_ref)
+        module_category_ref = module_type.module_category_ref
 
         rarity_standard_cost_and_scrap = standard_cost_and_scrap[module_rarity_ref]
         for level, cost_scrap_data in rarity_standard_cost_and_scrap.items():
@@ -614,7 +614,7 @@ class Analysis:
         """
         Returns:
             {
-                <character_preset_id>: {
+                <character_preset_ref>: {
                     "total": {
                         <currency_ref>: <total_upgrade_cost_amount>,
                     },
@@ -632,18 +632,18 @@ class Analysis:
         """
         # category_name: [module_category_ref]
         category_map = {
-            "weapons": ['DA_ModuleCategory_Weapon.0'],
+            "weapons": ['OBJID_ModuleCategory::DA_ModuleCategory_Weapon.0'],
             "frame": [
-                'DA_ModuleCategory_Torso.0',
-                'DA_ModuleCategory_Chassis.0',
-                'DA_ModuleCategory_Shoulder.0',
+                'OBJID_ModuleCategory::DA_ModuleCategory_Torso.0',
+                'OBJID_ModuleCategory::DA_ModuleCategory_Chassis.0',
+                'OBJID_ModuleCategory::DA_ModuleCategory_Shoulder.0',
             ],
-            "gears": ['DA_ModuleCategory_Ability.0'],
+            "gears": ['OBJID_ModuleCategory::DA_ModuleCategory_Ability.0'],
             "total": [] #special case to sum all
         }
         def register_upgrade_costs_to_category(module_category_ref, upgrade_costs, preset_costs):
-            for category_name, category_module_ids in category_map.items():
-                if category_name == "total" or module_category_ref in category_module_ids:
+            for category_name, category_module_refs in category_map.items():
+                if category_name == "total" or module_category_ref in category_module_refs:
                     if category_name not in preset_costs:
                         preset_costs[category_name] = {}
                     for currency_ref, upgrade_cost_amount in upgrade_costs.items():
@@ -652,19 +652,18 @@ class Analysis:
                         preset_costs[category_name][currency_ref] += upgrade_cost_amount
 
         character_preset_costs = {}
-        for fpreset_id, fpreset in CharacterPreset.objects.items():
+        for _, fpreset in CharacterPreset.objects.items():
+            fpreset_ref = fpreset.to_ref()
             if not hasattr(fpreset, 'is_factory_preset') or not fpreset.is_factory_preset: #only look at factory presets, as character presets includes ai bots
                 continue
             for module_socket_name, module_data in fpreset.modules.items():
                 module_ref = module_data['module_ref']
-
                 this_module_upgrade_costs, module_category_ref = self.get_module_upgrade_costs(module_ref, standard_cost_and_scrap)
-                logger.debug(f"Adding upgrade cost for factory preset: {fpreset_id}")
 
                 # For each currency_ref, add to the fpreset's total
-                if fpreset_id not in character_preset_costs:
-                        character_preset_costs[fpreset_id] = {}
-                register_upgrade_costs_to_category(module_category_ref, this_module_upgrade_costs, character_preset_costs[fpreset_id])
+                if fpreset_ref not in character_preset_costs:
+                    character_preset_costs[fpreset_ref] = {}
+                register_upgrade_costs_to_category(module_category_ref, this_module_upgrade_costs, character_preset_costs[fpreset_ref])
 
         return character_preset_costs
     
