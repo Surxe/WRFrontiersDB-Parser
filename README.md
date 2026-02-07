@@ -77,9 +77,18 @@ python src/run.py --log-level INFO   # Run all steps with default/env values, ex
   - Depends on: `SHOULD_PUSH_DATA`
 
 
+#### Store Data
+
+* **GH_DATA_REPO_DIR** - Directory of the GitHub repository that stores the data, relative to the current working directory.
+  - Example: `"C:/WRFrontiersDB/Data"`
+  - Default: `"WRFrontiersDB-Data"`
+  - Command line: `--gh-data-repo-dir`
+  - Depends on: `SHOULD_PUSH_DATA`
+
+
 #### Both
 
-* **LOG_LEVEL** - Logging level. Must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL.
+* **LOG_LEVEL** - Logging level. Must be one of: TRACE, DEBUG, INFO, WARNING, ERROR, CRITICAL.
   - Default: `"DEBUG"`
   - Command line: `--log-level`
 

@@ -90,6 +90,16 @@ OPTIONS_SCHEMA = {
         "help": "PAT token to the GitHub repository that stores the data.",
         "example": "github_pat_XXXXXXXXXXXXXXXX"
     },
+    "GH_DATA_REPO_DIR": {
+        "env": "GH_DATA_REPO_DIR",
+        "arg": "--gh-data-repo-dir",
+        "type": Path,
+        "default": 'WRFrontiersDB-Data',
+        "section": "Store Data",
+        "depends_on": ["SHOULD_PUSH_DATA"],
+        "help": "Directory of the GitHub repository that stores the data, relative to the current working directory.",
+        "example": Path("C:/WRFrontiersDB/Data")
+    },
     "TRIGGER_DATA_WORKFLOW": {
         "env": "TRIGGER_DATA_WORKFLOW",
         "arg": "--trigger-data-workflow",

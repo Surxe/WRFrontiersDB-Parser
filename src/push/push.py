@@ -395,7 +395,7 @@ def main():
     
     # Configuration
     data_repo_url = f"https://{OPTIONS.gh_data_repo_pat}@github.com/Surxe/WRFrontiersDB-Data.git"
-    data_repo_dir = "WRFrontiersDB-Data"
+    data_repo_dir = OPTIONS.gh_data_repo_dir
     output_dir = OPTIONS.output_dir or "output"
     
     logger.info(f"Using game version: {OPTIONS.game_version}")
