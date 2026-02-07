@@ -381,6 +381,11 @@ def upload_textures(repo_dir, texture_output_dir, game_version):
     
     return True
 
+def ensure_is_repo_dir(repo_dir):
+    """Ensure the directory is a Git repository."""
+    if not os.path.exists(os.path.join(repo_dir, '.git')):
+        raise ValueError(f"Directory {repo_dir} is not a Git repository")
+
 def main():
     """Main function that orchestrates the data pushing process. Uses global OPTIONS singleton."""
     # Quit early if neither push option is enabled
@@ -403,8 +408,11 @@ def main():
     logger.info(f"Using output directory: {output_dir}")
     
     try:
-        # Clone or refresh data repository
-        clone_data_repo(data_repo_url, data_repo_dir)
+        if OPTIONS.should_reclone:
+            # Clone or refresh data repository
+            clone_data_repo(data_repo_url, data_repo_dir)
+        else:
+            ensure_is_repo_dir(data_repo_dir)
         
         # Configure Git settings
         configure_git_repo(data_repo_dir)

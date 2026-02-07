@@ -60,6 +60,12 @@ python src/run.py --log-level INFO   # Run all steps with default/env values, ex
   - Command line: `--target-branch`
   - Depends on: `SHOULD_PUSH_DATA`
 
+* **SHOULD_RECLONE** - Whether to reclone the data repository from scratch before pushing data. If false, will assume the repository is already cloned at GH_DATA_REPO_DIR and is current.
+  - Default: `"true"`
+  - Command line: `--should-reclone`
+  - Depends on: `SHOULD_PUSH_DATA`
+  - Recommended to be True unless running in bulk.
+
 * **GH_DATA_REPO_PAT** - PAT token to the GitHub repository that stores the data.
   - Example: `"github_pat_XXXXXXXXXXXXXXXX"`
   - Default: None - required when SHOULD_PUSH_DATA is True

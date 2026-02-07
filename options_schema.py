@@ -79,6 +79,16 @@ OPTIONS_SCHEMA = {
         "depends_on": ["SHOULD_PUSH_DATA"],
         "help": "Target branch to push data to in the data repository."
     },
+    "SHOULD_RECLONE": {
+        "env": "SHOULD_RECLONE",
+        "arg": "--should-reclone",
+        "type": bool,
+        "default": True,
+        "section": "Push Data",
+        "depends_on": ["SHOULD_PUSH_DATA"],
+        "help": "Whether to reclone the data repository from scratch before pushing data. If false, will assume the repository is already cloned at GH_DATA_REPO_DIR and is current.",
+        "help_extended": "Recommended to be True unless running in bulk."
+    },
     "GH_DATA_REPO_PAT": {
         "env": "GH_DATA_REPO_PAT",
         "arg": "--gh-data-repo-pat",
