@@ -80,8 +80,9 @@ class ProgressionTable(ParseObject):
         parsed_ms = []
         for element in data:
             parsed_m = dict()
-            module_id, _ = Module.get_from_asset(element["Module"])
-            parsed_m["module_id"] = module_id
+            _, module = Module.get_from_asset(element["Module"])
+            module_ref = module.to_ref()
+            parsed_m["module_ref"] = module_ref
             parsed_m["level"] = element["Level"]
             parsed_ms.append(parsed_m)
         return parsed_ms
