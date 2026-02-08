@@ -24,7 +24,7 @@ class CharacterModule(ParseObject):
             "ModuleDataAsset": None, # references index 0 which ofc references this spot, so ignoring it
             "Components": None,
             "Abilities": (self._p_abilities, "abilities_refs"),
-            "MovementType": (p_movement_type, "movement_type_ref"), # too complicated to bother with; contains movement data as curve tables
+            "MovementType": (p_movement_type, "movement_type_ref"),
             "FootstepSettings": None,
             "DefaultMaxSpeed": None,
             "LandingSoundEvent": None,
@@ -94,7 +94,7 @@ class CharacterModule(ParseObject):
         
         # Store data that wasn't parsed separately into defaultable_data
         other_data = dict()
-        keys_to_store_as_attrs = ['module_scaler', 'fire_modes', 'abilities_refs']
+        keys_to_store_as_attrs = ['module_scaler', 'fire_modes', 'abilities_refs', 'movement_type_ref']
         for key, value in parsed_data.items():
             if key not in keys_to_store_as_attrs:
                 other_data[key] = value
