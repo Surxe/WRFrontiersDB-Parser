@@ -461,7 +461,7 @@ def main():
         if OPTIONS.push_to_archive and OPTIONS.trigger_data_workflow and changes_made:
             trigger_data_repo_workflow()
         else:
-            logger.info("Triggering data workflow is false or no previous version, skipping workflow trigger.")
+            logger.info("Triggering data workflow is false or push to archive false or no changes made, skipping workflow trigger.")
         
     except Exception as e:
         logger.error(f"Error during push process: {e}")

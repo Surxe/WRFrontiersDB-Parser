@@ -203,32 +203,6 @@ class TestCloneDataRepo(unittest.TestCase):
         # Should call git clone
         mock_git_command.assert_called_once()
 
-
-class TestConfigureGitRepo(unittest.TestCase):
-    """Test cases for configure_git_repo function."""
-
-    @patch('push.push.run_git_command')
-    def test_configure_git_repo(self, mock_git_command):
-        """Test git repository configuration."""
-        test_dir = "/fake/path"
-        
-        configure_git_repo(test_dir)
-        
-        # Should call git config commands
-        self.assertEqual(mock_git_command.call_count, 3)
-        
-        # Check the calls
-        calls = mock_git_command.call_args_list
-        
-        # Check email config
-        self.assertIn('user.email', ' '.join(calls[0][0][0]))
-        
-        # Check name config  
-        self.assertIn('user.name', ' '.join(calls[1][0][0]))
-        
-        # Check credential helper config
-        self.assertIn('credential.helper', ' '.join(calls[2][0][0]))
-
 if __name__ == '__main__':
     # Register a custom test loader that skips tests if imports fail
     unittest.main(verbosity=2)

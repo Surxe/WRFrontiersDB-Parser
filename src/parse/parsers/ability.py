@@ -803,8 +803,8 @@ def p_weapon_infos(list: list):
             )
         last_weapon_module_asset_path = weapon_module_asset_path
 
-    weapon_module_id = CharacterModule.create_from_asset_path(last_weapon_module_asset_path).to_ref()
-    return weapon_module_id
+    weapon_module_ref = CharacterModule.create_from_asset_path(last_weapon_module_asset_path).to_ref()
+    return weapon_module_ref
 
 def p_physics_volume(data):
     invocs = {}
@@ -920,8 +920,8 @@ def p_weapon_selectors(data: list):
         tag = ws["ModuleTag"]
         if tag is None:
             continue
-        module_tag_id = ModuleTag.create_from_asset(tag).to_ref()
-        weapon_selectors.append({"module_tag_id": module_tag_id})
+        module_tag_ref = ModuleTag.create_from_asset(tag).to_ref()
+        weapon_selectors.append({"module_tag_ref": module_tag_ref})
 
     if weapon_selectors:
         return weapon_selectors
@@ -932,16 +932,16 @@ def p_ability_selectors(data: list):
         allowed_placement_types = []
         for aptype in aselector["AllowedPlacementTypes"]:
             allowed_placement_types.append(parse_colon_colon(aptype))
-        module_tags = []
+        module_tags_refs = []
         for mtag in aselector["ModuleTags"]:
-            module_tag_id = ModuleTag.create_from_asset(mtag).to_ref()
-            module_tags.append({"module_tag_id": module_tag_id})
+            module_tag_ref = ModuleTag.create_from_asset(mtag).to_ref()
+            module_tags_refs.append({"module_tag_ref": module_tag_ref})
         
         ability_selector = {}
         if allowed_placement_types:
             ability_selector["allowed_placement_types"] = allowed_placement_types
-        if module_tags:
-            ability_selector["module_tags"] = module_tags
+        if module_tags_refs:
+            ability_selector["module_tags"] = module_tags_refs
         ability_selectors.append(ability_selector)
 
     if ability_selectors:
