@@ -115,6 +115,7 @@ class Module(ParseObject):
             "SecondaryStatMetaInformation": (self._p_parameter, "secondary_stat_ref"),
             "ModuleName": ("value", "module_name"),
             "bAllowStatsReporting": None,
+            "NumLegs": "value"
         }
         key_to_parser_function.update(get_default_key_to_parser_function())
         parsed_scalars = self._process_key_to_parser_function(key_to_parser_function, data["Properties"], set_attrs=False, log_descriptor="Scalars", default_configuration={

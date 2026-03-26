@@ -304,6 +304,8 @@ class Ability(ParseObject):
             "ProjectileActivationType": parse_colon_colon,
             "ConeRadius": "value",
             "ConeHalfAngleInDegrees": "value",
+            "BuffToOwner": p_actor_class,
+            "BuffToTeammate": p_actor_class
         }
 
         my_ability_data = self._process_key_to_parser_function(
