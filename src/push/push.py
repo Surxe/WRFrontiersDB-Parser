@@ -62,9 +62,9 @@ def run_git_command(cmd, cwd=None, capture_output=True, check=True, log_output=F
         return result
         
     except subprocess.CalledProcessError as e:
-        # If ''nothing to commit' is in the error, make it a warning instead of error
+        # If ''nothing to commit' is in the error, make it a info instead of error
         if "nothing to commit" in e.stdout:
-            logger.warning("No changes to commit.")
+            logger.info("No changes to commit.")
             return e  # Return the exception object for further handling if needed
         logger.error(f"Git command failed: {' '.join(cmd)}")
         if e.stdout:

@@ -304,6 +304,9 @@ class Ability(ParseObject):
             "ProjectileActivationType": parse_colon_colon,
             "ConeRadius": "value",
             "ConeHalfAngleInDegrees": "value",
+            "BuffToOwner": p_actor_class,
+            "BuffToTeammate": p_actor_class,
+            "bSyncOwnerKickbackFromProjectileAndScaler": "value",
         }
 
         my_ability_data = self._process_key_to_parser_function(
@@ -519,6 +522,8 @@ class Ability(ParseObject):
                 "NumberOfMulticomponent": None,
                 "TitanChargePerHit": "value",
                 "TracerFX": None,
+                "bUseTracerOnEachComponent": "value",
+                "ImportedDistanceSettings": "value",
                 "AliveComponentsMaskParam": None,
                 "CoordsParam": None,
                 "DirectionParam": None,
@@ -962,6 +967,22 @@ def p_module_tag_selector_or(data: list):
 def p_path_curve(data: dict):
     return parse_curve(asset_to_data(data)["Properties"])
 
+def p_overlap_sphere(data: dict):
+    props = data.get("Properties")
+    if not props:
+        return
+    key_to_parser_function = {
+        "SphereRadius": "value",
+        "bGenerateOverlapEvents": "value",
+        "AttachParent": None,
+    }
+    return process_key_to_parser_function(
+        key_to_parser_function,
+        props,
+        log_descriptor="OverlapSphere",
+        set_attrs=False
+    )
+
 def p_actor_class(data: dict):
     if type(data) is list:
         for elem in data:
@@ -1268,6 +1289,8 @@ def p_actor_class(data: dict):
         "ExplosionSettings": None, #vfx
         "OverlapHitSoundEvent": None, #audio
         "PushSettingsClass": p_push_settings_class,
+        "BarrierMeshComponent": None, #mesh
+        "OverlapSphere": p_overlap_sphere,
     }
 
     parsed_data = process_key_to_parser_function(
