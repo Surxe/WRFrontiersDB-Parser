@@ -121,7 +121,7 @@ def enrich_modules_with_bots():
                 virtual_bots[bot_id] = VirtualBot(
                     id=bot_id,
                     name=preset.name,
-                    character_type=getattr(preset, 'character_type', 'Unknown'),
+                    character_type=getattr(preset, 'character_type', 'Mech'),
                     core_module_refs=[],
                     factory_preset_refs=[],
                     has_distinct_shoulders=has_distinct,

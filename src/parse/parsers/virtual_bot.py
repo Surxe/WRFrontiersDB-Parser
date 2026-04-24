@@ -5,6 +5,14 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import ParseObject
 
+"""
+Virtual Bot represents the a robot the way its referenced by the community.
+
+"Woah that new Garuda bot looks awesome!" -> refers to the modules that are specific to Garuda, i.e. the core modules, Torso, Chassis, Shoulder(s)
+
+Virtual Bot would be named Garuda. In addition to storing the core modules, it would specify if it has two different shoulders (like titans) and factory presets that use these 3 core modules.
+"""
+
 class VirtualBot(ParseObject):
     objects = dict()
 
