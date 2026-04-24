@@ -23,6 +23,9 @@ from parse.parsers.bot_ai_preset import *
 from parsers.character_preset import *
 from parsers.powerup import *
 from analysis import *
+from enrichment import enrich
+from parsers.virtual_bot import VirtualBot
+from parsers.module_group import ModuleGroup
 
 def main():
     """Main parsing function - uses global OPTIONS singleton."""
@@ -38,6 +41,7 @@ def main():
     parse_factory_presets()
     parse_powerups()
     analyze()
+    enrich()
 
 
     ProgressionTable.to_file()
@@ -61,6 +65,7 @@ def main():
     CharacterClass.to_file()
     ModuleTag.to_file()
     ModuleType.to_file()
+    ModuleGroup.to_file()
     ModuleCategory.to_file()
     ModuleSocketType.to_file()
     ModuleStat.to_file()
@@ -86,6 +91,8 @@ def main():
     League.to_file()
 
     CharacterPreset.to_file()
+
+    VirtualBot.to_file()
 
     Powerup.to_file()
 
