@@ -6,6 +6,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from loguru import logger
 from parsers.object import ParseObject
 from parsers.module_type import ModuleType
+from parsers.localization import Localization
 
 MODULE_TYPE_TO_GROUP = {
     # Titan torsos
@@ -68,12 +69,19 @@ MODULE_TYPE_TO_GROUP = {
 MODULE_GROUPS_DATA = {
     'titan-torsos': {
         'name': {'Key': 'CMP_Type_Titan_Torso', 'TableNamespace': 'Component_Tags'},
+        'titan': True,
     },
     'titan-chassis': {
         'name': {'Key': 'CMP_Type_Titan_Chassis', 'TableNamespace': 'Component_Tags'},
+        'titan': True,
     },
     'titan-shoulder': {
         'name': {'Key': 'GRP_TitanShoulders_Name', 'TableNamespace': 'ModuleGroups'},
+        'titan': True,
+    },
+    'titan-weapon': {
+        'name': {'Key': 'CMP_Type_Titan_Weapon', 'TableNamespace': 'Component_Tags'},
+        'titan': True,
     },
     'non-titan-torsos': {
         'name': {'Key': 'HNG_Torso', 'TableNamespace': 'Component_Tags'},
@@ -83,9 +91,6 @@ MODULE_GROUPS_DATA = {
     },
     'non-titan-shoulder': {
         'name': {'Key': 'HNG_Shoulder', 'TableNamespace': 'Component_Tags'},
-    },
-    'titan-weapon': {
-        'name': {'Key': 'CMP_Type_Titan_Weapon', 'TableNamespace': 'Component_Tags'},
     },
     'heavy-weapon': {
         'name': {'Key': 'HNG_HeavyWeapon', 'TableNamespace': 'Component_Tags'},
@@ -104,11 +109,12 @@ MODULE_GROUPS_DATA = {
 class ModuleGroup(ParseObject):
     objects = dict()
     
-    def __init__(self, id, name, sort_order, description=None):
+    def __init__(self, id, name, sort_order, titan, description=None):
         super().__init__(id)
         self.id = id
         self.name = name
         self.sort_order = sort_order
+        self.titan = titan
         if description:
             self.description = description
 
@@ -124,7 +130,10 @@ class ModuleGroup(ParseObject):
     def generate_all(cls):
         logger.info("Generating Module Groups...")
         index = 0
+        en_loc = Localization.objects.get('en')
         for group_id, data in MODULE_GROUPS_DATA.items():
+            if en_loc:
+                data['name']['en'] = en_loc.localize_from_name(data['name'])
             # Supply gear needs a specific description, the rest can infer from arbitrary module type since theyre the same
             desc = None
             if group_id == 'supply-gear':
@@ -144,6 +153,7 @@ class ModuleGroup(ParseObject):
                 id=group_id,
                 name=data['name'],
                 sort_order=index,
+                titan=data.get('titan', False),
                 description=desc
             )
 
