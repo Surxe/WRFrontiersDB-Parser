@@ -74,7 +74,7 @@ def enrich():
     enrich_pilot_talents()
 
 def enrich_modules_with_bots():
-    logger.info("Generating Virtual Bots and enriching modules with bot_ref and shoulder_side...")
+    logger.info("Generating Virtual Bots and enriching modules with virtual_bot_ref and shoulder_side...")
     
     # Filter factory presets
     factory_presets = {id: p for id, p in CharacterPreset.objects.items() if getattr(p, 'is_factory_preset', False)}
@@ -157,7 +157,7 @@ def enrich_modules_with_bots():
             if preset_ref not in virtual_bots[assigned_bot_id].factory_preset_refs:
                 virtual_bots[assigned_bot_id].factory_preset_refs.append(preset_ref)
 
-    # Finally, enrich Module objects with bot_ref and shoulder_side
+    # Finally, enrich Module objects with virtual_bot_ref and shoulder_side
     for module_id, module in Module.objects.items():
         bot_id = core_module_to_bot_id.get(module_id)
         if bot_id:
