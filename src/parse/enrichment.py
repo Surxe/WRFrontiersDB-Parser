@@ -74,7 +74,7 @@ def enrich():
     enrich_pilot_talents()
 
 def enrich_modules_with_bots():
-    logger.info("Generating Virtual Bots and enriching modules with bot_ref...")
+    logger.info("Generating Virtual Bots and enriching modules with bot_ref and shoulder_side...")
     
     # Filter factory presets
     factory_presets = {id: p for id, p in CharacterPreset.objects.items() if getattr(p, 'is_factory_preset', False)}
@@ -83,6 +83,7 @@ def enrich_modules_with_bots():
     sorted_preset_ids = sorted(factory_presets.keys())
     
     core_module_to_bot_id = {}
+    module_id_to_sides = {} # {module_id: set(['L', 'R'])}
     virtual_bots = {}
 
     all_core_module_ids = [id for id, m in Module.objects.items() if is_core_module(m)]
@@ -113,11 +114,6 @@ def enrich_modules_with_bots():
 
             if bot_id not in virtual_bots:
                 # Calculate has_distinct_shoulders for this bot's presets
-                # Actually, the logic in Site calculates it per preset, but here we might want it per bot?
-                # The analysis says "Modules with ... has_distinct_shoulders fields".
-                # It's used by getObjRefData to decide if side prefix is needed.
-                
-                # Let's check if the first preset has distinct shoulders
                 shoulderL = next((m for m in preset.modules if m.get('socket_name') == 'Shoulder_L'), None)
                 shoulderR = next((m for m in preset.modules if m.get('socket_name') == 'Shoulder_R'), None)
                 has_distinct = bool(shoulderL and shoulderR and shoulderL['module_ref'] != shoulderR['module_ref'])
@@ -126,19 +122,26 @@ def enrich_modules_with_bots():
                     id=bot_id,
                     name=preset.name,
                     character_type=getattr(preset, 'character_type', 'Unknown'),
-                    core_modules=[],
-                    factory_presets=[],
-                    iconPath=getattr(preset, 'icon', None)
+                    core_module_refs=[],
+                    factory_preset_refs=[],
+                    has_distinct_shoulders=has_distinct,
+                    icon_path=getattr(preset, 'icon', None)
                 )
-                # We'll set a temporary attribute on the bot object to store has_distinct
-                virtual_bots[bot_id]._has_distinct_shoulders = has_distinct
 
             # Add core modules to bot
             for m_data in preset.modules:
                 m_id = ref_to_id(m_data['module_ref'])
                 if m_id in Module.objects and is_core_module(Module.objects[m_id]):
-                    if m_id not in virtual_bots[bot_id].core_modules:
-                        virtual_bots[bot_id].core_modules.append(m_id)
+                    m_ref = Module.id_to_ref(m_id)
+                    if m_ref not in virtual_bots[bot_id].core_module_refs:
+                        virtual_bots[bot_id].core_module_refs.append(m_ref)
+                    
+                    # Track sides for shoulder modules
+                    socket_name = m_data.get('socket_name', '')
+                    if 'Shoulder_L' in socket_name:
+                        module_id_to_sides.setdefault(m_id, set()).add('L')
+                    elif 'Shoulder_R' in socket_name:
+                        module_id_to_sides.setdefault(m_id, set()).add('R')
 
     # Associate factory presets with bots
     for pid, preset in factory_presets.items():
@@ -150,28 +153,22 @@ def enrich_modules_with_bots():
                 break
         
         if assigned_bot_id and assigned_bot_id in virtual_bots:
-            if pid not in virtual_bots[assigned_bot_id].factory_presets:
-                virtual_bots[assigned_bot_id].factory_presets.append(pid)
+            preset_ref = CharacterPreset.id_to_ref(pid)
+            if preset_ref not in virtual_bots[assigned_bot_id].factory_preset_refs:
+                virtual_bots[assigned_bot_id].factory_preset_refs.append(preset_ref)
 
-    # Finally, enrich Module objects with bot_ref and has_distinct_shoulders
+    # Finally, enrich Module objects with bot_ref and shoulder_side
     for module_id, module in Module.objects.items():
         bot_id = core_module_to_bot_id.get(module_id)
         if bot_id:
             module.virtual_bot_ref = VirtualBot.id_to_ref(bot_id)
-            bot = virtual_bots.get(bot_id)
-            if bot and getattr(bot, '_has_distinct_shoulders', False):
-                module.has_distinct_shoulders = True
-            
-            # Clean up temporary attribute
-            if bot and hasattr(bot, '_has_distinct_shoulders'):
-                # We leave it for now if needed, but we don't want it in final JSON.
-                # Actually to_dict() will include all __dict__ keys.
-                pass
-
-    # Clean up the temporary attribute from virtual bots before export
-    for bot in virtual_bots.values():
-        if hasattr(bot, '_has_distinct_shoulders'):
-            del bot._has_distinct_shoulders
+        
+        # Add shoulder_side if it's a shoulder group and has a unique side
+        group_ref = getattr(module, 'module_group_ref', None)
+        if group_ref and ('shoulder' in group_ref.lower()):
+            sides = module_id_to_sides.get(module_id, set())
+            if len(sides) == 1:
+                module.shoulder_side = list(sides)[0]
 
 def enrich_pilot_talents():
     logger.info("Enriching pilot talents...")

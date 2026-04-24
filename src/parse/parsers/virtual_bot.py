@@ -8,13 +8,14 @@ from parsers.object import ParseObject
 class VirtualBot(ParseObject):
     objects = dict()
 
-    def __init__(self, id: str, name: dict, character_type: str, core_modules: list, factory_presets: list, iconPath: str = None):
+    def __init__(self, id: str, name: dict, character_type: str, core_module_refs: list, factory_preset_refs: list, has_distinct_shoulders: bool, icon_path: str = None):
         self.id = id
         self.name = name
         self.character_type = character_type
-        self.core_modules = core_modules
-        self.factory_presets = factory_presets
-        self.iconPath = iconPath
+        self.core_module_refs = core_module_refs
+        self.factory_preset_refs = factory_preset_refs
+        self.has_distinct_shoulders = has_distinct_shoulders
+        self.icon_path = icon_path
         
         self.objects[id] = self
 
