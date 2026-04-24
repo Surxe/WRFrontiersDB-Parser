@@ -656,7 +656,7 @@ class Analysis:
             fpreset_ref = fpreset.to_ref()
             if not hasattr(fpreset, 'is_factory_preset') or not fpreset.is_factory_preset: #only look at factory presets, as character presets includes ai bots
                 continue
-            for module_socket_name, module_data in fpreset.modules.items():
+            for module_data in fpreset.modules:
                 module_ref = module_data['module_ref']
                 this_module_upgrade_costs, module_category_ref = self.get_module_upgrade_costs(module_ref, standard_cost_and_scrap)
 

@@ -37,16 +37,12 @@ def parse_bot_ai_presets(to_file=False):
     root_data = get_json_data(root_path, index=0)
     props = root_data["Properties"]
 
-    # Older version only has by-level in BotPresets
     # Newer version (as of 2025-09-09) has both by-level and by-league
-    if "BotPresets" in props:
-        bot_presets_by_level = props["BotPresets"]
-        bot_presets_by_league = []
-    elif "DedicatedBotPresets" in props:
+    if "DedicatedBotPresets" in props:
         bot_presets_by_level = props["DedicatedBotPresets"]["BotPresetsByLevel"]
         bot_presets_by_league = props["DedicatedBotPresets"]["BotPresetByLeague"]
     else:
-        raise ValueError("Neither 'BotPresets' nor 'DedicatedBotPresets' found in root properties.")
+        raise ValueError("'DedicatedBotPresets' not found in root properties.")
     
     for bot_preset_entry in bot_presets_by_level:
         level = bot_preset_entry["Key"]

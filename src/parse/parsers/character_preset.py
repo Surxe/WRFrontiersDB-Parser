@@ -44,21 +44,17 @@ class CharacterPreset(ParseObject):
             self.character_type = "Mech"
 
     def _p_modules(self, data):
-        modules = {}
-        for index, module_entry in enumerate(data):
+        modules = []
+        for module_entry in data:
             module_ref = Module.create_from_asset(module_entry["Module"], sub_index=False).to_ref()
             socket_name = module_entry["ParentSocket"]
             parent_socket_index = module_entry["ParentModuleIndex"]
-            # determine parent_socket_name by using the parent_socket_index lookup in modules
-            if parent_socket_index == -1:
-                parent_socket_name = None
-            else:
-                parent_socket_name = list(modules.keys())[parent_socket_index]
-            modules[socket_name] = {
+            modules.append({
                 "module_ref": module_ref,
-                "parent_socket_name": parent_socket_name,
+                "socket_name": socket_name,
+                "parent_socket_index": parent_socket_index,
                 "level": module_entry["Level"]
-            }
+            })
         return modules
     
     def _p_pilot(self, data):
