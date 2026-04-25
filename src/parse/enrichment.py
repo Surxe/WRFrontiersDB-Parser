@@ -192,7 +192,7 @@ def enrich_pilot_talents():
                     # Basic info
                     pilot_info = {
                         'pilot_ref': pilot.to_ref(),
-                        'talentIndex': talent_index
+                        'talent_index': talent_index
                     }
                     talent.pilots_with_this_talent.append(pilot_info)
 
