@@ -56,7 +56,6 @@ def parse_bot_ai_presets(to_file=False):
     # parse the league-array
     for bot_preset_entry in bot_presets_by_league:
         league_asset_path = bot_preset_entry["Key"]
-        logger.debug(f"Found league path {league_asset_path}")
         league_ref = League.create_from_asset_path(league_asset_path).to_ref() # Just to validate it exists
         bot_preset = BotAIPreset.create_from_asset(bot_preset_entry["Value"])
         # Ensure it doesn't already have a league

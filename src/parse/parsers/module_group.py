@@ -66,31 +66,38 @@ MODULE_TYPE_TO_GROUP = {
     'DA_ModuleType_Ability4.0': 'cycle-gear',
 }
 
-MODULE_GROUPS_DATA = {
+MODULE_GROUPS_DATA = { #english translation is added here in enrichment.py
     'titan-torsos': {
         'name': {'Key': 'CMP_Type_Titan_Torso', 'TableNamespace': 'Component_Tags'},
         'titan': True,
+        'virtual_bot_module': True,
     },
     'titan-chassis': {
         'name': {'Key': 'CMP_Type_Titan_Chassis', 'TableNamespace': 'Component_Tags'},
         'titan': True,
+        'virtual_bot_module': True,
     },
-    'titan-shoulder': {
-        'name': {'Key': 'GRP_TitanShoulders_Name', 'TableNamespace': 'ModuleGroups'},
+    'titan-shoulder': { #except for this one because the translation is on the Site. Shortsight unfortunately. Realistically this is only used for the slug map anyways.
+        'name': {'Key': 'GRP_TitanShoulders_Name', 'TableNamespace': 'ModuleGroups', 'en': 'Titan Shoulder'},
         'titan': True,
+        'virtual_bot_module': True,
     },
     'titan-weapon': {
         'name': {'Key': 'CMP_Type_Titan_Weapon', 'TableNamespace': 'Component_Tags'},
         'titan': True,
+        'virtual_bot_module': True,
     },
     'non-titan-torsos': {
         'name': {'Key': 'HNG_Torso', 'TableNamespace': 'Component_Tags'},
+        'virtual_bot_module': True,
     },
     'non-titan-chassis': {
         'name': {'Key': 'HNG_Chassis', 'TableNamespace': 'Component_Tags'},
+        'virtual_bot_module': True,
     },
     'non-titan-shoulder': {
         'name': {'Key': 'HNG_Shoulder', 'TableNamespace': 'Component_Tags'},
+        'virtual_bot_module': True,
     },
     'heavy-weapon': {
         'name': {'Key': 'HNG_HeavyWeapon', 'TableNamespace': 'Component_Tags'},
@@ -109,12 +116,13 @@ MODULE_GROUPS_DATA = {
 class ModuleGroup(ParseObject):
     objects = dict()
     
-    def __init__(self, id, name, sort_order, titan, description=None):
+    def __init__(self, id, name, sort_order, titan, virtual_bot_module=False, description=None):
         super().__init__(id)
         self.id = id
         self.name = name
         self.sort_order = sort_order
         self.titan = titan
+        self.virtual_bot_module = virtual_bot_module
         if description:
             self.description = description
 
@@ -154,6 +162,7 @@ class ModuleGroup(ParseObject):
                 name=data['name'],
                 sort_order=index,
                 titan=data.get('titan', False),
+                virtual_bot_module=data.get('virtual_bot_module', False),
                 description=desc
             )
 

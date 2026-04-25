@@ -14,13 +14,8 @@ from parsers.pilot_talent import PilotTalent
 from parsers.localization import Localization
 from parsers.virtual_bot import VirtualBot
 from parsers.module_group import ModuleGroup
-from parsers.object import ParseObject
-
-CORE_MODULE_CATEGORIES = [
-    'DA_ModuleCategory_Chassis.0',
-    'DA_ModuleCategory_Torso.0',
-    'DA_ModuleCategory_Shoulder.0',
-]
+from parsers.bot_ai_preset import BotAIPreset
+from parsers.drop_team import DropTeam
 
 PILOT_TYPE_LEGENDARY_REF = 'OBJID_PilotType::DA_PilotType_Legendary.0'
 
@@ -42,17 +37,22 @@ def ref_to_id(ref):
         return ref
     return ref.split('::')[1]
 
-def is_core_module(module):
+def is_virtual_bot_module(module):
     module_type_ref = getattr(module, 'module_type_ref', None)
     if not module_type_ref:
         return False
     
-    module_type = ModuleType.get_from_ref(module_type_ref)
-    if not module_type or not hasattr(module_type, 'module_category_ref'):
+    # Get the module group for this module type
+    group_id = ModuleGroup.get_group_id_for_type(ref_to_id(module_type_ref))
+    if not group_id:
         return False
     
-    category_id = ref_to_id(module_type.module_category_ref)
-    return category_id in CORE_MODULE_CATEGORIES
+    # Check if this module group is marked as a virtual bot module
+    module_group = ModuleGroup.objects.get(group_id)
+    if not module_group:
+        return False
+    
+    return getattr(module_group, 'virtual_bot_module', False)
 
 def enrich():
     logger.info("Starting enrichment phase...")
@@ -86,9 +86,9 @@ def enrich_modules_with_bots():
     module_id_to_sides = {} # {module_id: set(['L', 'R'])}
     virtual_bots = {}
 
-    all_core_module_ids = [id for id, m in Module.objects.items() if is_core_module(m)]
+    all_virtual_bot_module_ids = [id for id, m in Module.objects.items() if is_virtual_bot_module(m)]
 
-    for module_id in all_core_module_ids:
+    for module_id in all_virtual_bot_module_ids:
         if module_id in core_module_to_bot_id:
             continue
 
@@ -105,10 +105,10 @@ def enrich_modules_with_bots():
             bot_name_str = get_default_string(preset.name) or first_preset_id
             bot_id = slugify(bot_name_str)
 
-            # Map all core modules in this preset to this bot_id
+            # Map all virtual bot modules in this preset to this bot_id
             for m_data in preset.modules:
                 m_id = ref_to_id(m_data['module_ref'])
-                if m_id in Module.objects and is_core_module(Module.objects[m_id]):
+                if m_id in Module.objects and is_virtual_bot_module(Module.objects[m_id]):
                     if m_id not in core_module_to_bot_id:
                         core_module_to_bot_id[m_id] = bot_id
 
@@ -128,10 +128,10 @@ def enrich_modules_with_bots():
                     icon_path=getattr(preset, 'icon', None)
                 )
 
-            # Add core modules to bot
+            # Add virtual bot modules to bot
             for m_data in preset.modules:
                 m_id = ref_to_id(m_data['module_ref'])
-                if m_id in Module.objects and is_core_module(Module.objects[m_id]):
+                if m_id in Module.objects and is_virtual_bot_module(Module.objects[m_id]):
                     m_ref = Module.id_to_ref(m_id)
                     if m_ref not in virtual_bots[bot_id].core_module_refs:
                         virtual_bots[bot_id].core_module_refs.append(m_ref)
@@ -156,6 +156,52 @@ def enrich_modules_with_bots():
             preset_ref = CharacterPreset.id_to_ref(pid)
             if preset_ref not in virtual_bots[assigned_bot_id].factory_preset_refs:
                 virtual_bots[assigned_bot_id].factory_preset_refs.append(preset_ref)
+
+    # Check AI bots for titan weapons and add them to corresponding virtual bots
+    logger.info("Checking AI bots for titan weapons...")
+    logger.info(f"Found {len(BotAIPreset.objects)} AI bots")
+    
+    for bot_ai in BotAIPreset.objects.values():
+        if not hasattr(bot_ai, 'drop_teams_refs'):
+            continue
+            
+        for drop_team_ref in bot_ai.drop_teams_refs:
+            drop_team_id = ref_to_id(drop_team_ref)
+            drop_team = DropTeam.objects.get(drop_team_id)
+            
+            if not drop_team or not hasattr(drop_team, 'character_presets_refs'):
+                continue
+                
+            # Find character presets in this drop team
+            for preset_ref in drop_team.character_presets_refs:
+                preset_id = ref_to_id(preset_ref)
+                preset = CharacterPreset.objects.get(preset_id)
+                
+                if not preset or getattr(preset, 'is_factory_preset', False):
+                    continue
+                    
+                # Check if this preset has titan weapons
+                bot_name = get_default_string(preset.name) or preset_id
+                bot_slug = slugify(bot_name)
+                
+                # Look for titan weapons in this preset
+                for m_data in preset.modules:
+                    m_id = ref_to_id(m_data['module_ref'])
+                    if m_id in Module.objects:
+                        module = Module.objects[m_id]
+                        module_type_ref = getattr(module, 'module_type_ref', None)
+                        if module_type_ref:
+                            type_id = ref_to_id(module_type_ref)
+                            group_id = ModuleGroup.get_group_id_for_type(type_id)
+                            if group_id == 'titan-weapon':
+                                # Find the virtual bot with the same name
+                                if bot_slug in virtual_bots:
+                                    m_ref = Module.id_to_ref(m_id)
+                                    if m_ref not in virtual_bots[bot_slug].core_module_refs:
+                                        virtual_bots[bot_slug].core_module_refs.append(m_ref)
+                                        # Also update the core_module_to_bot_id mapping
+                                        core_module_to_bot_id[m_id] = bot_slug
+                                        logger.info(f"Added titan weapon {m_id} to virtual bot {bot_slug} from AI bot {bot_name}")
 
     # Finally, enrich Module objects with virtual_bot_ref and shoulder_side
     for module_id, module in Module.objects.items():

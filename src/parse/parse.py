@@ -19,7 +19,7 @@ from parsers.localization import *
 from parsers.pilot import *
 from parsers.progression_table import *
 from parsers.game_mode import *
-from parse.parsers.bot_ai_preset import *
+from parsers.bot_ai_preset import *
 from parsers.character_preset import *
 from parsers.powerup import *
 from analysis import *
