@@ -15,12 +15,6 @@ from parsers.localization import Localization
 from parsers.virtual_bot import VirtualBot
 from parsers.module_group import ModuleGroup
 
-CORE_MODULE_CATEGORIES = [
-    'DA_ModuleCategory_Chassis.0',
-    'DA_ModuleCategory_Torso.0',
-    'DA_ModuleCategory_Shoulder.0',
-]
-
 PILOT_TYPE_LEGENDARY_REF = 'OBJID_PilotType::DA_PilotType_Legendary.0'
 
 def slugify(text: str) -> str:
@@ -41,17 +35,22 @@ def ref_to_id(ref):
         return ref
     return ref.split('::')[1]
 
-def is_core_module(module):
+def is_virtual_bot_module(module):
     module_type_ref = getattr(module, 'module_type_ref', None)
     if not module_type_ref:
         return False
     
-    module_type = ModuleType.get_from_ref(module_type_ref)
-    if not module_type or not hasattr(module_type, 'module_category_ref'):
+    # Get the module group for this module type
+    group_id = ModuleGroup.get_group_id_for_type(ref_to_id(module_type_ref))
+    if not group_id:
         return False
     
-    category_id = ref_to_id(module_type.module_category_ref)
-    return category_id in CORE_MODULE_CATEGORIES
+    # Check if this module group is marked as a virtual bot module
+    module_group = ModuleGroup.objects.get(group_id)
+    if not module_group:
+        return False
+    
+    return getattr(module_group, 'virtual_bot_module', False)
 
 def enrich():
     logger.info("Starting enrichment phase...")
@@ -85,9 +84,9 @@ def enrich_modules_with_bots():
     module_id_to_sides = {} # {module_id: set(['L', 'R'])}
     virtual_bots = {}
 
-    all_core_module_ids = [id for id, m in Module.objects.items() if is_core_module(m)]
+    all_virtual_bot_module_ids = [id for id, m in Module.objects.items() if is_virtual_bot_module(m)]
 
-    for module_id in all_core_module_ids:
+    for module_id in all_virtual_bot_module_ids:
         if module_id in core_module_to_bot_id:
             continue
 
@@ -104,10 +103,10 @@ def enrich_modules_with_bots():
             bot_name_str = get_default_string(preset.name) or first_preset_id
             bot_id = slugify(bot_name_str)
 
-            # Map all core modules in this preset to this bot_id
+            # Map all virtual bot modules in this preset to this bot_id
             for m_data in preset.modules:
                 m_id = ref_to_id(m_data['module_ref'])
-                if m_id in Module.objects and is_core_module(Module.objects[m_id]):
+                if m_id in Module.objects and is_virtual_bot_module(Module.objects[m_id]):
                     if m_id not in core_module_to_bot_id:
                         core_module_to_bot_id[m_id] = bot_id
 
@@ -127,10 +126,10 @@ def enrich_modules_with_bots():
                     icon_path=getattr(preset, 'icon', None)
                 )
 
-            # Add core modules to bot
+            # Add virtual bot modules to bot
             for m_data in preset.modules:
                 m_id = ref_to_id(m_data['module_ref'])
-                if m_id in Module.objects and is_core_module(Module.objects[m_id]):
+                if m_id in Module.objects and is_virtual_bot_module(Module.objects[m_id]):
                     m_ref = Module.id_to_ref(m_id)
                     if m_ref not in virtual_bots[bot_id].core_module_refs:
                         virtual_bots[bot_id].core_module_refs.append(m_ref)
