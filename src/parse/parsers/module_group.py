@@ -66,7 +66,7 @@ MODULE_TYPE_TO_GROUP = {
     'DA_ModuleType_Ability4.0': 'cycle-gear',
 }
 
-MODULE_GROUPS_DATA = {
+MODULE_GROUPS_DATA = { #english translation is added here in enrichment.py
     'titan-torsos': {
         'name': {'Key': 'CMP_Type_Titan_Torso', 'TableNamespace': 'Component_Tags'},
         'titan': True,
@@ -75,8 +75,8 @@ MODULE_GROUPS_DATA = {
         'name': {'Key': 'CMP_Type_Titan_Chassis', 'TableNamespace': 'Component_Tags'},
         'titan': True,
     },
-    'titan-shoulder': {
-        'name': {'Key': 'GRP_TitanShoulders_Name', 'TableNamespace': 'ModuleGroups'},
+    'titan-shoulder': { #except for this one because the translation is on the Site. Shortsight unfortunately. Realistically this is only used for the slug map anyways.
+        'name': {'Key': 'GRP_TitanShoulders_Name', 'TableNamespace': 'ModuleGroups', 'en': 'Titan Shoulder'},
         'titan': True,
     },
     'titan-weapon': {

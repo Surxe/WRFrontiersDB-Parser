@@ -14,7 +14,6 @@ from parsers.pilot_talent import PilotTalent
 from parsers.localization import Localization
 from parsers.virtual_bot import VirtualBot
 from parsers.module_group import ModuleGroup
-from parsers.object import ParseObject
 
 CORE_MODULE_CATEGORIES = [
     'DA_ModuleCategory_Chassis.0',
