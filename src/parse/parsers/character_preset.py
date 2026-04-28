@@ -29,7 +29,7 @@ class CharacterPreset(ParseObject):
             "CharacterTypeAsset": None,
             "CharacterType": parse_colon_colon,
             "Modules": self._p_modules,
-            "Pilot": (self._p_pilot, "pilot_ref"),
+            "Pilot": (self._p_pilot, "pilot"),
             "ID": None,
         }
 
@@ -58,7 +58,15 @@ class CharacterPreset(ParseObject):
         return modules
     
     def _p_pilot(self, data):
-        return Pilot.create_from_asset(data["PilotAsset"]).to_ref()
+        pilot_ref = Pilot.create_from_asset(data["PilotAsset"]).to_ref()
+        if pilot_ref:
+            level = data.get("Level")
+            parsed_pilot = {
+                "pilot_ref": pilot_ref,
+            }
+            if level:
+                parsed_pilot["level"] = level
+            return parsed_pilot
     
     def set_is_factory_preset(self, is_factory_preset):
         self.is_factory_preset = is_factory_preset
