@@ -8,6 +8,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from loguru import logger
 from parsers.module import Module
 from parsers.module_type import ModuleType
+from parsers.module_category import ModuleCategory
 from parsers.character_preset import CharacterPreset
 from parsers.pilot import Pilot
 from parsers.pilot_talent import PilotTalent
@@ -67,11 +68,54 @@ def enrich():
             if group_id:
                 module.module_group_ref = ModuleGroup.id_to_ref(group_id)
 
-    # 2. Virtual Bots & Bot Refs
+    # 2. Character Presets - Weapon Module Refs
+    enrich_character_presets_with_weapon_refs()
+
+    # 3. Virtual Bots & Bot Refs
     enrich_modules_with_bots()
 
-    # 3. Pilot Talents
+    # 4. Pilot Talents
     enrich_pilot_talents()
+
+def enrich_character_presets_with_weapon_refs():
+    logger.info("Enriching character presets with weapon module refs...")
+    
+    for preset in CharacterPreset.objects.values():
+        weapon_module_ref = None
+        
+        # Iterate over modules to find the weapon
+        for module_data in preset.modules:
+            module_ref = module_data.get('module_ref')
+            if not module_ref:
+                continue
+                
+            module_id = ref_to_id(module_ref)
+            module = Module.objects.get(module_id)
+            
+            if not module:
+                continue
+                
+            # Check if this module has ModuleCategory = Weapon
+            module_type_ref = getattr(module, 'module_type_ref', None)
+            if module_type_ref:
+                module_type_id = ref_to_id(module_type_ref)
+                module_type = ModuleType.objects.get(module_type_id)
+                
+                if module_type:
+                    module_category_ref = getattr(module_type, 'module_category_ref', None)
+                    if module_category_ref:
+                        module_category_id = ref_to_id(module_category_ref)
+                        module_category = ModuleCategory.objects.get(module_category_id)
+                        
+                        if module_category and hasattr(module_category, 'name'):
+                            category_name = getattr(module_category.name, 'Key', '') if hasattr(module_category.name, 'Key') else str(module_category.name)
+                            if category_name == 'DA_ModuleCategory_Weapon' or 'Weapon' in category_name:
+                                weapon_module_ref = module_ref
+                                break
+        
+        # Set the weapon_module_ref on the preset
+        if weapon_module_ref:
+            preset.weapon_module_ref = weapon_module_ref
 
 def enrich_modules_with_bots():
     logger.info("Generating Virtual Bots and enriching modules with virtual_bot_ref and shoulder_side...")
