@@ -19,7 +19,7 @@ class CharacterClass(ParseObject):
             "ImageBig": (parse_image_asset_path, "image_big_path"),
             "ImageSmall": (parse_image_asset_path, "image_small_path"),
             "Name": parse_localization,
-            "Description": "value",
+            "Description": parse_localization,
             "Priority": None,
             "TutorialTag": None,
             "ID": None,
