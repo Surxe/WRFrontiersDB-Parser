@@ -161,7 +161,22 @@ def path_to_id(asset_path) -> str: # "/Game/DungeonCrawler/Data/Generated/V2/Loo
     
 def parse_hex(data: dict):
     data = data["SpecifiedColor"] if "SpecifiedColor" in data else data
-    return data["Hex"]
+    r = data["R"]
+    g = data["G"]
+    b = data["B"]
+    a = data["A"]
+    rgba = {
+        "R": r,
+        "G": g,
+        "B": b,
+        "A": a
+    }
+    hex = data["Hex"]
+    color = {
+        "RGBA": rgba,
+        "Hex": hex
+    }
+    return color
 
 def parse_colon_colon(data: str):
     split = data.split("::")

@@ -30,7 +30,7 @@ class Powerup(ParseObject):
             "AttachedBuff": self._p_actor_class,
             "BuffDuration": "value",
             "MinimapIcon": (parse_image_asset_path, "icon_path"),
-            "MinimapIconTint": (parse_hex, "icon_hex"),
+            "MinimapIconTint": (parse_hex, "icon_color"),
             "Root": None,
             "OverlapComponent": None,
             "MeshComponent": None,

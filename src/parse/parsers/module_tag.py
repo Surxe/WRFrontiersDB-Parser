@@ -17,8 +17,8 @@ class ModuleTag(ParseObject):
         key_to_parser_function = {
             "HumanName": (parse_localization, "name"),
             "Description": parse_localization,
-            "TextColor": (parse_hex, "text_hex"),
-            "BackgroundColor": (parse_hex, "background_hex"),
+            "TextColor": (parse_hex, "text_color"),
+            "BackgroundColor": (parse_hex, "background_color"),
             "ID": None,
         }
         

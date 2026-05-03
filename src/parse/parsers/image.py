@@ -5,7 +5,7 @@ import os
 from loguru import logger
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import asset_to_file_path, OPTIONS, normalize_path
+from utils import asset_to_file_path, OPTIONS, normalize_path, parse_hex
 
 import json
 
@@ -45,13 +45,13 @@ def parse_badge_visual_info(data: dict):
     if "Image" in data and "AssetPathName" in data["Image"]:
         image_path = parse_image_asset_path(data["Image"])
         
-    tint_hex = None
-    if 'TintColor' in data and 'Hex' in data["TintColor"]:  
-        tint_hex = data["TintColor"]["Hex"]
+    tint_color = None
+    if 'TintColor' in data:  
+        tint_color = parse_hex(data["TintColor"])
 
     returned_data = dict()
     returned_data["image_path"] = image_path
-    if tint_hex is not None:
-        returned_data["hex"] = tint_hex
+    if tint_color is not None:
+        returned_data["color"] = tint_color
     
     return returned_data

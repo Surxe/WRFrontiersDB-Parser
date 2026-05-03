@@ -17,7 +17,7 @@ class Rarity(ParseObject):
 
         key_to_parser_function = {
             "Name": parse_localization,
-            "RarityColor": (parse_hex, "hex"),
+            "RarityColor": (parse_hex, "color"),
         }
 
         self._process_key_to_parser_function(key_to_parser_function, rarity_info, 2)

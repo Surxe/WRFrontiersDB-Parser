@@ -252,7 +252,7 @@ class Module(ParseObject):
                     pass
                 elif key in ['bIsPerk']: #no clue what this means; its bool but can vary per level, i.e. typhon chassis lvl5 true, lvl6 false
                     pass
-                elif key in ["ModuleClass_1", "ModuleClass_2", "ModuleTag_1", "ModuleTag_2", "ModuleFaction"] # these per-level ones aren't used anymore it seems. Theyre instead specified top-level though so we can still use them elsewhere.
+                elif key in ["ModuleClass_1", "ModuleClass_2", "ModuleTag_1", "ModuleTag_2", "ModuleFaction"]: # these per-level ones aren't used anymore it seems. Theyre instead specified top-level though so we can still use them elsewhere.
                     pass
                 else:
                     parsed_level[key] = value
