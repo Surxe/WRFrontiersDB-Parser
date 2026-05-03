@@ -232,48 +232,7 @@ class Module(ParseObject):
             p_scrap_reward_amount("Second")
             if scrap_rewards_refs:
                 parsed_level["scrap_rewards_refs"] = scrap_rewards_refs
-
-
-            # Parse module class and tags
-            def p_module_class_tag_fac(class_or_tag, one_or_two):
-                """
-                class_or_tag: "Class" or "Tag" or "Faction"
-                one_or_two: "1" or "2" or "0" (0 indicates no underscore will be used too)
-                """
-                underscore_and_number = f"_{one_or_two}" if one_or_two in ["1", "2"] else ""
-                module_classtagfac_key = f"Module{class_or_tag}{underscore_and_number}"
-                if module_classtagfac_key in level:
-                    module_classtagfac_id = level[module_classtagfac_key]
-                else:
-                    logger.warning(f"Warning: Module {self.id} level {level['Level']} is missing {module_classtagfac_key}")
-
-                if module_classtagfac_id == 'None':
-                    return None
-                
-                module_classtagfac_id += '.0' #these references arent asset paths, so I can't find the actual path and create the asset from here
-                # since the objects also dont exist yet when this is processed, we just have to trust that they'll end up being real objects.
-                # TODO add some post-process validation for these
-                
-                if class_or_tag == "Class":
-                    ref = ModuleClass.id_to_ref(module_classtagfac_id)
-                elif class_or_tag == "Tag":
-                    ref = ModuleTag.id_to_ref(module_classtagfac_id)
-                elif class_or_tag == "Faction":
-                    ref = Faction.id_to_ref(module_classtagfac_id)
-
-                return ref
             
-            def add_to_parsed_level_if_not_none(key, value):
-                if value is not None:
-                    parsed_level[key] = value
-
-            add_to_parsed_level_if_not_none("module_class_ref_1", p_module_class_tag_fac("Class", "1"))
-            add_to_parsed_level_if_not_none("module_class_ref_2", p_module_class_tag_fac("Class", "2"))
-            add_to_parsed_level_if_not_none("module_tag_ref_1", p_module_class_tag_fac("Tag", "1"))
-            add_to_parsed_level_if_not_none("module_tag_ref_2", p_module_class_tag_fac("Tag", "2"))
-            add_to_parsed_level_if_not_none("module_faction_ref", p_module_class_tag_fac("Faction", "0"))
-
-
             # Parse load/energy capacity
             def add_to_parsed_level_if_not_0(key, value):
                 if value is not None and value != 0:
@@ -286,13 +245,14 @@ class Module(ParseObject):
             for key, value in level.items():
                 if key in ["Level", "UpgradeCurrency", "UpgradeCost", 
                            "FirstScrapRewardAmount", "FirstScrapRewardCurrency", "SecondScrapRewardAmount", "SecondScrapRewardCurrency", 
-                           "ModuleClass_1", "ModuleClass_2", "ModuleTag_1", "ModuleTag_2", "ModuleFaction",
                            "LoadCapacity", "EnergyCapacity"
                            ]: #already parsed above
                     pass
                 elif key in ['Health', 'Def', 'Atk', 'Mob', 'AbilityPower', 'Mobility', 'FirePower']: #flavor stats that are technically meaningless. Also not displayed anywhere as of 8-26 hangar UI changes.
                     pass
                 elif key in ['bIsPerk']: #no clue what this means; its bool but can vary per level, i.e. typhon chassis lvl5 true, lvl6 false
+                    pass
+                elif key in ["ModuleClass_1", "ModuleClass_2", "ModuleTag_1", "ModuleTag_2", "ModuleFaction"] # these per-level ones aren't used anymore it seems. Theyre instead specified top-level though so we can still use them elsewhere.
                     pass
                 else:
                     parsed_level[key] = value
