@@ -249,7 +249,11 @@ class Module(ParseObject):
 
                 if module_classtagfac_id == 'None':
                     return None
-
+                
+                module_classtagfac_id += '.0' #these references arent asset paths, so I can't find the actual path and create the asset from here
+                # since the objects also dont exist yet when this is processed, we just have to trust that they'll end up being real objects.
+                # TODO add some post-process validation for these
+                
                 if class_or_tag == "Class":
                     ref = ModuleClass.id_to_ref(module_classtagfac_id)
                 elif class_or_tag == "Tag":
