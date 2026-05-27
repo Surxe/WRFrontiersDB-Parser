@@ -161,64 +161,6 @@ def get_latest_commit_info():
         logger.warning("Could not get latest commit info")
         return "Unknown commit"
 
-
-def upload_to_archive(repo_dir, output_dir, game_version, latest_commit):
-    """
-    Upload parsed data to the archive directory for the specified version.
-    
-    Args:
-        repo_dir: Path to the data repository directory
-        output_dir: Path to the output directory with new data
-        game_version: Version string for the data being archived
-        latest_commit: Latest commit info for commit message
-    """
-    archive_path = os.path.join(repo_dir, 'archive', game_version)
-    
-    # Clear existing archive data for this version (if it exists)
-    if os.path.exists(archive_path):
-        logger.debug(f"Deleting old archive data for version {game_version}...")
-        shutil.rmtree(archive_path)
-    
-    logger.info(f"Creating archive directory: archive/{game_version}/")
-    os.makedirs(archive_path, exist_ok=True)
-    
-    logger.info(f"Copying new output to archive/{game_version}/...")
-    
-    # Copy all files from output directory to archive directory
-    if os.path.exists(output_dir):
-        for item in os.listdir(output_dir):
-            src = os.path.join(output_dir, item)
-            dst = os.path.join(archive_path, item)
-            if os.path.isdir(src):
-                shutil.copytree(src, dst)
-            else:
-                shutil.copy2(src, dst)
-    else:
-        raise ValueError(f"Output directory {output_dir} does not exist")
-    
-    # Write version file
-    version_file = os.path.join(archive_path, 'version.txt')
-    with open(version_file, 'w', encoding='utf-8', newline='\n') as f:
-        f.write(game_version)
-    
-    # Commit the changes
-    commit_title = f"Add/update archive version '{game_version}'"
-    commit_description = f"Parser commit: '{latest_commit}'"
-    
-    run_git_command(['git', 'add', '.'], cwd=repo_dir, log_output=True)
-    
-    # Try to commit, but don't fail if there's nothing to commit
-    try:
-        run_git_command(['git', 'commit', '-m', commit_title, '-m', commit_description], cwd=repo_dir,
-                       log_output=True)
-        logger.info(f"Uploaded archive data for version {game_version} and committed changes.")
-    except subprocess.CalledProcessError as e:
-        if "nothing to commit" in e.stdout:
-            logger.info(f"No changes detected for archive version {game_version}.")
-        else:
-            raise  # Re-raise if it's a different error
-
-
 def update_current_data(repo_dir, output_dir, game_version, latest_commit, target_branch):
     """
     Update the current directory with new parsed output.
@@ -287,40 +229,6 @@ def update_current_data(repo_dir, output_dir, game_version, latest_commit, targe
             raise  # Re-raise if it's a different error
     
     return True
-
-
-def trigger_data_repo_workflow():
-    """
-    Trigger a workflow in the data repository via repository dispatch.
-    """
-    logger.info("Triggering workflow in data repository...")
-    
-    url = "https://api.github.com/repos/Surxe/WRFrontiersDB-Data/dispatches"
-    headers = {
-        "Accept": "application/vnd.github+json",
-        "Authorization": f"Bearer {OPTIONS.gh_data_repo_pat}",
-        "X-GitHub-Api-Version": "2022-11-28"
-    }
-    
-    payload = {
-        "from_version": "",
-        "to_version": ""
-    } # this will be auto-detected when the workflow calls the summarizer. 
-    # it checks against archive, as such, this function is only ran when pushing to archive.
-    
-    data = {
-        "event_type": "data_updated",
-        "client_payload": payload
-    }
-    
-    try:
-        response = requests.post(url, headers=headers, json=data)
-        if response.status_code == 204:
-            logger.info("Successfully triggered workflow in data repository.")
-        else:
-            logger.error(f"Failed to trigger workflow: {response.status_code} - {response.text}")
-    except Exception as e:
-        logger.error(f"Error triggering workflow: {e}")
 
 
 def push_changes(repo_dir, target_branch):
@@ -393,8 +301,8 @@ def ensure_is_repo_dir(repo_dir):
 def main():
     """Main function that orchestrates the data pushing process. Uses global OPTIONS singleton."""
     # Quit early if neither push option is enabled
-    if not OPTIONS.push_to_archive and not OPTIONS.push_to_current and not OPTIONS.should_push_textures:
-        logger.info("None of push_to_archive nor push_to_current nor should_push_textures are enabled. Exiting push process.")
+    if not OPTIONS.should_push_json and not OPTIONS.should_push_textures:
+        logger.info("None of should_push_json nor should_push_textures are enabled. Exiting push process.")
         return
     
     # Validate target branch
@@ -432,16 +340,9 @@ def main():
         # Get latest commit info from parser repo
         latest_commit = get_latest_commit_info()
         
-        # Upload to archive if enabled
-        if OPTIONS.push_to_archive:
-            logger.info("Pushing to archive is true, updating archive directory...")
-            upload_to_archive(data_repo_dir, output_dir, OPTIONS.game_version, latest_commit)
-        else:
-            logger.info("Pushing to archive is false, skipping archive directory update.")
-
-        # Update current if enabled
+        # Update json if enabled
         changes_made = False
-        if OPTIONS.push_to_current:
+        if OPTIONS.should_push_json:
             logger.info("Pushing to current is true, updating current directory...")
             changes_made = update_current_data(data_repo_dir, output_dir, OPTIONS.game_version, latest_commit, OPTIONS.target_branch)
         else:
@@ -456,12 +357,6 @@ def main():
         
         # Push all changes
         push_changes(data_repo_dir, OPTIONS.target_branch)
-        
-        # Trigger workflow in data repository
-        if OPTIONS.push_to_archive and OPTIONS.trigger_data_workflow and changes_made:
-            trigger_data_repo_workflow()
-        else:
-            logger.info("Triggering data workflow is false or push to archive false or no changes made, skipping workflow trigger.")
         
     except Exception as e:
         logger.error(f"Error during push process: {e}")
