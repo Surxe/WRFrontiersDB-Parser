@@ -26,6 +26,7 @@ from analysis import *
 from enrichment import enrich
 from parsers.virtual_bot import VirtualBot
 from parsers.module_group import ModuleGroup
+from parsers.shop_card import ShopCard, parse_shop_cards
 
 def main():
     """Main parsing function - uses global OPTIONS singleton."""
@@ -40,6 +41,7 @@ def main():
     parse_bot_ai_presets()
     parse_factory_presets()
     parse_powerups()
+    parse_shop_cards()
     analyze()
     enrich()
 
@@ -95,6 +97,7 @@ def main():
     VirtualBot.to_file()
 
     Powerup.to_file()
+    ShopCard.to_file()
 
     Localization.to_file()
     Image.to_file()
