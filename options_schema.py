@@ -52,23 +52,14 @@ OPTIONS_SCHEMA = {
         "help": "Version of the game being processed, as its release date yyyy-mm-dd.",
         "example": "2025-10-28"
     },
-    "PUSH_TO_ARCHIVE": {
-        "env": "PUSH_TO_ARCHIVE",
-        "arg": "--push-to-archive",
+    "SHOULD_PUSH_JSON": {
+        "env": "SHOULD_PUSH_JSON",
+        "arg": "--should-push-json",
         "type": bool,
         "default": True,
         "section": "Push Data",
         "depends_on": ["SHOULD_PUSH_DATA"],
-        "help": "Whether to push data to the 'archive' directory."
-    },
-    "PUSH_TO_CURRENT": {
-        "env": "PUSH_TO_CURRENT",
-        "arg": "--push-to-current",
-        "type": bool,
-        "default": True,
-        "section": "Push Data",
-        "depends_on": ["SHOULD_PUSH_DATA"],
-        "help": "Whether to push data to the 'current' directory."
+        "help": "Whether to push parsed JSON data to the data repository."
     },
     "TARGET_BRANCH": {
         "env": "TARGET_BRANCH",

@@ -161,64 +161,6 @@ def get_latest_commit_info():
         logger.warning("Could not get latest commit info")
         return "Unknown commit"
 
-
-def upload_to_archive(repo_dir, output_dir, game_version, latest_commit):
-    """
-    Upload parsed data to the archive directory for the specified version.
-    
-    Args:
-        repo_dir: Path to the data repository directory
-        output_dir: Path to the output directory with new data
-        game_version: Version string for the data being archived
-        latest_commit: Latest commit info for commit message
-    """
-    archive_path = os.path.join(repo_dir, 'archive', game_version)
-    
-    # Clear existing archive data for this version (if it exists)
-    if os.path.exists(archive_path):
-        logger.debug(f"Deleting old archive data for version {game_version}...")
-        shutil.rmtree(archive_path)
-    
-    logger.info(f"Creating archive directory: archive/{game_version}/")
-    os.makedirs(archive_path, exist_ok=True)
-    
-    logger.info(f"Copying new output to archive/{game_version}/...")
-    
-    # Copy all files from output directory to archive directory
-    if os.path.exists(output_dir):
-        for item in os.listdir(output_dir):
-            src = os.path.join(output_dir, item)
-            dst = os.path.join(archive_path, item)
-            if os.path.isdir(src):
-                shutil.copytree(src, dst)
-            else:
-                shutil.copy2(src, dst)
-    else:
-        raise ValueError(f"Output directory {output_dir} does not exist")
-    
-    # Write version file
-    version_file = os.path.join(archive_path, 'version.txt')
-    with open(version_file, 'w', encoding='utf-8', newline='\n') as f:
-        f.write(game_version)
-    
-    # Commit the changes
-    commit_title = f"Add/update archive version '{game_version}'"
-    commit_description = f"Parser commit: '{latest_commit}'"
-    
-    run_git_command(['git', 'add', '.'], cwd=repo_dir, log_output=True)
-    
-    # Try to commit, but don't fail if there's nothing to commit
-    try:
-        run_git_command(['git', 'commit', '-m', commit_title, '-m', commit_description], cwd=repo_dir,
-                       log_output=True)
-        logger.info(f"Uploaded archive data for version {game_version} and committed changes.")
-    except subprocess.CalledProcessError as e:
-        if "nothing to commit" in e.stdout:
-            logger.info(f"No changes detected for archive version {game_version}.")
-        else:
-            raise  # Re-raise if it's a different error
-
-
 def update_current_data(repo_dir, output_dir, game_version, latest_commit, target_branch):
     """
     Update the current directory with new parsed output.
@@ -359,8 +301,8 @@ def ensure_is_repo_dir(repo_dir):
 def main():
     """Main function that orchestrates the data pushing process. Uses global OPTIONS singleton."""
     # Quit early if neither push option is enabled
-    if not OPTIONS.push_to_archive and not OPTIONS.push_to_current and not OPTIONS.should_push_textures:
-        logger.info("None of push_to_archive nor push_to_current nor should_push_textures are enabled. Exiting push process.")
+    if not OPTIONS.should_push_json and not OPTIONS.should_push_textures:
+        logger.info("None of should_push_json nor should_push_textures are enabled. Exiting push process.")
         return
     
     # Validate target branch
@@ -398,16 +340,9 @@ def main():
         # Get latest commit info from parser repo
         latest_commit = get_latest_commit_info()
         
-        # Upload to archive if enabled
-        if OPTIONS.push_to_archive:
-            logger.info("Pushing to archive is true, updating archive directory...")
-            upload_to_archive(data_repo_dir, output_dir, OPTIONS.game_version, latest_commit)
-        else:
-            logger.info("Pushing to archive is false, skipping archive directory update.")
-
-        # Update current if enabled
+        # Update json if enabled
         changes_made = False
-        if OPTIONS.push_to_current:
+        if OPTIONS.should_push_json:
             logger.info("Pushing to current is true, updating current directory...")
             changes_made = update_current_data(data_repo_dir, output_dir, OPTIONS.game_version, latest_commit, OPTIONS.target_branch)
         else:
