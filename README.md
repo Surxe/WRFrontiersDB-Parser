@@ -60,7 +60,7 @@ python src/run.py --log-level INFO   # Run all steps with default/env values, ex
   - Command line: `--target-branch`
   - Depends on: `SHOULD_PUSH_DATA`
 
-* **SHOULD_RECLONE** - Whether to reclone the data repository from scratch before pushing data. If false, will assume the repository is already cloned at GH_DATA_REPO_DIR and is current.
+* **SHOULD_RECLONE** - Whether to reclone the data repository from scratch before pushing data. If false, will assume the repository is already cloned at GH_DATA_REPO_DIR and is currently checked out.
   - Default: `"true"`
   - Command line: `--should-reclone`
   - Depends on: `SHOULD_PUSH_DATA`
@@ -70,11 +70,6 @@ python src/run.py --log-level INFO   # Run all steps with default/env values, ex
   - Example: `"github_pat_XXXXXXXXXXXXXXXX"`
   - Default: None - required when SHOULD_PUSH_DATA is True
   - Command line: `--gh-data-repo-pat`
-  - Depends on: `SHOULD_PUSH_DATA`
-
-* **TRIGGER_DATA_WORKFLOW** - Whether to trigger the data repository workflow after pushing data to it. Requires PUSH_TO_ARCHIVE to be true.
-  - Default: `"false"`
-  - Command line: `--trigger-data-workflow`
   - Depends on: `SHOULD_PUSH_DATA`
 
 * **SHOULD_PUSH_TEXTURES** - Whether to push extracted textures to the data repository.
