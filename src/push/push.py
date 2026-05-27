@@ -289,40 +289,6 @@ def update_current_data(repo_dir, output_dir, game_version, latest_commit, targe
     return True
 
 
-def trigger_data_repo_workflow():
-    """
-    Trigger a workflow in the data repository via repository dispatch.
-    """
-    logger.info("Triggering workflow in data repository...")
-    
-    url = "https://api.github.com/repos/Surxe/WRFrontiersDB-Data/dispatches"
-    headers = {
-        "Accept": "application/vnd.github+json",
-        "Authorization": f"Bearer {OPTIONS.gh_data_repo_pat}",
-        "X-GitHub-Api-Version": "2022-11-28"
-    }
-    
-    payload = {
-        "from_version": "",
-        "to_version": ""
-    } # this will be auto-detected when the workflow calls the summarizer. 
-    # it checks against archive, as such, this function is only ran when pushing to archive.
-    
-    data = {
-        "event_type": "data_updated",
-        "client_payload": payload
-    }
-    
-    try:
-        response = requests.post(url, headers=headers, json=data)
-        if response.status_code == 204:
-            logger.info("Successfully triggered workflow in data repository.")
-        else:
-            logger.error(f"Failed to trigger workflow: {response.status_code} - {response.text}")
-    except Exception as e:
-        logger.error(f"Error triggering workflow: {e}")
-
-
 def push_changes(repo_dir, target_branch):
     """
     Push all commits and tags to the remote repository.
@@ -456,12 +422,6 @@ def main():
         
         # Push all changes
         push_changes(data_repo_dir, OPTIONS.target_branch)
-        
-        # Trigger workflow in data repository
-        if OPTIONS.push_to_archive and OPTIONS.trigger_data_workflow and changes_made:
-            trigger_data_repo_workflow()
-        else:
-            logger.info("Triggering data workflow is false or push to archive false or no changes made, skipping workflow trigger.")
         
     except Exception as e:
         logger.error(f"Error during push process: {e}")
