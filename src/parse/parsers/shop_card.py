@@ -26,13 +26,12 @@ class ShopCard(ParseObject):
         self.height = data.get("Y")
 
     def _parse_backgrounds(self, data):
-        backgrounds = {}
+        backgrounds = []
         for entry in data:
-            raw_key = entry.get("Key")
             raw_value = entry.get("Value")
-            if raw_key and raw_value:
+            if raw_value:
                 image_path = parse_image_asset_path(raw_value)
-                backgrounds[raw_key] = image_path
+                backgrounds.append(image_path)
         self.backgrounds = backgrounds
 
 def parse_shop_cards(to_file=False):
@@ -63,7 +62,11 @@ def parse_shop_cards(to_file=False):
         if enum_key and asset_ref:
             shop_card = ShopCard.create_from_asset(asset_ref)
             if shop_card:
-                shop_card.size_type = parse_colon_colon(enum_key)
+                if not getattr(shop_card, "backgrounds", None):
+                    if shop_card.id in ShopCard.objects:
+                        del ShopCard.objects[shop_card.id]
+                else:
+                    shop_card.size_type = parse_colon_colon(enum_key)
 
     if to_file:
         ShopCard.to_file()
