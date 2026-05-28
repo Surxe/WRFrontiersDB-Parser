@@ -6,6 +6,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import ParseObject
 from parsers.image import parse_image_asset_path, Image
+from parsers.rarity import Rarity
 from utils import OPTIONS, get_json_data, parse_colon_colon
 
 class ShopCard(ParseObject):
@@ -26,12 +27,14 @@ class ShopCard(ParseObject):
         self.height = data.get("Y")
 
     def _parse_backgrounds(self, data):
-        backgrounds = []
+        backgrounds = {}
         for entry in data:
+            raw_key = entry.get("Key")
+            rarity_ref = Rarity.get_from_asset_path(raw_key)[1].to_ref()
             raw_value = entry.get("Value")
             if raw_value:
                 image_path = parse_image_asset_path(raw_value)
-                backgrounds.append(image_path)
+                backgrounds[rarity_ref] = image_path
         self.backgrounds = backgrounds
 
 def parse_shop_cards(to_file=False):
