@@ -17,6 +17,11 @@ from parsers.virtual_bot import VirtualBot
 from parsers.module_group import ModuleGroup
 from parsers.bot_ai_preset import BotAIPreset
 from parsers.drop_team import DropTeam
+from parsers.module_socket_type import ModuleSocketType
+from exclusive_module_socket_matching import (
+    ExclusiveAssignmentError,
+    resolve_exclusive_module_socket_assignments,
+)
 
 PILOT_TYPE_LEGENDARY_REF = 'OBJID_PilotType::DA_PilotType_Legendary.0'
 
@@ -68,14 +73,35 @@ def enrich():
             if group_id:
                 module.module_group_ref = ModuleGroup.id_to_ref(group_id)
 
-    # 2. Character Presets - Weapon Module Refs
+    # 2. Module socket exclusivity
+    enrich_module_socket_type_exclusivity()
+
+    # 3. Character Presets - Weapon Module Refs
     enrich_character_presets_with_weapon_refs()
 
-    # 3. Virtual Bots & Bot Refs
+    # 4. Virtual Bots & Bot Refs
     enrich_modules_with_bots()
 
-    # 4. Pilot Talents
+    # 5. Pilot Talents
     enrich_pilot_talents()
+
+def enrich_module_socket_type_exclusivity():
+    logger.info("Enriching module socket type exclusivity...")
+    socket_to_types = {}
+    for socket in ModuleSocketType.objects.values():
+        compatible_refs = getattr(socket, 'compatible_module_types_refs', None) or []
+        socket_to_types[socket.id] = {ref_to_id(ref) for ref in compatible_refs}
+
+    try:
+        socket_to_type, type_to_socket = resolve_exclusive_module_socket_assignments(socket_to_types)
+    except ExclusiveAssignmentError as exc:
+        logger.error(f"Failed to resolve exclusive module socket assignments: {exc}")
+        raise
+
+    for socket_id, type_id in socket_to_type.items():
+        ModuleSocketType.objects[socket_id].exclusive_module_type_ref = ModuleType.id_to_ref(type_id)
+    for type_id, socket_id in type_to_socket.items():
+        ModuleType.objects[type_id].exclusive_module_socket_type_ref = ModuleSocketType.id_to_ref(socket_id)
 
 def enrich_character_presets_with_weapon_refs():
     logger.info("Enriching character presets with weapon module refs...")
