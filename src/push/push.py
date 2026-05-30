@@ -182,6 +182,10 @@ def update_current_data(repo_dir, output_dir, game_version, latest_commit, targe
         logger.debug("Deleting old current data...")
         for item in os.listdir(current_path):
             item_path = os.path.join(current_path, item)
+            # Skip .git directory to preserve git repository
+            if item == '.git':
+                logger.debug(f"Skipping {item} to preserve git repository")
+                continue
             if os.path.isdir(item_path):
                 shutil.rmtree(item_path)
             else:
@@ -195,6 +199,9 @@ def update_current_data(repo_dir, output_dir, game_version, latest_commit, targe
     # Copy all files from output directory to current directory
     if os.path.exists(output_dir):
         for item in os.listdir(output_dir):
+            if item == '.git':
+                logger.debug(f"Skipping copying of {item} to preserve destination git repository")
+                continue
             src = os.path.join(output_dir, item)
             dst = os.path.join(current_path, item)
             if os.path.isdir(src):
@@ -233,7 +240,7 @@ def update_current_data(repo_dir, output_dir, game_version, latest_commit, targe
 
 def push_changes(repo_dir, target_branch):
     """
-    Push all commits and tags to the remote repository.
+    Push all commits to the remote repository.
     
     Args:
         repo_dir: Path to the repository directory
@@ -244,12 +251,7 @@ def push_changes(repo_dir, target_branch):
     run_git_command(['git', 'push', 'origin', target_branch], cwd=repo_dir,
                    log_output=True)
     
-    # Push tags (use --force to update existing tags)
-    logger.info("Pushing tags...")
-    run_git_command(['git', 'push', 'origin', '--tags', '--force'], cwd=repo_dir,
-                   log_output=True)
-    
-    logger.info(f"All changes and tags committed and pushed successfully to branch '{target_branch}'.")
+    logger.info(f"All changes committed and pushed successfully to branch '{target_branch}'.")
 
 
 def upload_textures(repo_dir, texture_output_dir, game_version):
