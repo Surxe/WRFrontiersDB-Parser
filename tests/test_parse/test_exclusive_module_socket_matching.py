@@ -75,19 +75,33 @@ class TestExclusiveModuleSocketMatching(unittest.TestCase):
         with self.assertRaises(ExclusiveAssignmentError):
             resolve_exclusive_module_socket_assignments(socket_to_types)
 
-    def test_double_claim_same_type_raises(self):
+    def test_shared_single_compatible_type(self):
         socket_to_types = {
-            "socket_a": {"type_x"},
-            "socket_b": {"type_x"},
+            "DA_ModuleSocketType_ShoulderL.0": {"DA_ModuleType_Shoulder.0"},
+            "DA_ModuleSocketType_ShoulderR.0": {"DA_ModuleType_Shoulder.0"},
         }
 
-        with self.assertRaises(ExclusiveAssignmentError):
-            resolve_exclusive_module_socket_assignments(socket_to_types)
+        socket_to_type, type_to_socket = resolve_exclusive_module_socket_assignments(
+            socket_to_types
+        )
+
+        self.assertEqual(
+            socket_to_type["DA_ModuleSocketType_ShoulderL.0"],
+            "DA_ModuleType_Shoulder.0",
+        )
+        self.assertEqual(
+            socket_to_type["DA_ModuleSocketType_ShoulderR.0"],
+            "DA_ModuleType_Shoulder.0",
+        )
+        self.assertEqual(
+            type_to_socket["DA_ModuleType_Shoulder.0"],
+            "DA_ModuleSocketType_ShoulderL.0",
+        )
 
     def test_exhausted_pool_raises(self):
         socket_to_types = {
-            "socket_a": {"type_x"},
-            "socket_b": {"type_x", "type_y"},
+            "socket_a": {"type_x", "type_y"},
+            "socket_b": {"type_x"},
             "socket_c": {"type_y"},
         }
 
