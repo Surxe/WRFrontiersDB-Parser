@@ -172,7 +172,20 @@ def enrich_modules_with_bots():
         
         if first_preset_id:
             preset = factory_presets[first_preset_id]
-            bot_name_str = get_default_string(preset.name) or first_preset_id
+            
+            # Find the Chassis or Torso module to use as the bot's name
+            bot_name_localization = preset.name # Fallback to preset name
+            for m_data in preset.modules:
+                m_id = ref_to_id(m_data['module_ref'])
+                if m_id in Module.objects:
+                    module = Module.objects[m_id]
+                    group_ref = getattr(module, 'module_group_ref', None)
+                    if group_ref and ('chassis' in group_ref.lower() or 'torso' in group_ref.lower()):
+                        if hasattr(module, 'name'):
+                            bot_name_localization = module.name
+                            break
+
+            bot_name_str = get_default_string(bot_name_localization) or first_preset_id
             bot_id = slugify(bot_name_str)
 
             # Map all virtual bot modules in this preset to this bot_id
@@ -190,7 +203,7 @@ def enrich_modules_with_bots():
 
                 virtual_bots[bot_id] = VirtualBot(
                     id=bot_id,
-                    name=preset.name,
+                    name=bot_name_localization,
                     character_type=getattr(preset, 'character_type', 'Mech'),
                     core_module_refs=[],
                     factory_preset_refs=[],
