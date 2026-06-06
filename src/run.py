@@ -46,7 +46,7 @@ def main():
     and troubleshooting information, please see the README.md file.
 
     Quick Examples:
-    python run.py
+    python src/run.py
             """
         )
     argument_writer = ArgumentWriter()
