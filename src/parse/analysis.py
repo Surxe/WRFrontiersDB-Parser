@@ -373,7 +373,7 @@ class Analysis:
                 distinct_stat_keys.add(stat)
 
         superficial_keys = {
-            'Health', 'Level', 'Def', 'Atk', 'Mob', 'AbilityPower', 'Mobility',
+            'Health', 'Level', 'Def', 'Atk', 'Mob', 'AbilityPower',
             'ModuleClass_1', 'ModuleClass_2', 'ModuleTag_1', 'ModuleTag_2',
             'ModuleFaction', 'FirePower', 'bIsPerk',
             'ArmorDPS', 'ShieldDPS' #for now. these are UI numbers and are often wrong. will do real dps calcs later.
@@ -416,6 +416,10 @@ class Analysis:
             # if stat_key is not in map.keys(); search by ModuleStat.short_key
             # if stat_key is in map, use it as:
             # {stat_key: module_stat_ref: str or <more_is_better>: bool}
+            # Developer: if you get an error for a stat key, check if the key could possibly relate to a ModuleStat, 
+            # if so, add the ModuleStat.id here as the value.
+            # If not, just use True/False to say if more of the stat is better or not. 
+            # E.g. TimeToReload eventually maps to False, you want less of it.
             stat_to_more_is_better = {
                 "ChargeDuration": "DA_ModuleStat_ChargeDrain.0",
                 "Cooldown": "DA_ModuleStat_Cooldown.0",
@@ -431,6 +435,7 @@ class Analysis:
                 "Armor": "DA_ModuleStat_Armor.0",
                 "TimeBetweenShots": True,
                 "DamageNoArmor": "DA_ModuleStat_ShieldDamage.0",
+                "Mobility": "DA_ModuleStat_Acceleration.0"
             }
             stat_to_more_is_better_final = {}
             for stat_key in stat_keys_to_rank:

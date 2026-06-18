@@ -248,7 +248,7 @@ class Module(ParseObject):
                            "LoadCapacity", "EnergyCapacity"
                            ]: #already parsed above
                     pass
-                elif key in ['Health', 'Def', 'Atk', 'Mob', 'AbilityPower', 'Mobility', 'FirePower']: #flavor stats that are technically meaningless. Also not displayed anywhere as of 8-26 hangar UI changes.
+                elif key in ['Health', 'Def', 'Atk', 'Mob', 'AbilityPower', 'FirePower']: #flavor stats that are technically meaningless. Also not displayed anywhere as of 8-26 hangar UI changes.
                     pass
                 elif key in ['bIsPerk']: #no clue what this means; its bool but can vary per level, i.e. typhon chassis lvl5 true, lvl6 false
                     pass
