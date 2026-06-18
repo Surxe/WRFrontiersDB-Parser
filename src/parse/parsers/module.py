@@ -254,6 +254,8 @@ class Module(ParseObject):
                     pass
                 elif key in ["ModuleClass_1", "ModuleClass_2", "ModuleTag_1", "ModuleTag_2", "ModuleFaction"]: # these per-level ones aren't used anymore it seems. Theyre instead specified top-level though so we can still use them elsewhere.
                     pass
+                elif key == "Armor" and "LegsArmor" in level: # If LegsArmor is present, rename Armor to PelvisArmor (chassis modules have 3 separate armor pools)
+                    parsed_level["PelvisArmor"] = level["Armor"]
                 else:
                     parsed_level[key] = value
                     
