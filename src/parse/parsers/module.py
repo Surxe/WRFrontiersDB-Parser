@@ -248,12 +248,14 @@ class Module(ParseObject):
                            "LoadCapacity", "EnergyCapacity"
                            ]: #already parsed above
                     pass
-                elif key in ['Health', 'Def', 'Atk', 'Mob', 'AbilityPower', 'Mobility', 'FirePower']: #flavor stats that are technically meaningless. Also not displayed anywhere as of 8-26 hangar UI changes.
+                elif key in ['Health', 'Def', 'Atk', 'Mob', 'AbilityPower', 'FirePower']: #flavor stats that are technically meaningless. Also not displayed anywhere as of 8-26 hangar UI changes.
                     pass
                 elif key in ['bIsPerk']: #no clue what this means; its bool but can vary per level, i.e. typhon chassis lvl5 true, lvl6 false
                     pass
                 elif key in ["ModuleClass_1", "ModuleClass_2", "ModuleTag_1", "ModuleTag_2", "ModuleFaction"]: # these per-level ones aren't used anymore it seems. Theyre instead specified top-level though so we can still use them elsewhere.
                     pass
+                elif key == "Armor" and "LegsArmor" in level: # If LegsArmor is present, rename Armor to PelvisArmor (chassis modules have 3 separate armor pools)
+                    parsed_level["PelvisArmor"] = level["Armor"]
                 else:
                     parsed_level[key] = value
                     
