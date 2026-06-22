@@ -14,6 +14,8 @@ from parsers.module_type import ModuleType
 from parsers.module_category import ModuleCategory
 from parsers.module_rarity import ModuleRarity
 from parsers.character_module import CharacterModule
+from parsers.module_socket_type import ModuleSocketType
+from parsers.module_type import ModuleType
 from parsers.module_stat import ModuleStat
 from parsers.upgrade_cost import UpgradeCost
 from parsers.scrap_reward import ScrapReward
@@ -926,9 +928,22 @@ class Analysis:
             
             sockets = getattr(module, 'module_socket_type_refs', [])
             for s in sockets:
-                if 'WeaponHeavy' in s:
+                socket_obj = ModuleSocketType.get_from_ref(s)
+                if not socket_obj:
+                    continue
+                
+                # Check compatible_module_types_refs (or exclusive_module_type_ref if available)
+                mod_type_refs = getattr(socket_obj, 'compatible_module_types_refs', [])
+                if not mod_type_refs:
+                    continue
+                
+                mod_type = ModuleType.get_from_ref(mod_type_refs[0])
+                if not mod_type:
+                    continue
+                
+                if 'WeaponHeavy' in mod_type.id:
                     heavy_slots += 1
-                elif 'Weapon.' in s:
+                elif 'Weapon' in mod_type.id and 'Heavy' not in mod_type.id:
                     light_slots += 1
                     
             group_key = f"WeightDrain:{weight_drain}|Light:{light_slots}|Heavy:{heavy_slots}"
