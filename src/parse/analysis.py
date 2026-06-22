@@ -963,13 +963,22 @@ class Analysis:
                 
             lvl1_armor = get_stat(0, 'Armor')
             lvl1_shield = get_stat(0, 'ShieldAmount')
-            lvl1_regen_delay = get_stat(0, 'ShieldRegeneration')
+            lvl1_regen_per_second = get_stat(0, 'ShieldRegeneration')
             lvl1_cooldown_red = get_stat(0, 'ShieldDelayReduction')
             
             lvl13_armor = get_stat(12, 'Armor')
             lvl13_shield = get_stat(12, 'ShieldAmount')
-            lvl13_regen_delay = get_stat(12, 'ShieldRegeneration')
+            lvl13_regen_per_second = get_stat(12, 'ShieldRegeneration')
             lvl13_cooldown_red = get_stat(12, 'ShieldDelayReduction')
+            
+            def compute_extra_stats(shield_capacity, shield_regen, cooldown_reduction):
+                recharge_delay = 10.0 * (1.0 - cooldown_reduction)
+                recharge_time = (shield_capacity / shield_regen) if shield_regen > 0 else 0.0
+                delay_and_recharge_total = recharge_delay + recharge_time
+                return recharge_delay, recharge_time, delay_and_recharge_total
+                
+            lvl1_rech_delay, lvl1_rech_time, lvl1_total = compute_extra_stats(lvl1_shield, lvl1_regen_per_second, lvl1_cooldown_red)
+            lvl13_rech_delay, lvl13_rech_time, lvl13_total = compute_extra_stats(lvl13_shield, lvl13_regen_per_second, lvl13_cooldown_red)
             
             name = getattr(module, 'name', {})
             name_en = name.get('en', module.id) if isinstance(name, dict) else module.id
@@ -980,13 +989,19 @@ class Analysis:
                     'Armor': lvl1_armor,
                     'ShieldAmount': lvl1_shield,
                     'ShieldDelayReduction': lvl1_cooldown_red,
-                    'ShieldRegeneration': lvl1_regen_delay
+                    'ShieldRegeneration': lvl13_regen_per_second,
+                    'RechargeDelay': lvl1_rech_delay,
+                    'RechargeTime': lvl1_rech_time,
+                    'DelayAndRechargeTotal': lvl1_total
                 },
                 'lvl13': {
                     'Armor': lvl13_armor,
                     'ShieldAmount': lvl13_shield,
                     'ShieldDelayReduction': lvl13_cooldown_red,
-                    'ShieldRegeneration': lvl13_regen_delay
+                    'ShieldRegeneration': lvl13_regen_per_second,
+                    'RechargeDelay': lvl13_rech_delay,
+                    'RechargeTime': lvl13_rech_time,
+                    'DelayAndRechargeTotal': lvl13_total
                 }
             })
             
