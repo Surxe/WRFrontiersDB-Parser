@@ -946,10 +946,15 @@ class Analysis:
                 elif 'Weapon' in mod_type.id and 'Heavy' not in mod_type.id:
                     light_slots += 1
                     
-            group_key = f"WeightDrain:{weight_drain}|Light:{light_slots}|Heavy:{heavy_slots}"
+            group_key = (weight_drain, light_slots, heavy_slots)
             
             if group_key not in profiles:
-                profiles[group_key] = []
+                profiles[group_key] = {
+                    'weight_drain': weight_drain,
+                    'light_slots': light_slots,
+                    'heavy_slots': heavy_slots,
+                    'shoulders': []
+                }
                 
             def get_stat(lvl_index, stat_name):
                 if lvl_index < len(variables) and stat_name in variables[lvl_index]:
@@ -969,23 +974,26 @@ class Analysis:
             name = getattr(module, 'name', {})
             name_en = name.get('en', module.id) if isinstance(name, dict) else module.id
             
-            profiles[group_key].append({
+            profiles[group_key]['shoulders'].append({
                 'name': name_en,
                 'lvl1': {
-                    'armor': lvl1_armor,
-                    'shield_capacity': lvl1_shield,
-                    'shield_regen_cooldown_reduction': lvl1_cooldown_red,
-                    'shield_regen_delay': lvl1_regen_delay
+                    'Armor': lvl1_armor,
+                    'ShieldAmount': lvl1_shield,
+                    'ShieldDelayReduction': lvl1_cooldown_red,
+                    'ShieldRegeneration': lvl1_regen_delay
                 },
                 'lvl13': {
-                    'armor': lvl13_armor,
-                    'shield_capacity': lvl13_shield,
-                    'shield_regen_cooldown_reduction': lvl13_cooldown_red,
-                    'shield_regen_delay': lvl13_regen_delay
+                    'Armor': lvl13_armor,
+                    'ShieldAmount': lvl13_shield,
+                    'ShieldDelayReduction': lvl13_cooldown_red,
+                    'ShieldRegeneration': lvl13_regen_delay
                 }
             })
             
-        return profiles
+        sorted_profiles = list(profiles.values())
+        sorted_profiles.sort(key=lambda x: (x['weight_drain'], x['heavy_slots'], x['light_slots']))
+            
+        return sorted_profiles
 
     ##########################
     #          Other         #
