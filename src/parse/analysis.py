@@ -985,13 +985,13 @@ class Analysis:
                 rech_delay, rech_time, total = compute_extra_stats(shield, regen_per_second, cooldown_red)
                 
                 shoulder_data['levels'][str(lvl)] = {
-                    'armor': armor,
-                    'shield_capacity': shield,
-                    'shield_regen_cooldown_reduction': cooldown_red,
-                    'shield_regen_per_second': regen_per_second,
-                    'recharge_delay': rech_delay,
-                    'recharge_time': rech_time,
-                    'delay_and_recharge_total': total
+                    'Armor': armor,
+                    'ShieldAmount': shield,
+                    'ShieldDelayReduction': cooldown_red,
+                    'ShieldRegeneration': regen_per_second,
+                    'RechargeDelay': rech_delay,
+                    'RechargeTime': rech_time,
+                    'DelayAndRechargeTotal': total
                 }
                 
             profiles[group_key]['shoulders'].append(shoulder_data)
