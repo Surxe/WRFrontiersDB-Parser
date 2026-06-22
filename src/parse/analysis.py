@@ -909,12 +909,17 @@ class Analysis:
             if 'Shoulder' not in module.id:
                 continue
                 
+            if getattr(module, 'production_status', None) != 'Ready':
+                continue
+                
             scalars = getattr(module, 'module_scalars', {})
             levels = scalars.get('levels', {})
             variables = levels.get('variables', [])
             constants = levels.get('constants', {})
             
             weight_drain = constants.get('WeightDrain', 0.0)
+            if weight_drain == 0.0:
+                continue
             
             light_slots = 0
             heavy_slots = 0
