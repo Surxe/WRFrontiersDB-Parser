@@ -961,49 +961,40 @@ class Analysis:
                     return variables[lvl_index][stat_name]
                 return constants.get(stat_name, 0.0)
                 
-            lvl1_armor = get_stat(0, 'Armor')
-            lvl1_shield = get_stat(0, 'ShieldAmount')
-            lvl1_regen_per_second = get_stat(0, 'ShieldRegeneration')
-            lvl1_cooldown_red = get_stat(0, 'ShieldDelayReduction')
-            
-            lvl13_armor = get_stat(12, 'Armor')
-            lvl13_shield = get_stat(12, 'ShieldAmount')
-            lvl13_regen_per_second = get_stat(12, 'ShieldRegeneration')
-            lvl13_cooldown_red = get_stat(12, 'ShieldDelayReduction')
-            
             def compute_extra_stats(shield_capacity, shield_regen, cooldown_reduction):
                 recharge_delay = 10.0 * (1.0 - cooldown_reduction)
                 recharge_time = (shield_capacity / shield_regen) if shield_regen > 0 else 0.0
                 delay_and_recharge_total = recharge_delay + recharge_time
                 return recharge_delay, recharge_time, delay_and_recharge_total
                 
-            lvl1_rech_delay, lvl1_rech_time, lvl1_total = compute_extra_stats(lvl1_shield, lvl1_regen_per_second, lvl1_cooldown_red)
-            lvl13_rech_delay, lvl13_rech_time, lvl13_total = compute_extra_stats(lvl13_shield, lvl13_regen_per_second, lvl13_cooldown_red)
-            
             name = getattr(module, 'name', {})
             name_en = name.get('en', module.id) if isinstance(name, dict) else module.id
             
-            profiles[group_key]['shoulders'].append({
+            shoulder_data = {
                 'name': name_en,
-                'lvl1': {
-                    'Armor': lvl1_armor,
-                    'ShieldAmount': lvl1_shield,
-                    'ShieldDelayReduction': lvl1_cooldown_red,
-                    'ShieldRegeneration': lvl13_regen_per_second,
-                    'RechargeDelay': lvl1_rech_delay,
-                    'RechargeTime': lvl1_rech_time,
-                    'DelayAndRechargeTotal': lvl1_total
-                },
-                'lvl13': {
-                    'Armor': lvl13_armor,
-                    'ShieldAmount': lvl13_shield,
-                    'ShieldDelayReduction': lvl13_cooldown_red,
-                    'ShieldRegeneration': lvl13_regen_per_second,
-                    'RechargeDelay': lvl13_rech_delay,
-                    'RechargeTime': lvl13_rech_time,
-                    'DelayAndRechargeTotal': lvl13_total
+                'levels': {}
+            }
+            
+            for lvl in range(1, 14):
+                lvl_index = lvl - 1
+                armor = get_stat(lvl_index, 'Armor')
+                shield = get_stat(lvl_index, 'ShieldAmount')
+                regen_per_second = get_stat(lvl_index, 'ShieldRegeneration')
+                cooldown_red = get_stat(lvl_index, 'ShieldDelayReduction')
+                
+                rech_delay, rech_time, total = compute_extra_stats(shield, regen_per_second, cooldown_red)
+                
+                shoulder_data['levels'][str(lvl)] = {
+                    'armor': armor,
+                    'shield_capacity': shield,
+                    'shield_regen_cooldown_reduction': cooldown_red,
+                    'shield_regen_per_second': regen_per_second,
+                    'recharge_delay': rech_delay,
+                    'recharge_time': rech_time,
+                    'delay_and_recharge_total': total
                 }
-            })
+                
+            profiles[group_key]['shoulders'].append(shoulder_data)
             
         sorted_profiles = list(profiles.values())
         sorted_profiles.sort(key=lambda x: (x['weight_drain'], x['heavy_slots'], x['light_slots']))
