@@ -967,11 +967,8 @@ class Analysis:
                 delay_and_recharge_total = recharge_delay + recharge_time
                 return recharge_delay, recharge_time, delay_and_recharge_total
                 
-            name = getattr(module, 'name', {})
-            name_en = name.get('en', module.id) if isinstance(name, dict) else module.id
-            
             shoulder_data = {
-                'name': name_en,
+                'shoulder_module_ref': module.to_ref(),
                 'levels': {}
             }
             
