@@ -56,6 +56,9 @@ class Analysis:
         self.ability_primary_secondary_descriptions = self.analyze_ability_descriptions()
         self.ability_primary_secondary_descriptions_md = self.generate_ability_descriptions_md(self.ability_primary_secondary_descriptions)
 
+        # Analyze shoulder profiles
+        self.shoulder_profiles = self.analyze_shoulder_profiles()
+
     ########################################
     #      Upgrade Cost & Scrap Reward     #
     ########################################
@@ -900,6 +903,70 @@ class Analysis:
 
     
     
+    def analyze_shoulder_profiles(self):
+        profiles = {}
+        for module_id, module in Module.objects.items():
+            if 'Shoulder' not in module.id:
+                continue
+                
+            scalars = getattr(module, 'module_scalars', {})
+            levels = scalars.get('levels', {})
+            variables = levels.get('variables', [])
+            constants = levels.get('constants', {})
+            
+            weight_drain = constants.get('WeightDrain', 0.0)
+            
+            light_slots = 0
+            heavy_slots = 0
+            
+            sockets = getattr(module, 'module_socket_type_refs', [])
+            for s in sockets:
+                if 'WeaponHeavy' in s:
+                    heavy_slots += 1
+                elif 'Weapon.' in s:
+                    light_slots += 1
+                    
+            group_key = f"WeightDrain:{weight_drain}|Light:{light_slots}|Heavy:{heavy_slots}"
+            
+            if group_key not in profiles:
+                profiles[group_key] = []
+                
+            def get_stat(lvl_index, stat_name):
+                if lvl_index < len(variables) and stat_name in variables[lvl_index]:
+                    return variables[lvl_index][stat_name]
+                return constants.get(stat_name, 0.0)
+                
+            lvl1_armor = get_stat(0, 'Armor')
+            lvl1_shield = get_stat(0, 'ShieldAmount')
+            lvl1_regen_delay = get_stat(0, 'ShieldRegeneration')
+            lvl1_cooldown_red = get_stat(0, 'ShieldDelayReduction')
+            
+            lvl13_armor = get_stat(12, 'Armor')
+            lvl13_shield = get_stat(12, 'ShieldAmount')
+            lvl13_regen_delay = get_stat(12, 'ShieldRegeneration')
+            lvl13_cooldown_red = get_stat(12, 'ShieldDelayReduction')
+            
+            name = getattr(module, 'name', {})
+            name_en = name.get('en', module.id) if isinstance(name, dict) else module.id
+            
+            profiles[group_key].append({
+                'name': name_en,
+                'lvl1': {
+                    'armor': lvl1_armor,
+                    'shield_capacity': lvl1_shield,
+                    'shield_regen_cooldown_reduction': lvl1_cooldown_red,
+                    'shield_regen_delay': lvl1_regen_delay
+                },
+                'lvl13': {
+                    'armor': lvl13_armor,
+                    'shield_capacity': lvl13_shield,
+                    'shield_regen_cooldown_reduction': lvl13_cooldown_red,
+                    'shield_regen_delay': lvl13_regen_delay
+                }
+            })
+            
+        return profiles
+
     ##########################
     #          Other         #
     ##########################
@@ -916,6 +983,7 @@ class Analysis:
             'total_upgrade_costs': self.total_upgrade_costs,
             'factory_preset_upgrade_costs': self.factory_preset_upgrade_costs,
             'ability_primary_secondary_descriptions': self.ability_primary_secondary_descriptions,
+            'shoulder_profiles': self.shoulder_profiles,
         }), 2)
 
         res["md"] = {
