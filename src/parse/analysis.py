@@ -926,24 +926,11 @@ class Analysis:
             light_slots = 0
             heavy_slots = 0
             
-            sockets = getattr(module, 'module_socket_type_refs', [])
-            for s in sockets:
-                socket_obj = ModuleSocketType.get_from_ref(s)
-                if not socket_obj:
-                    continue
-                
-                # Check compatible_module_types_refs (or exclusive_module_type_ref if available)
-                mod_type_refs = getattr(socket_obj, 'compatible_module_types_refs', [])
-                if not mod_type_refs:
-                    continue
-                
-                mod_type = ModuleType.get_from_ref(mod_type_refs[0])
-                if not mod_type:
-                    continue
-                
-                if 'WeaponHeavy' in mod_type.id:
+            for socket_type_ref in getattr(module, 'module_socket_type_refs', []):
+                id = ModuleSocketType.get_from_ref(socket_type_ref).id
+                if id == 'DA_ModuleSocketType_WeaponHeavy.0':
                     heavy_slots += 1
-                elif 'Weapon' in mod_type.id and 'Heavy' not in mod_type.id:
+                elif id == 'DA_ModuleSocketType_Weapon.0':
                     light_slots += 1
                     
             group_key = (weight_drain, light_slots, heavy_slots)
