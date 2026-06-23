@@ -14,6 +14,8 @@ from parsers.module_type import ModuleType
 from parsers.module_category import ModuleCategory
 from parsers.module_rarity import ModuleRarity
 from parsers.character_module import CharacterModule
+from parsers.module_socket_type import ModuleSocketType
+from parsers.module_type import ModuleType
 from parsers.module_stat import ModuleStat
 from parsers.upgrade_cost import UpgradeCost
 from parsers.scrap_reward import ScrapReward
@@ -55,6 +57,9 @@ class Analysis:
         # Embed "Primary" and "Secondary" in ability descriptions to know which is which
         self.ability_primary_secondary_descriptions = self.analyze_ability_descriptions()
         self.ability_primary_secondary_descriptions_md = self.generate_ability_descriptions_md(self.ability_primary_secondary_descriptions)
+
+        # Analyze shoulder profiles
+        self.shoulder_profiles = self.analyze_shoulder_profiles()
 
     ########################################
     #      Upgrade Cost & Scrap Reward     #
@@ -900,6 +905,86 @@ class Analysis:
 
     
     
+    def analyze_shoulder_profiles(self):
+        profiles = {}
+        for module_id, module in Module.objects.items():
+            if 'Shoulder' not in module.id:
+                continue
+                
+            if getattr(module, 'production_status', None) != 'Ready':
+                continue
+                
+            scalars = getattr(module, 'module_scalars', {})
+            levels = scalars.get('levels', {})
+            variables = levels.get('variables', [])
+            constants = levels.get('constants', {})
+            
+            weight_drain = constants.get('WeightDrain', 0.0)
+            if weight_drain == 0.0:
+                continue
+            
+            light_slots = 0
+            heavy_slots = 0
+            
+            for socket_type_ref in getattr(module, 'module_socket_type_refs', []):
+                id = ModuleSocketType.get_from_ref(socket_type_ref).id
+                if id == 'DA_ModuleSocketType_WeaponHeavy.0':
+                    heavy_slots += 1
+                elif id == 'DA_ModuleSocketType_Weapon.0':
+                    light_slots += 1
+                    
+            group_key = (weight_drain, light_slots, heavy_slots)
+            
+            if group_key not in profiles:
+                profiles[group_key] = {
+                    'weight_drain': weight_drain,
+                    'light_slots': light_slots,
+                    'heavy_slots': heavy_slots,
+                    'shoulders': []
+                }
+                
+            def get_stat(lvl_index, stat_name):
+                if lvl_index < len(variables) and stat_name in variables[lvl_index]:
+                    return variables[lvl_index][stat_name]
+                return constants.get(stat_name, 0.0)
+                
+            def compute_extra_stats(shield_capacity, shield_regen, cooldown_reduction):
+                recharge_delay = 10.0 * (1.0 - cooldown_reduction)
+                recharge_time = (shield_capacity / shield_regen) if shield_regen > 0 else 0.0
+                delay_and_recharge_total = recharge_delay + recharge_time
+                return recharge_delay, recharge_time, delay_and_recharge_total
+                
+            shoulder_data = {
+                'shoulder_module_ref': module.to_ref(),
+                'levels': {}
+            }
+            
+            for lvl in range(1, 14):
+                lvl_index = lvl - 1
+                armor = get_stat(lvl_index, 'Armor')
+                shield = get_stat(lvl_index, 'ShieldAmount')
+                regen_per_second = get_stat(lvl_index, 'ShieldRegeneration')
+                cooldown_red = get_stat(lvl_index, 'ShieldDelayReduction')
+                
+                rech_delay, rech_time, total = compute_extra_stats(shield, regen_per_second, cooldown_red)
+                
+                shoulder_data['levels'][str(lvl)] = {
+                    'Armor': armor,
+                    'ShieldAmount': shield,
+                    'ShieldDelayReduction': cooldown_red,
+                    'ShieldRegeneration': regen_per_second,
+                    'RechargeDelay': rech_delay,
+                    'RechargeTime': rech_time,
+                    'DelayAndRechargeTotal': total
+                }
+                
+            profiles[group_key]['shoulders'].append(shoulder_data)
+            
+        sorted_profiles = list(profiles.values())
+        sorted_profiles.sort(key=lambda x: (x['weight_drain'], x['heavy_slots'], x['light_slots']))
+            
+        return sorted_profiles
+
     ##########################
     #          Other         #
     ##########################
@@ -916,6 +1001,7 @@ class Analysis:
             'total_upgrade_costs': self.total_upgrade_costs,
             'factory_preset_upgrade_costs': self.factory_preset_upgrade_costs,
             'ability_primary_secondary_descriptions': self.ability_primary_secondary_descriptions,
+            'shoulder_profiles': self.shoulder_profiles,
         }), 2)
 
         res["md"] = {
