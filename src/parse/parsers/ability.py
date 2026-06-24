@@ -36,6 +36,10 @@ class Ability(ParseObject):
             template_ability_data = self._parse_and_merge_template(source_data["Template"])
 
         key_to_parser_function = {
+            "ScannedBuffClass": (self._p_actor_class, "scanned"),
+            "VulnerabilityBuffClass": (self._p_actor_class, "vulnerability"),
+            "HuntersMarkBuffClass": (self._p_actor_class, "hunters_mark"),
+            "AssociatedActions": None, #dupe data
             "UberGraphFrame": None,
             "ExplodeCount": "value",
             "ImpactPointsCount": "value",
