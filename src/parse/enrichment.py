@@ -331,14 +331,14 @@ def enrich_pilot_talents():
                     else:
                         # verify the talent type is the same
                         if talent.talent_type_ref != level_entry.get('talent_type_ref'):
-                            logger.error(f"GAME DATA CHANGE: Pilot '{pilot.first_name.en} {pilot.last_name.en}' has inconsistent talent types for talent '{talent.name.en}': expected {talent.talent_type_ref}, got {level_entry.get('talent_type_ref')}")
+                            logger.warning(f"GAME DATA CHANGE: Pilot '{pilot.id} {pilot.first_name["en"]} {pilot.last_name["en"] if getattr(pilot, "last_name", None) else ''}' has inconsistent talent types for talent '{talent.name["en"]}': expected {talent.talent_type_ref}, got {level_entry.get('talent_type_ref')}")
                     
                     if not hasattr(talent, 'level'):
                         talent.level = level_index + 1
                     else: 
                         # verify the level is the same
                         if talent.level != level_index + 1:
-                            logger.error(f"GAME DATA CHANGE: Pilot '{pilot.first_name.en} {pilot.last_name.en}' has inconsistent levels for talent '{talent.name.en}': expected {talent.level}, got {level_index + 1}")
+                            logger.warning(f"GAME DATA CHANGE: Pilot '{pilot.id} {pilot.first_name["en"]} {pilot.last_name["en"] if getattr(pilot, "last_name", None) else ''}' has inconsistent levels for talent '{talent.name["en"]}': expected {talent.level}, got {level_index + 1}")
 
     # Sort pilots_with_this_talent: hero pilots first, then by name
     for talent in PilotTalent.objects.values():
