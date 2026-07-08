@@ -36,6 +36,15 @@ class Ability(ParseObject):
             template_ability_data = self._parse_and_merge_template(source_data["Template"])
 
         key_to_parser_function = {
+            "MaxThreadDistance": "value",
+            "DamageAreaClass": self._p_actor_class,
+            "DamageAreaRelativeLocation": "value",
+            "DamageAreaRadius": "value",
+            "DamageAreaHalfHeight": "value",
+            "PlacementType": parse_colon_colon,
+            "StrikesPerTarget": "value",
+            "StrikeScatterRadius": "value",
+            "TimeBetweenStrikesInTarget": "value",
             "ScannedBuffClass": (self._p_actor_class, "scanned"),
             "VulnerabilityBuffClass": (self._p_actor_class, "vulnerability"),
             "HuntersMarkBuffClass": (self._p_actor_class, "hunters_mark"),
@@ -337,6 +346,10 @@ class Ability(ParseObject):
             my_data = {}
         else:
             key_to_parser_function = {
+                "PulledActor": parse_colon_colon,
+                "DistanceRange": lambda x: x['max'],
+                "PullingEntryDuration": "value",
+                "PullingEntryBlendExponent": "value",
                 "ForceRange": "value",
                 "PullingForceEasingFunction": None,
                 "PullingEntryEasingFunction": None,
@@ -350,8 +363,6 @@ class Ability(ParseObject):
             )
 
         return merge_dicts(template_data, my_data)
-
-
 
     def _p_vertical_accel_curve(self, data: dict):
         data = asset_to_data(data)["Properties"]
@@ -416,6 +427,7 @@ class Ability(ParseObject):
             return
 
         key_to_parser_function = {
+            "LaunchFXSocket": None, #vfx
             "TimeBetweenLaunch": "value",
             "FlyTime": "value",
             "FxLaunchLocation": None,
@@ -1006,6 +1018,14 @@ def p_actor_class(data: dict):
     props = data["Properties"]
 
     key_to_parser_function = {
+        "AreaRadius": "value",
+        "AreaHalfHeight": "value",
+        "AreaMeshRelativeRotation": "value",
+        "DamageBuffClass": p_actor_class,
+        "HealFeedbackBuffClass": p_actor_class,
+        "SourceHealLinkEffect": None, #vfx
+        "SourceHealLinkDuration": "value",
+        "MarkVictimEffect": None, #vfx
         "BoxExtent": "value",
         "HackingTime": "value", #kernel
         "Hacker": p_actor_class,

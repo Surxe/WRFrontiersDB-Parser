@@ -347,8 +347,8 @@ def process_key_to_parser_function(key_to_parser_function_map, data, obj=None, l
 
         if not key in key_to_parser_function_map:
             obj_id = getattr(obj, 'id', 'Error, no id found for obj') if obj else None
-            obj_class_ref_str = f"{class_name} {obj_id} has unknown property" if class_name and obj_id else "Unknown property"
-            logger.warning(f"Warning: {obj_class_ref_str} '{key}'{log_descriptor}")
+            obj_class_ref_str = f"{class_name} {obj_id} has unknown property: '{key}' of value '{value.__str__()}'"
+            logger.warning(f"Warning: {obj_class_ref_str} {log_descriptor}")
         
         else:
             config = key_to_parser_function_map[key]
