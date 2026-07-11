@@ -28,12 +28,13 @@ class Ability(ParseObject):
 
     def _parse_from_data(self, source_data: dict):
         props = source_data.get("Properties")
-        if not props:
-            return {}
 
         template_ability_data = None
         if 'Template' in source_data:
             template_ability_data = self._parse_and_merge_template(source_data["Template"])
+
+        if not props:
+            return template_ability_data
 
         key_to_parser_function = {
             "MaxThreadDistance": "value",
