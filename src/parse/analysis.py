@@ -352,9 +352,11 @@ class Analysis:
                 rarity_standard = standard_cost_and_scrap.get(module_rarity_ref, {})
                 for level, standard_level_data in rarity_standard.items():
                     standard_cost = standard_level_data.get(currency_ref, {}).get('upgrade_cost', 0)
-                    cumulative_standard += standard_cost
                     discounted_price = level_prices.get(level)
                     if discounted_price is not None:
+                        # Only count this level in the cumulative if it has a discount entry,
+                        # so un-discounted levels don't inflate the standard denominator.
+                        cumulative_standard += standard_cost
                         relative = self.get_relative_cost(standard_cost, discounted_price)
                         if relative is not None:
                             levels_out[level] = relative
