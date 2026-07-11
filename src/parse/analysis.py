@@ -23,13 +23,78 @@ from parsers.character_preset import CharacterPreset
 from parsers.ability import Ability
 
 INTEL_CURRENCY_REF = 'OBJID_Currency::DA_Meta_Currency_Intel'
+ALLOY_CURRENCY_REF = 'OBJID_Currency::DA_Meta_Currency_Alloys'
+
+# Manually defined discounted upgrade costs per rarity, currency, and level.
+# Only levels that actually have a non-zero upgrade cost for that currency should be listed.
+# Cumulatives are computed automatically by determine_discount_cost.
+DISCOUNT_COST_MAP = {
+    'OBJID_ModuleRarity::DA_ModuleRarity_Common.0': {
+        INTEL_CURRENCY_REF: {
+            3:  6,
+            5:  12,
+            9:  33,
+            13: 100,
+        },
+        ALLOY_CURRENCY_REF: {
+            2:  3_200,
+            4:  6_880,
+            6:  8_960,
+            7:  10_000,
+            8:  10_560,
+            10: 12_000,
+            11: 13_200,
+            12: 15_200,
+        },
+    },
+    'OBJID_ModuleRarity::DA_ModuleRarity_Uncommon.0': {
+        INTEL_CURRENCY_REF: {
+            3:  9,
+            5:  18,
+            9:  50,
+            13: 150,
+        },
+        ALLOY_CURRENCY_REF: {
+            2:  4_800,
+            4:  10_320,
+            6:  13_440,
+            7:  15_000,
+            8:  15_840,
+            10: 18_000,
+            11: 19_800,
+            12: 22_800,
+        },
+    },
+    'OBJID_ModuleRarity::DA_ModuleRarity_Rare.0': {
+        INTEL_CURRENCY_REF: {
+            3:  12,
+            5:  24,
+            9:  66,
+            13: 200,
+        },
+        ALLOY_CURRENCY_REF: {
+            2:  6_400,
+            4:  13_760,
+            6:  17_920,
+            7:  20_000,
+            8:  21_120,
+            10: 24_000,
+            11: 26_400,
+            12: 30_400,
+        },
+    },
+    'OBJID_ModuleRarity::DA_ModuleRarity_Epic.0': {
+        INTEL_CURRENCY_REF: {},
+        ALLOY_CURRENCY_REF: {},
+    },
+}
 
 class Analysis:
     def __init__(self):
         # Upgrade cost & Scrap reward
         self.cost_scrap_frequency_map = self.get_frequency_map()
         self.standard_cost_and_scrap = self.determine_standard_cost_and_scrap(self.cost_scrap_frequency_map)
-        self.intel_discount_cost = self.determine_intel_discount_cost(self.standard_cost_and_scrap, self.cost_scrap_frequency_map)
+        self.discount_cost = self.determine_discount_cost(self.standard_cost_and_scrap)
 
         # Level Diffs per module
         res = self.get_level_diffs_per_module()
@@ -255,60 +320,51 @@ class Analysis:
         }
     
 
-    def get_intel_discounted_cost(self, level_data):
+    def determine_discount_cost(self, standard_cost_and_scrap):
         """
-        Determine intel discounted cost for each level. Intel discounted cost is the 2nd most frequent cost in each level.
-
-        Returns: {
-            'cost': intel_discounted_cost_amount,
-            'difference': <intel_discounted_cost_amount - standard_cost_amount>,
-            'percent_difference': <(intel_discounted_cost_amount - standard_cost_amount) / standard_cost_amount>,
-        """
-        if INTEL_CURRENCY_REF not in level_data:
-            return None
-        intel_currency_data = level_data[INTEL_CURRENCY_REF]
-        if 'upgrade_cost' not in intel_currency_data:
-            return None
-        discounted_cost = self.get_most_freq_amount(intel_currency_data['upgrade_cost'], n=2, allow_outliers=True)
-        if discounted_cost is None:
-            return None #not enough data to determine 2nd most frequent
-        standard_cost = self.get_most_freq_amount(intel_currency_data['upgrade_cost'], n=1, allow_outliers=False)
-        return self.get_relative_cost(standard_cost, discounted_cost)
-        
-
-    def determine_intel_discount_cost(self, standard_cost_and_scrap, cost_scrap_frequency_map):
-        """
-        For each module rarity & level, determine the intel discounted cost
+        Build the discount_cost output from the manually defined DISCOUNT_COST_MAP.
+        For each rarity and currency, computes per-level relative cost (difference and
+        percent_difference vs the standard price) and the running cumulative.
 
         Returns:
             {
-                <module_rarity>: {
-                    "levels": {
-                        <level>: <intel_discounted_cost_amount>,
+                <module_rarity_ref>: {
+                    <currency_ref>: {
+                        "levels": {
+                            <level>: {
+                                'cost': <discounted_amount>,
+                                'difference': <discounted_amount - standard_amount>,
+                                'percent_difference': <(discounted - standard) / standard>,
+                            },
+                        },
+                        "cumulative": { ... } | null,
                     }
-                    "cumulative": <intel_discounted_cost_amount>,
                 }
             }
         """
-        intel_discount_cost = {}
-        for module_rarity_ref, levels_data in cost_scrap_frequency_map.items():
-            if module_rarity_ref not in intel_discount_cost:
-                intel_discount_cost[module_rarity_ref] = {}
-                intel_discount_cost[module_rarity_ref]["levels"] = {}
-            cumulative_intel_discounted_cost = 0
-            cumulative_standard_cost = 0
-            for level, currency_data in levels_data.items():
-                intel_discounted_cost_amount = self.get_intel_discounted_cost(currency_data)
-                cumulative_intel_discounted_cost += intel_discounted_cost_amount['cost'] if intel_discounted_cost_amount is not None else 0
-                standard_cost = standard_cost_and_scrap[module_rarity_ref][level].get(INTEL_CURRENCY_REF, {}).get('upgrade_cost', 0)
-                cumulative_standard_cost += standard_cost
-                if intel_discounted_cost_amount is not None:
-                    intel_discount_cost[module_rarity_ref]["levels"][level] = intel_discounted_cost_amount
-            intel_discount_cost[module_rarity_ref]["cumulative"] = self.get_relative_cost(cumulative_standard_cost, cumulative_intel_discounted_cost)
-        return intel_discount_cost
+        discount_cost = {}
+        for module_rarity_ref, currencies in DISCOUNT_COST_MAP.items():
+            discount_cost[module_rarity_ref] = {}
+            for currency_ref, level_prices in currencies.items():
+                levels_out = {}
+                cumulative_discounted = 0
+                cumulative_standard = 0
+                rarity_standard = standard_cost_and_scrap.get(module_rarity_ref, {})
+                for level, standard_level_data in rarity_standard.items():
+                    standard_cost = standard_level_data.get(currency_ref, {}).get('upgrade_cost', 0)
+                    cumulative_standard += standard_cost
+                    discounted_price = level_prices.get(level)
+                    if discounted_price is not None:
+                        relative = self.get_relative_cost(standard_cost, discounted_price)
+                        if relative is not None:
+                            levels_out[level] = relative
+                            cumulative_discounted += discounted_price
+                discount_cost[module_rarity_ref][currency_ref] = {
+                    "levels": levels_out,
+                    "cumulative": self.get_relative_cost(cumulative_standard, cumulative_discounted),
+                }
+        return discount_cost
 
-
-        
 
     ####################################################
     #      Level Diffs, per module and per stat        #
@@ -997,7 +1053,7 @@ class Analysis:
             'level_diffs_by_stat': self.level_diffs_by_stat,
             'cost_scrap_frequency_map': self.cost_scrap_frequency_map,
             'standard_cost_and_scrap': self.standard_cost_and_scrap,
-            'intel_discount_cost': self.intel_discount_cost,
+            'discount_cost': self.discount_cost,
             'total_upgrade_costs': self.total_upgrade_costs,
             'factory_preset_upgrade_costs': self.factory_preset_upgrade_costs,
             'ability_primary_secondary_descriptions': self.ability_primary_secondary_descriptions,
