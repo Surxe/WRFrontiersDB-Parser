@@ -22,6 +22,7 @@ from exclusive_module_socket_matching import (
     ExclusiveAssignmentError,
     resolve_exclusive_module_socket_assignments,
 )
+from parsers.rarity_upgrade_cost import RarityUpgradeCost
 
 PILOT_TYPE_LEGENDARY_REF = 'OBJID_PilotType::DA_PilotType_Legendary.0'
 
@@ -84,6 +85,9 @@ def enrich():
 
     # 5. Pilot Talents
     enrich_pilot_talents()
+
+    # 6. Rarity Upgrade Costs
+    enrich_rarity_upgrade_costs()
 
 def enrich_module_socket_type_exclusivity():
     logger.info("Enriching module socket type exclusivity...")
@@ -349,3 +353,38 @@ def enrich_pilot_talents():
             return (not is_hero, name)
         
         talent.pilots_with_this_talent.sort(key=sort_key)
+
+def enrich_rarity_upgrade_costs():
+    logger.info("Enriching Rarity Upgrade Costs...")
+    from analysis import Analysis, INTEL_CURRENCY_REF, ALLOY_CURRENCY_REF, DISCOUNT_COST_MAP
+    
+    # Instantiate Analysis to get the standard cost map
+    analysis = Analysis()
+    
+    for rarity_ref, levels_data in analysis.standard_cost_and_scrap.items():
+        costs = {}
+        discount_map = DISCOUNT_COST_MAP.get(rarity_ref, {})
+        intel_discounts = discount_map.get(INTEL_CURRENCY_REF, {})
+        alloy_discounts = discount_map.get(ALLOY_CURRENCY_REF, {})
+        
+        for level_int, currency_data in levels_data.items():
+            level_str = str(level_int)
+            costs[level_str] = {}
+            
+            # Alloy / Salvage
+            alloy_standard = currency_data.get(ALLOY_CURRENCY_REF, {}).get('upgrade_cost', 0)
+            alloy_discounted = alloy_discounts.get(int(level_int))
+            costs[level_str]['salvage'] = {
+                'standard': alloy_standard,
+                'discounted': alloy_discounted
+            }
+            
+            # Intel
+            intel_standard = currency_data.get(INTEL_CURRENCY_REF, {}).get('upgrade_cost', 0)
+            intel_discounted = intel_discounts.get(int(level_int))
+            costs[level_str]['intel'] = {
+                'standard': intel_standard,
+                'discounted': intel_discounted
+            }
+            
+        RarityUpgradeCost(id=rarity_ref, rarity_ref=rarity_ref, costs=costs)

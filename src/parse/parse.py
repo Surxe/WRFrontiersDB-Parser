@@ -27,7 +27,7 @@ from enrichment import enrich
 from parsers.virtual_bot import VirtualBot
 from parsers.module_group import ModuleGroup
 from parsers.shop_card import ShopCard, parse_shop_cards
-
+from parsers.rarity_upgrade_cost import RarityUpgradeCost
 def main():
     """Main parsing function - uses global OPTIONS singleton."""
     os.makedirs(OPTIONS.output_dir, exist_ok=True)
@@ -60,6 +60,7 @@ def main():
 
     Module.to_file()
     ModuleRarity.to_file()
+    RarityUpgradeCost.to_file()
     CharacterModule.to_file()
     Ability.to_file()
     Faction.to_file()
