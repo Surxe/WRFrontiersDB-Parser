@@ -64,6 +64,9 @@ def is_virtual_bot_module(module):
 def enrich():
     logger.info("Starting enrichment phase...")
     
+    # 0. Shoulder Stats
+    enrich_shoulder_stats()
+
     # 1. Module Groups
     ModuleGroup.generate_all()
     for module in Module.objects.values():
@@ -388,3 +391,32 @@ def enrich_rarity_upgrade_costs():
             }
             
         RarityUpgradeCost(id=rarity_ref, rarity_ref=rarity_ref, costs=costs)
+
+def enrich_shoulder_stats():
+    logger.info("Enriching shoulder stats...")
+    for module in Module.objects.values():
+        if 'Shoulder' not in module.id:
+            continue
+            
+        scalars = getattr(module, 'module_scalars', {})
+        levels = scalars.get('levels', {})
+        variables = levels.get('variables', [])
+        constants = levels.get('constants', {})
+        
+        for lvl_index in range(len(variables)):
+            def get_stat(stat_name):
+                if stat_name in variables[lvl_index]:
+                    return variables[lvl_index][stat_name]
+                return constants.get(stat_name, 0.0)
+                
+            shield = get_stat('ShieldAmount')
+            regen_per_second = get_stat('ShieldRegeneration')
+            cooldown_red = get_stat('ShieldDelayReduction')
+            
+            recharge_delay = 10.0 * (1.0 - cooldown_red)
+            recharge_time = (shield / regen_per_second) if regen_per_second > 0 else 0.0
+            delay_and_recharge_total = recharge_delay + recharge_time
+            
+            variables[lvl_index]['RechargeDelay'] = recharge_delay
+            variables[lvl_index]['RechargeTime'] = recharge_time
+            variables[lvl_index]['DelayAndRechargeTotal'] = delay_and_recharge_total
