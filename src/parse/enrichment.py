@@ -23,6 +23,7 @@ from exclusive_module_socket_matching import (
     resolve_exclusive_module_socket_assignments,
 )
 from parsers.rarity_upgrade_cost import RarityUpgradeCost
+from parsers.stat import Stat
 
 PILOT_TYPE_LEGENDARY_REF = 'OBJID_PilotType::DA_PilotType_Legendary.0'
 
@@ -67,6 +68,8 @@ def enrich():
     # 0. Shoulder Stats
     enrich_shoulder_stats()
 
+    # 0.5 Stats
+    Stat.generate_all()
     # 1. Module Groups
     ModuleGroup.generate_all()
     for module in Module.objects.values():
