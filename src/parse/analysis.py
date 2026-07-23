@@ -498,7 +498,10 @@ class Analysis:
                 "Armor": "DA_ModuleStat_Armor.0",
                 "TimeBetweenShots": True,
                 "DamageNoArmor": "DA_ModuleStat_ShieldDamage.0",
-                "Mobility": "DA_ModuleStat_Acceleration.0"
+                "Mobility": "DA_ModuleStat_Acceleration.0",
+                "RechargeDelay": False,
+                "RechargeTime": False,
+                "DelayAndRechargeTotal": False
             }
             stat_to_more_is_better_final = {}
             for stat_key in stat_keys_to_rank:
@@ -1006,12 +1009,6 @@ class Analysis:
                     return variables[lvl_index][stat_name]
                 return constants.get(stat_name, 0.0)
                 
-            def compute_extra_stats(shield_capacity, shield_regen, cooldown_reduction):
-                recharge_delay = 10.0 * (1.0 - cooldown_reduction)
-                recharge_time = (shield_capacity / shield_regen) if shield_regen > 0 else 0.0
-                delay_and_recharge_total = recharge_delay + recharge_time
-                return recharge_delay, recharge_time, delay_and_recharge_total
-                
             shoulder_data = {
                 'shoulder_module_ref': module.to_ref(),
                 'levels': {}
@@ -1024,7 +1021,9 @@ class Analysis:
                 regen_per_second = get_stat(lvl_index, 'ShieldRegeneration')
                 cooldown_red = get_stat(lvl_index, 'ShieldDelayReduction')
                 
-                rech_delay, rech_time, total = compute_extra_stats(shield, regen_per_second, cooldown_red)
+                rech_delay = get_stat(lvl_index, 'RechargeDelay')
+                rech_time = get_stat(lvl_index, 'RechargeTime')
+                total = get_stat(lvl_index, 'DelayAndRechargeTotal')
                 
                 shoulder_data['levels'][str(lvl)] = {
                     'Armor': armor,

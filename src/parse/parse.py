@@ -42,8 +42,8 @@ def main():
     parse_factory_presets()
     parse_powerups()
     parse_shop_cards()
-    analyze()
     enrich()
+    analyze()
 
 
     ProgressionTable.to_file()
