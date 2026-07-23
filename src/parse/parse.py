@@ -28,6 +28,7 @@ from parsers.virtual_bot import VirtualBot
 from parsers.module_group import ModuleGroup
 from parsers.shop_card import ShopCard, parse_shop_cards
 from parsers.rarity_upgrade_cost import RarityUpgradeCost
+from parsers.stat import Stat
 def main():
     """Main parsing function - uses global OPTIONS singleton."""
     os.makedirs(OPTIONS.output_dir, exist_ok=True)
@@ -72,6 +73,7 @@ def main():
     ModuleCategory.to_file()
     ModuleSocketType.to_file()
     ModuleStat.to_file()
+    Stat.to_file()
     ModuleStatsTable.to_file()
     UpgradeCost.to_file()
     ScrapReward.to_file()

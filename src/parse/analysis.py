@@ -475,57 +475,9 @@ class Analysis:
         stat_keys_to_not_rank = {'PrimaryParameter', 'SecondaryParameter'}
         stat_keys_to_rank = [key for key in distinct_stat_keys if key not in stat_keys_to_not_rank]
 
-        def get_more_is_better_map(stat_keys_to_rank):
-            # if stat_key is not in map.keys(); search by ModuleStat.short_key
-            # if stat_key is in map, use it as:
-            # {stat_key: module_stat_ref: str or <more_is_better>: bool}
-            # Developer: if you get an error for a stat key, check if the key could possibly relate to a ModuleStat, 
-            # if so, add the ModuleStat.id here as the value.
-            # If not, just use True/False to say if more of the stat is better or not. 
-            # E.g. TimeToReload eventually maps to False, you want less of it.
-            stat_to_more_is_better = {
-                "ChargeDuration": "DA_ModuleStat_ChargeDrain.0",
-                "Cooldown": "DA_ModuleStat_Cooldown.0",
-                "ShieldRegeneration": "DA_ModuleStat_ShieldRegeneration.0",
-                "TimeToReload": "DA_ModuleStat_ReloadingTime.0",
-                "DamageArmor": "DA_ModuleStat_ArmorDamage.0",
-                "AoeArmor": True,
-                "RoundsPerMinute": "DA_ModuleStat_FireRate.0",
-                "FuelCapacity": "DA_ModuleStat_FuelCapacity.0",
-                "ShieldAmount": "DA_ModuleStat_ShieldAmount.0",
-                "ShieldDelayReduction": "DA_ModuleStat_ShieldDelayReduction.0",
-                "AoeNoArmor": True,
-                "Armor": "DA_ModuleStat_Armor.0",
-                "TimeBetweenShots": True,
-                "DamageNoArmor": "DA_ModuleStat_ShieldDamage.0",
-                "Mobility": "DA_ModuleStat_Acceleration.0",
-                "RechargeDelay": False,
-                "RechargeTime": False,
-                "DelayAndRechargeTotal": False
-            }
-            stat_to_more_is_better_final = {}
-            for stat_key in stat_keys_to_rank:
-                entry = stat_to_more_is_better.get(stat_key)
-                if entry is None:
-                    module_stat = next((stat for stat in ModuleStat.objects.values() if stat.short_key == stat_key), None)
-                    if module_stat is None:
-                        if stat_key.startswith('DPS_'): #dps stats are all more is better
-                            more_is_better = True
-                        else:
-                            raise ValueError(f"stat_key: {stat_key}, Unknown module stat with this short_key")
-                    more_is_better = getattr(module_stat, 'more_is_better', True)
-                elif isinstance(entry, str):
-                    module_stat = ModuleStat.objects[entry]
-                    more_is_better = getattr(module_stat, 'more_is_better', True)
-                elif isinstance(entry, bool):
-                    more_is_better = entry
-                else:
-                    raise ValueError(f"Unknown more_is_better entry for stat {stat_key}: {entry}")
-                stat_to_more_is_better_final[stat_key] = more_is_better
-            return stat_to_more_is_better_final
-        stat_to_more_is_better = get_more_is_better_map(stat_keys_to_rank)
+        from parsers.stat import Stat
 
-        def rank_stats(level_diffs_by_module, stat_keys_to_rank, stat_to_more_is_better):
+        def rank_stats(level_diffs_by_module, stat_keys_to_rank):
             stat_ranks = {key: {} for key in stat_keys_to_rank}
             for stat_key in stat_ranks:
                 module_increases = []
@@ -533,12 +485,21 @@ class Analysis:
                     percent_increase = module_diff_data['stats_percent_increase'].get(stat_key)
                     if percent_increase is not None:
                         module_increases.append((module_id, percent_increase))
-                should_reverse = not stat_to_more_is_better.get(stat_key, None)
+                
+                stat_obj = Stat.objects.get(stat_key)
+                if stat_obj is not None:
+                    module_stat = ModuleStat.get_from_ref(stat_obj.module_stat_ref)
+                    more_is_better = getattr(module_stat, 'more_is_better', True)
+                else:
+                    logger.warning(f"Stat {stat_key} not found in Stat.objects. Defaulting to more_is_better = True")
+                    more_is_better = True
+
+                should_reverse = not more_is_better
                 module_increases.sort(key=lambda x: (float('-inf') if isinstance(x[1], str) else x[1]), reverse=should_reverse)
                 for rank, (module_id, _) in enumerate(module_increases[::-1]):
                     stat_ranks[stat_key][module_id] = rank
             return stat_ranks
-        return rank_stats(level_diffs_by_module, stat_keys_to_rank, stat_to_more_is_better)
+        return rank_stats(level_diffs_by_module, stat_keys_to_rank)
 
     @staticmethod
     def get_ranks_per_module(stat_ranks, module_ids: list):
