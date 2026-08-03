@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import ParseTarget, parse_colon_colon, logger, asset_to_asset_path, asset_to_data, asset_to_asset_path, get_json_data, asset_path_to_file_path_and_index, asset_path_to_data, path_to_id, asset_path_to_file_path, OPTIONS, parse_curve
+from utils import ParseTarget, parse_colon_colon, logger, asset_to_asset_path, asset_to_data, asset_to_asset_path, get_json_data, asset_path_to_file_path_and_index, asset_path_to_data, path_to_id, asset_path_to_file_path, OPTIONS, parse_curve, join_path
 from parsers.localization_table import parse_localization
 
 from parsers.object import ParseObject
@@ -176,7 +176,7 @@ class GameMode(ParseObject):
         return parsed_data
 
 def parse_game_modes(to_file=False):
-    root_path = os.path.join(OPTIONS.export_dir, r"WRFrontiers\Content\Sparrow\Mechanics\DA_Meta_Root.json")
+    root_path = join_path(OPTIONS.export_dir, r"WRFrontiers\Content\Sparrow\Mechanics\DA_Meta_Root.json")
     root_data = get_json_data(root_path, index=0)
     game_modes = root_data["Properties"]["GameModes"]
     for game_mode_entry in game_modes:
@@ -199,7 +199,7 @@ def parse_game_modes(to_file=False):
                 if 'CultureInvariantString' not in game_mode_data[0]['Properties']["DisplayName"]:
                     logger.debug(f"Parsing {GameMode.__name__} {game_mode_id} from {game_mode_file_path}")
                     game_mode = GameMode(game_mode_id, game_mode_data)
-                    game_mode._parse_bp(os.path.join(OPTIONS.export_dir, r"WRFrontiers\Content\Sparrow", game_mode_id_to_bp_path[game_mode_id]))
+                    game_mode._parse_bp(join_path(OPTIONS.export_dir, r"WRFrontiers\Content\Sparrow", game_mode_id_to_bp_path[game_mode_id]))
 
     if to_file: # Condition prevents needlessly saving the same data multiple times, as it will also be saved if ran thru parse.py
         GameMode.to_file()

@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import logger, get_json_data, asset_to_data, OPTIONS, merge_dicts, parse_hex, path_to_id
+from utils import logger, get_json_data, asset_to_data, OPTIONS, merge_dicts, parse_hex, path_to_id, join_path
 from parsers.ability import p_actor_class
 from parsers.image import parse_image_asset_path
 
@@ -71,7 +71,7 @@ def parse_powerup_wrapper(full_path, id):
     return powerup
 
 def parse_powerups(to_file=False):
-    powerups_source_path = os.path.join(OPTIONS.export_dir, r"WRFrontiers\Content\Sparrow\Mechanics\Powerups")
+    powerups_source_path = join_path(OPTIONS.export_dir, r"WRFrontiers\Content\Sparrow\Mechanics\Powerups")
     
     # Maybe in the future the map files can be parsed directly which contains paths to the powerups. For now this will do.
     subdirs = ['Personal', 'Teams']

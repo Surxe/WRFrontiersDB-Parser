@@ -7,7 +7,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from parsers.object import ParseObject
 from parsers.image import parse_image_asset_path, Image
 from parsers.rarity import Rarity
-from utils import OPTIONS, get_json_data, parse_colon_colon
+from utils import OPTIONS, get_json_data, parse_colon_colon, join_path
 
 class ShopCard(ParseObject):
     objects = dict()  # Dictionary to hold all ShopCard instances
@@ -38,7 +38,7 @@ class ShopCard(ParseObject):
         self.backgrounds = backgrounds
 
 def parse_shop_cards(to_file=False):
-    file_path = os.path.join(OPTIONS.export_dir, r"WRFrontiers\Content\Sparrow\UI\Screens\Offers\WBP_CommonOfferCard.json")
+    file_path = join_path(OPTIONS.export_dir, r"WRFrontiers\Content\Sparrow\UI\Screens\Offers\WBP_CommonOfferCard.json")
     
     if not os.path.exists(file_path):
         return

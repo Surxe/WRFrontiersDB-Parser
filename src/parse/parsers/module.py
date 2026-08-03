@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import ParseTarget, logger, path_to_id, get_json_data, asset_to_data, asset_path_to_data, parse_colon_colon, OPTIONS
+from utils import ParseTarget, logger, path_to_id, get_json_data, asset_to_data, asset_path_to_data, parse_colon_colon, OPTIONS, join_path
 from parsers.localization_table import parse_localization
 
 from parsers.object import ParseObject
@@ -354,7 +354,7 @@ def find_module_element(path):
     raise ValueError(f"Could not find module data in {path}")
 
 def parse_modules(to_file=False):
-    modules_source_path = os.path.join(OPTIONS.export_dir, r"WRFrontiers\Content\Sparrow\Mechanics\Meta\Entities\Modules")
+    modules_source_path = join_path(OPTIONS.export_dir, r"WRFrontiers\Content\Sparrow\Mechanics\Meta\Entities\Modules")
     for file in os.listdir(modules_source_path):
         if file.endswith(".json"):
             full_path = os.path.join(modules_source_path, file)

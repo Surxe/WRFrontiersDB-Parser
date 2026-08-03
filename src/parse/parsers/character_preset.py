@@ -5,7 +5,7 @@ import os
 from loguru import logger
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import get_json_data, OPTIONS, parse_colon_colon
+from utils import get_json_data, OPTIONS, parse_colon_colon, join_path
 
 from parsers.object import ParseObject
 from parsers.image import Image, parse_image_asset_path
@@ -72,7 +72,7 @@ class CharacterPreset(ParseObject):
         self.is_factory_preset = is_factory_preset
 
 def parse_factory_presets(to_file=False):
-    root_path = os.path.join(OPTIONS.export_dir, r"WRFrontiers\Content\Sparrow\Mechanics\DA_Meta_Root.json")
+    root_path = join_path(OPTIONS.export_dir, r"WRFrontiers\Content\Sparrow\Mechanics\DA_Meta_Root.json")
     root_data = get_json_data(root_path)
     props = root_data[0]["Properties"]
     

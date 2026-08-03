@@ -12,11 +12,61 @@ from options import OPTIONS
 #             FILE            #
 ###############################
 
+# Cache of directory listings mapped lowercase name -> real name, keyed by
+# directory. Avoids rescanning the same directory for every case-mismatched
+# lookup during a run.
+_ci_dir_cache: dict[str, dict[str, str]] = {}
+
+def resolve_path_case_insensitive(path: str) -> str:
+    """Resolve a path to its actual on-disk casing, matching each component
+    case-insensitively.
+
+    Windows filesystems are case-insensitive, but Linux is not. Unreal asset
+    references do not reliably match the casing of the exported folders/files
+    (e.g. a reference to "Abilities/Spotlight" for an on-disk "Abilities/SpotLight"),
+    which works on Windows but fails on Linux. This recovers the real path.
+
+    Returns the input unchanged if it already exists or if no case-insensitive
+    match can be found (so the caller still gets a meaningful FileNotFoundError).
+    """
+    if os.path.exists(path):
+        return path
+
+    normalized = path.replace('\\', '/')
+    parts = normalized.split('/')
+    if normalized.startswith('/'):
+        resolved = '/'
+        parts = parts[1:]
+    else:
+        resolved = ''
+
+    for part in parts:
+        if part == '':
+            continue
+        candidate = os.path.join(resolved, part) if resolved else part
+        if os.path.exists(candidate):
+            resolved = candidate
+            continue
+        search_dir = resolved if resolved else '.'
+        listing = _ci_dir_cache.get(search_dir)
+        if listing is None:
+            try:
+                listing = {entry.lower(): entry for entry in os.listdir(search_dir)}
+            except (FileNotFoundError, NotADirectoryError):
+                return path  # give up; caller will raise on the original path
+            _ci_dir_cache[search_dir] = listing
+        match = listing.get(part.lower())
+        if match is None:
+            return path  # no case-insensitive match; caller will raise
+        resolved = os.path.join(resolved, match) if resolved else match
+    return resolved
+
 def get_json_data(file_path: str, index: int | None = None) -> dict:
     """
     Reads a JSON file and returns its content.
     """
     data = None
+    file_path = resolve_path_case_insensitive(file_path)
     with open(file_path, encoding='utf-8') as file:
         data = json.load(file)
     if data is None:
@@ -48,6 +98,19 @@ def normalize_path(path: str) -> str:
     # Only convert backslashes to forward slashes for display consistency in tests
     # but preserve the platform-specific absolute path characteristics
     return normalized.replace('\\', '/')
+
+def join_path(base: str, *parts: str) -> str:
+    """Join a base path with one or more relative path segments.
+
+    Each segment may use either '/' or '\\' (or '\\\\') as a separator, so
+    Windows-style path literals resolve correctly on Linux and vice versa.
+    Runs of mixed separators are split apart and rejoined with the current
+    platform's separator via os.path.join.
+    """
+    segments = []
+    for part in parts:
+        segments.extend(segment for segment in re.split(r'[\\/]+', part) if segment)
+    return os.path.join(base, *segments)
 
 ###############################
 #    Unreal Engine Parsing    #
