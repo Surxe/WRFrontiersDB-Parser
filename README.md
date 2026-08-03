@@ -1,6 +1,30 @@
 # WRFrontiersDB-Parser
 War Robots Frontiers Database Parser
 
+## Setup
+
+Create and activate a virtual environment for this repo, then install its dependencies:
+
+```bash
+# From the repo root (WRFrontiersDB-Parser/)
+python -m venv .venv
+
+# Activate it
+source .venv/bin/activate        # Linux / macOS
+.venv\Scripts\activate           # Windows (PowerShell/cmd)
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+Then copy the example environment file and fill in your values:
+
+```bash
+cp .env.example .env
+```
+
+To leave the virtual environment, run `deactivate`.
+
 ## Options
 
 ### Command Line Argument Usage
