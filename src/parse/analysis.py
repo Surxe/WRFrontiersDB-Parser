@@ -84,8 +84,22 @@ DISCOUNT_COST_MAP = {
         },
     },
     'OBJID_ModuleRarity::DA_ModuleRarity_Epic.0': {
-        INTEL_CURRENCY_REF: {},
-        ALLOY_CURRENCY_REF: {},
+        INTEL_CURRENCY_REF: {
+            3:  15,
+            5:  30,
+            9:  82,
+            13: 172,
+        },
+        ALLOY_CURRENCY_REF: {
+            2:  8_000,
+            4:  17_200,
+            6:  22_400,
+            7:  25_000,
+            8:  26_400,
+            10: 30_000,
+            11: 33_000,
+            12: 38_000,
+        },
     },
 }
 
