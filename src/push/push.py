@@ -15,6 +15,36 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from options import OPTIONS
 from loguru import logger
 
+SECRET_MASK = "********"
+
+
+def redact_secrets(text):
+    """
+    Replace any sensitive option value (flagged with `sensitive: True` in the
+    OptionsConfig schema) with a mask, so secrets like PAT tokens are never
+    written to logs.
+
+    Args:
+        text: String that may contain sensitive values.
+
+    Returns:
+        The string with every sensitive value replaced by SECRET_MASK.
+    """
+    if text is None or not OPTIONS:
+        return text
+
+    result = str(text)
+    for details in OPTIONS.schema.values():
+        if not details.get("sensitive"):
+            continue
+        value = getattr(OPTIONS, details["var"], None)
+        if value is None:
+            continue
+        value = str(value)
+        if value:
+            result = result.replace(value, SECRET_MASK)
+    return result
+
 
 def run_git_command(cmd, cwd=None, capture_output=True, check=True, log_output=False, log_command_str=True):
     """
@@ -42,7 +72,7 @@ def run_git_command(cmd, cwd=None, capture_output=True, check=True, log_output=F
     })
     
     if log_command_str:
-        logger.debug(f"Running git command: {' '.join(cmd)}")
+        logger.debug(f"Running git command: {redact_secrets(' '.join(cmd))}")
     
     try:
         result = subprocess.run(
@@ -57,20 +87,20 @@ def run_git_command(cmd, cwd=None, capture_output=True, check=True, log_output=F
         )
         
         if log_output and result.stdout:
-            logger.info(result.stdout.strip())
-        
+            logger.info(redact_secrets(result.stdout.strip()))
+
         return result
-        
+
     except subprocess.CalledProcessError as e:
         # If ''nothing to commit' is in the error, make it a info instead of error
         if "nothing to commit" in e.stdout:
             logger.info("No changes to commit.")
             return e  # Return the exception object for further handling if needed
-        logger.error(f"Git command failed: {' '.join(cmd)}")
+        logger.error(f"Git command failed: {redact_secrets(' '.join(cmd))}")
         if e.stdout:
-            logger.error(f"STDOUT: {e.stdout}")
+            logger.error(f"STDOUT: {redact_secrets(e.stdout)}")
         if e.stderr:
-            logger.error(f"STDERR: {e.stderr}")
+            logger.error(f"STDERR: {redact_secrets(e.stderr)}")
         raise
 
 
@@ -361,5 +391,5 @@ def main():
         push_changes(data_repo_dir, OPTIONS.target_branch)
         
     except Exception as e:
-        logger.error(f"Error during push process: {e}")
+        logger.error(f"Error during push process: {redact_secrets(str(e))}")
         raise
