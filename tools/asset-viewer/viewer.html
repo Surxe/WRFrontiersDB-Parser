@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WRF Asset Viewer</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --panel:#fff; --ink:#1b1f24; --muted:#6b7480; --line:#e3e7ec;
+    --key:#8a4b9c; --str:#1f7a3d; --num:#1256b8; --bool:#b5651d; --null:#9aa1a9;
+    --link:#0a66c2; --link-bg:#e8f0fe; --hi:#fff6d6; --accent:#0a66c2;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --bg:#14171b; --panel:#1b1f24; --ink:#e6e9ec; --muted:#98a2ad; --line:#2b313a;
+    --key:#c88fd8; --str:#7bd39a; --num:#7fb2ff; --bool:#e0a86b; --null:#6b7480;
+    --link:#5aa0f0; --link-bg:#22303f; --hi:#3a3720; --accent:#5aa0f0;
+  }}
+  :root[data-theme="dark"]{
+    --bg:#14171b; --panel:#1b1f24; --ink:#e6e9ec; --muted:#98a2ad; --line:#2b313a;
+    --key:#c88fd8; --str:#7bd39a; --num:#7fb2ff; --bool:#e0a86b; --null:#6b7480;
+    --link:#5aa0f0; --link-bg:#22303f; --hi:#3a3720; --accent:#5aa0f0;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  header{position:sticky;top:0;z-index:5;background:var(--panel);border-bottom:1px solid var(--line);padding:10px 14px;display:flex;flex-direction:column;gap:8px}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .row.grow input{flex:1 1 420px;min-width:220px}
+  input,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:7px 10px}
+  input:focus{outline:2px solid var(--accent);outline-offset:-1px}
+  button{cursor:pointer;background:var(--panel)}
+  button:hover{border-color:var(--accent)}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .nav{font:inherit;padding:7px 11px}
+  .crumbs{color:var(--muted);font-size:12px;word-break:break-all}
+  .crumbs b{color:var(--ink)}
+  .hint{color:var(--muted);font-size:12px}
+  main{padding:14px 16px 60vh;max-width:1100px}
+  .obj-card{border:1px solid var(--line);border-radius:9px;margin:0 0 12px;background:var(--panel);overflow:hidden}
+  .obj-head{padding:8px 12px;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;background:linear-gradient(0deg,transparent,transparent)}
+  .obj-head .idx{color:#fff;background:var(--muted);border-radius:20px;padding:1px 9px;font-size:12px}
+  .obj-head.active{}
+  .obj-card.active{outline:2px solid var(--accent)}
+  .obj-card.active .idx{background:var(--accent)}
+  .obj-head .type{color:var(--muted)}
+  .obj-head .name{font-weight:600}
+  .body{padding:6px 4px 10px 12px}
+  details{margin:0}
+  summary{cursor:pointer;list-style:none;display:flex;gap:6px;align-items:flex-start}
+  summary::-webkit-details-marker{display:none}
+  .tw{color:var(--muted);width:1.1em;flex:0 0 auto;user-select:none}
+  .k{color:var(--key)}
+  .s{color:var(--str)}
+  .n{color:var(--num)}
+  .b{color:var(--bool)}
+  .z{color:var(--null);font-style:italic}
+  .kv{padding:1px 0}
+  .nest{margin-left:1.2em;border-left:1px dotted var(--line);padding-left:.7em}
+  .count{color:var(--muted);font-size:12px}
+  a.ref{color:var(--link);background:var(--link-bg);border:1px solid transparent;border-radius:6px;padding:0 6px;text-decoration:none;cursor:pointer;white-space:normal;word-break:break-all}
+  a.ref:hover{border-color:var(--link);text-decoration:underline}
+  a.ref .arrow{opacity:.6}
+  .missing{color:#c0392b}
+  .flash{animation:flash 1.4s ease}
+  @keyframes flash{0%{background:var(--hi)}100%{background:transparent}}
+  mark{background:var(--hi);color:inherit;border-radius:3px;padding:0 2px}
+  .empty{color:var(--muted);padding:20px}
+</style>
+</head>
+<body>
+<header>
+  <div class="row">
+    <button class="nav" id="back" title="Back (Alt+Left)">◀</button>
+    <button class="nav" id="fwd" title="Forward (Alt+Right)">▶</button>
+    <button class="nav" id="reload" title="Reload">↻</button>
+    <button class="nav" id="theme" title="Toggle theme">◑</button>
+    <span class="crumbs" id="crumbs">Nothing loaded</span>
+  </div>
+  <div class="row grow">
+    <input id="path" placeholder="Paste an ObjectPath ( /Game/…​/BP_X.3 ), a Class'…' ref, a file (WRFrontiers/Content/…​.json), or a whole warning line" autofocus>
+    <input id="find" placeholder="highlight key…" style="flex:0 1 180px">
+    <button class="primary" id="go">Go</button>
+  </div>
+  <div class="hint">Click any <a class="ref">→ ref</a> to follow the chain. Objects auto-collapse; click a row to expand. The <b>.N</b> index from a ref is opened and highlighted.</div>
+</header>
+<main id="main"><div class="empty">Paste a path or a warning line above and hit Go.</div></main>
+
+<script>
+const GAME = window.__GAME_NAME__ || "WRFrontiers";
+const main = document.getElementById('main');
+const crumbs = document.getElementById('crumbs');
+const pathIn = document.getElementById('path');
+const findIn = document.getElementById('find');
+
+let hist = [], hpos = -1;
+
+// ---- Reference resolution (mirrors WRFrontiersDB-Parser/src/utils.py) ----
+// Extract a UE object/asset path from arbitrary text (a raw ref, a Class'…' wrapper,
+// or a pasted warning line that embeds {'ObjectName':.., 'ObjectPath':'..'}).
+function extractPath(text){
+  if(!text) return null;
+  let t = text.trim();
+  // Prefer an explicit ObjectPath / AssetPathName from a pasted dict/warning.
+  let m = t.match(/'ObjectPath'\s*:\s*'([^']+)'/) || t.match(/"ObjectPath"\s*:\s*"([^"]+)"/)
+       || t.match(/'AssetPathName'\s*:\s*'([^']+)'/);
+  if(m) return m[1];
+  // A Class'…path…' wrapper: take the quoted part (parser: count("'")==2 -> split[1]).
+  const q = (t.match(/'/g)||[]).length;
+  if(q === 2){ return t.split("'")[1]; }
+  // A bare /Game/… path anywhere in the text.
+  m = t.match(/\/Game\/[^\s'"]+/);
+  if(m) return m[0];
+  // Otherwise assume the user typed a file path or already-relative path.
+  return t;
+}
+
+function pathToIndex(p){
+  if(p.indexOf('.') === -1) return 0;
+  const last = p.split('.').pop();
+  return /^\d+$/.test(last) ? parseInt(last,10) : 0;
+}
+
+// Returns {url, index, rel} or null.
+function resolve(ref){
+  let p = extractPath(ref);
+  if(!p) return null;
+  p = p.trim().replace(/^["']|["']$/g,'');
+
+  // Case A: an explicit file path (…something.json[ #N | .N ])
+  let hashIdx = null;
+  const hash = p.match(/#(\d+)\s*$/); if(hash){ hashIdx = parseInt(hash[1],10); p = p.replace(/#\d+\s*$/,''); }
+  if(/\.json$/i.test(p)){
+    let rel = p.replace(/^\/+/,'');
+    return { url: '/'+rel, index: hashIdx ?? 0, rel };
+  }
+
+  // Case B: a UE object path -> file + index
+  const index = hashIdx ?? pathToIndex(p);
+  let base = p.split('.')[0];                       // strip trailing .Name/.N
+  let rel = base.replace('/Game/', GAME + '/Content/');
+  rel = rel.replace(/^\/+/,'');
+  if(!/\/Content\//.test(rel) && !rel.startsWith(GAME+'/')){
+    // Fallback: treat as already-relative content path.
+    rel = rel.replace(/^\/+/,'');
+  }
+  return { url: '/'+rel+'.json', index, rel };
+}
+
+// Is this JSON value a followable reference?
+function refOf(v){
+  if(v && typeof v === 'object' && !Array.isArray(v)){
+    if(typeof v.ObjectPath === 'string') return v.ObjectPath;
+    if(typeof v.AssetPathName === 'string') return v.AssetPathName;
+  }
+  if(typeof v === 'string' && /\/Game\//.test(v)) return v;
+  return null;
+}
+
+// ---- Rendering ----
+function el(tag, cls, txt){ const e=document.createElement(tag); if(cls)e.className=cls; if(txt!=null)e.textContent=txt; return e; }
+
+function renderValue(v){
+  const ref = refOf(v);
+  if(ref){
+    const r = resolve(ref);
+    const a = el('a','ref');
+    const label = ref.replace(/^.*'([^']+)'.*$/,'$1');
+    const name = (r? r.rel.split('/').pop() : '?');
+    a.innerHTML = '<span class="arrow">→</span> '+ escapeHtml(name) + (r && r.index? ' <span class="count">.'+r.index+'</span>':'');
+    a.title = ref;
+    a.addEventListener('click', e=>{ e.preventDefault(); navigate(ref, true); });
+    // If it's an ObjectName/ObjectPath dict, also show ObjectName inline muted.
+    const wrap = el('span');
+    wrap.appendChild(a);
+    return wrap;
+  }
+  if(v === null) return el('span','z','null');
+  const t = typeof v;
+  if(t === 'number') return el('span','n', String(v));
+  if(t === 'boolean') return el('span','b', String(v));
+  if(t === 'string') return el('span','s', '"'+v+'"');
+  return null; // objects/arrays handled by caller
+}
+
+function isLeaf(v){ return v===null || typeof v!=='object' || refOf(v); }
+
+function renderNode(key, val, openDepth){
+  // Leaf
+  if(isLeaf(val)){
+    const row = el('div','kv');
+    if(key!==null){ const k=el('span','k', key); row.appendChild(k); row.appendChild(document.createTextNode(': ')); }
+    const vv = renderValue(val);
+    if(vv) row.appendChild(vv);
+    if(key!==null) row.dataset.key = key;
+    return row;
+  }
+  // Object or array
+  const det = el('details'); if(openDepth>0) det.open = true;
+  const sum = el('summary');
+  const tw = el('span','tw','▸');
+  det.addEventListener('toggle',()=> tw.textContent = det.open?'▾':'▸');
+  tw.textContent = det.open?'▾':'▸';
+  sum.appendChild(tw);
+  const label = el('span');
+  if(key!==null){ const k=el('span','k',key); label.appendChild(k); label.appendChild(document.createTextNode(': ')); }
+  const arr = Array.isArray(val);
+  label.appendChild(el('span','count', arr? '['+val.length+']' : '{'+Object.keys(val).length+'}'));
+  sum.appendChild(label);
+  det.appendChild(sum);
+  if(key!==null) det.dataset.key = key;
+  const nest = el('div','nest');
+  const entries = arr ? val.map((v,i)=>[i,v]) : Object.entries(val);
+  for(const [k,v] of entries){ nest.appendChild(renderNode(arr? String(k): k, v, openDepth-1)); }
+  det.appendChild(nest);
+  return det;
+}
+
+function objectCard(o, idx, activeIdx){
+  const card = el('div','obj-card'); card.id = 'obj-'+idx;
+  const head = el('div','obj-head');
+  head.appendChild(el('span','idx', String(idx)));
+  if(o && o.Type) head.appendChild(el('span','type', o.Type));
+  if(o && o.Name) head.appendChild(el('span','name', o.Name));
+  card.appendChild(head);
+  const body = el('div','body');
+  const props = (o && o.Properties!==undefined) ? o.Properties : o;
+  // Show the whole object but open Properties by default.
+  if(o && typeof o==='object' && !Array.isArray(o)){
+    for(const [k,v] of Object.entries(o)){
+      const openD = (k==='Properties') ? 2 : 0;
+      body.appendChild(renderNode(k, v, openD));
+    }
+  } else {
+    body.appendChild(renderNode(null, o, 2));
+  }
+  card.appendChild(body);
+  if(idx===activeIdx){ card.classList.add('active'); }
+  return card;
+}
+
+function escapeHtml(s){ return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+// ---- Navigation ----
+async function load(ref, activeIndex){
+  const r = resolve(ref);
+  if(!r){ main.innerHTML=''; main.appendChild(el('div','empty','Could not parse a path from: '+ref)); return; }
+  let data;
+  try{
+    const resp = await fetch(encodeURI(r.url));
+    if(!resp.ok){ throw new Error(resp.status+' '+resp.statusText); }
+    data = await resp.json();
+  }catch(err){
+    main.innerHTML='';
+    const e = el('div','empty');
+    e.innerHTML = 'Failed to load <span class="missing">'+escapeHtml(r.url)+'</span><br>'+escapeHtml(String(err))+
+      '<br><span class="hint">The ref may point to a file that was not exported (engine/UI asset), or the path mapping differs.</span>';
+    main.appendChild(e);
+    crumbs.innerHTML = '<b>'+escapeHtml(r.rel)+'</b> — not found';
+    return;
+  }
+  const arr = Array.isArray(data)? data : [data];
+  const idx = (activeIndex!=null? activeIndex : r.index);
+  main.innerHTML='';
+  crumbs.innerHTML = '<b>'+escapeHtml(r.rel)+'</b> &nbsp; '+arr.length+' object'+(arr.length!==1?'s':'')+(idx? ' &nbsp;·&nbsp; jumped to .'+idx : '');
+  arr.forEach((o,i)=> main.appendChild(objectCard(o,i,idx)));
+  const target = document.getElementById('obj-'+idx);
+  if(target){ target.scrollIntoView({block:'start'}); target.classList.add('flash'); }
+  applyFind();
+  pathIn.value = ref;
+}
+
+function navigate(ref, push){
+  if(push){ hist = hist.slice(0,hpos+1); hist.push(ref); hpos = hist.length-1; }
+  load(ref);
+  syncNav();
+}
+function syncNav(){ document.getElementById('back').disabled = hpos<=0; document.getElementById('fwd').disabled = hpos>=hist.length-1; }
+
+function applyFind(){
+  const q = findIn.value.trim().toLowerCase();
+  document.querySelectorAll('mark').forEach(m=>{ m.replaceWith(document.createTextNode(m.textContent)); });
+  if(!q) return;
+  let first=null;
+  document.querySelectorAll('.k').forEach(k=>{
+    if(k.textContent.toLowerCase().includes(q)){
+      // open ancestors
+      let p=k.closest('details'); while(p){ p.open=true; p=p.parentElement.closest('details'); }
+      const mk=el('mark'); mk.textContent=k.textContent; k.textContent=''; k.appendChild(mk);
+      if(!first) first=k;
+    }
+  });
+  if(first) first.scrollIntoView({block:'center'});
+}
+
+// ---- Wire up ----
+document.getElementById('go').addEventListener('click',()=> navigate(pathIn.value, true));
+pathIn.addEventListener('keydown',e=>{ if(e.key==='Enter') navigate(pathIn.value, true); });
+findIn.addEventListener('input', applyFind);
+document.getElementById('back').addEventListener('click',()=>{ if(hpos>0){ hpos--; load(hist[hpos]); syncNav(); }});
+document.getElementById('fwd').addEventListener('click',()=>{ if(hpos<hist.length-1){ hpos++; load(hist[hpos]); syncNav(); }});
+document.getElementById('reload').addEventListener('click',()=>{ if(hpos>=0) load(hist[hpos]); });
+document.addEventListener('keydown',e=>{
+  if(e.altKey && e.key==='ArrowLeft'){ document.getElementById('back').click(); }
+  if(e.altKey && e.key==='ArrowRight'){ document.getElementById('fwd').click(); }
+});
+// Theme toggle (persisted best-effort)
+const themeBtn = document.getElementById('theme');
+try{ const saved=localStorage.getItem('wrfviewer.theme'); if(saved) document.documentElement.dataset.theme=saved; }catch(e){}
+themeBtn.addEventListener('click',()=>{
+  const cur=document.documentElement.dataset.theme;
+  const next = cur==='dark'?'light':'dark';
+  document.documentElement.dataset.theme=next;
+  try{ localStorage.setItem('wrfviewer.theme',next);}catch(e){}
+});
+syncNav();
+
+// Deep-link: #<path> in the URL opens it on load.
+if(location.hash.length>1){ navigate(decodeURIComponent(location.hash.slice(1)), true); }
+</script>
+</body>
+</html>
