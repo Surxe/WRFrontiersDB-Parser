@@ -20,9 +20,11 @@ class HonorReward(ParseObject):
             "RewardProcessor": (self._p_reward_processor, "condition"),
             "RewardTrigger": (self._p_reward_processor, "condition"),
             "HonorPoints": "value",
+            "HonorPointsExperimental": "value", # distinct experimental tuning value; diverges from HonorPoints in ~20% of objects
             "bIncremental": "value",
             "ProcessingTime": parse_colon_colon,
             "TitanCharge": "value",
+            "AbilitiesCharge": "value", # successor to TitanCharge (titan->ability rework); mirrors TitanCharge where both present
             "PerUnit": "value",
             "ID": None,
         }
