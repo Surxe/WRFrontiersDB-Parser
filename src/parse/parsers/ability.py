@@ -76,6 +76,22 @@ class Ability(ParseObject):
             "ImmediateTargetingAction": None,
             "SPawnAction": None, #typo on their end
             "ProjectileTypes": {"parser": self._p_projectile_types, "action": ParseAction.ATTRIBUTE, "target": ParseTarget.MATCH_KEY_SNAKE},
+            # FlamingRider napalm mechanic
+            "NapalmProjectileTypes": self._p_projectile_types,
+            "NapalmSpawnAction": self._p_napalm_spawn_action, # unique data: TimeBetweenShots, bIsBallisticProjectile
+            "NapalmAreaLifeSpan": "value",
+            "NapalmTargetSideDeviation": "value",
+            "NapalmTargetBackwardDistance": "value",
+            # ShadowStrike arrival
+            "ArrivalDamageRadius": "value",
+            "ArrivalFX": None, #vfx
+            "DestinationMarkerClass": None, #targeting marker UI
+            "DestinationMarkerAction": None, #targeting marker UI (size == ArrivalDamageRadius)
+            # Nitro (Helios chassis) movement multipliers
+            "MaxSpeedMultiplier": "value",
+            "MaxAccelerationMultiplier": "value",
+            "RotationRateYawMultiplier": "value",
+            "MeshFXClass": None, #mesh fx
             "AIConditionOperator": {"parser": parse_colon_colon, "action": ParseAction.DICT_ENTRY, "target_dict_path": "ai", "target": "condition_operator"},
             "AIConditions": {"parser": self._p_ai_conditions, "action": ParseAction.DICT_ENTRY, "target_dict_path": "ai", "target": "conditions"},
             "ActivationChargePoints": "value",
@@ -450,7 +466,28 @@ class Ability(ParseObject):
         )
 
         return parsed_spawn_data
-    
+
+    def _p_napalm_spawn_action(self, data: dict):
+        logger.debug(f"Parsing napalm spawn action for {self.id}")
+
+        spawn_action_data = asset_to_data(data)
+
+        if spawn_action_data is None or 'Properties' not in spawn_action_data:
+            return
+
+        key_to_parser_function = {
+            "TimeBetweenShots": "value",
+            "bIsBallisticProjectile": "value",
+            "ProjectileTypes": self._p_projectile_types,
+            "OnProjectileSpawning": None, # empty event delegate
+        }
+
+        return self._process_key_to_parser_function(
+            key_to_parser_function, spawn_action_data["Properties"], log_descriptor="NapalmSpawnAction", set_attrs=False, default_configuration={
+                'target': ParseTarget.MATCH_KEY
+            }
+        )
+
     def _p_targeting_action(self, data: dict):
         logger.debug(f"Parsing targeting action for {self.id}")
         targeting_action_data = asset_to_data(data)
@@ -526,6 +563,8 @@ class Ability(ParseObject):
                 "OnComponentExploded": None, #references the same props, oddly
                 "CorpseTime": "value",
                 "CorpseVisible": "value", #unsure what this and corpse time refer to. This is used only by napalm, so I would have guessed its napalm area duration, but there's a buff for the napalm area that is 5s which is what I feel like it is in game. CorpseTime is 3s here. worth checking in game if its 3s or 5s #TODO
+                "NapalmDamagePerSecond": "value",
+                "DistanceBetweenRockets": "value", # generic projectile scalar (0 for napalm)
                 "CollisionProfileName": "value",
                 "ExpansionDistanceSettingsDefault": (self._p_distance, "ExpansionDistanceSettings"),
                 "EffectiveDistanceSettingsDefault": (self._p_distance, "EffectiveDistanceSettings"),
@@ -1009,8 +1048,11 @@ def p_actor_class(data: dict):
     elif type(data) is str:
         # is an asset path
         data = asset_path_to_data(data)
+    elif data is None:
+        # null class reference (e.g. an unset *BuffClass) => nothing to parse
+        return None
     else:
-        raise ValueError("Invalid data format")
+        raise ValueError(f"Invalid data format for p_actor_class: {type(data).__name__}")
 
     if 'ClassDefaultObject' in data:
         data = asset_to_data(data["ClassDefaultObject"])
@@ -1024,6 +1066,12 @@ def p_actor_class(data: dict):
         "AreaMeshRelativeRotation": "value",
         "DamageBuffClass": p_actor_class,
         "HealFeedbackBuffClass": p_actor_class,
+        "RecipientBuffClass": p_actor_class, # PaladinsWard buff applied to recipients
+        "OwnerBuffClass": p_actor_class, # PaladinsWard armor buff on owner
+        "ActiveEfficiency": "value",
+        "DamagePerSecond": "value", # napalm area DoT
+        "SlowFeedbackBuffClass": None, # FX-only feedback buff (MeshFX/CameraFX/voiceline), no gameplay data
+        "SlowChannelModifierAggregator": None, # generic BlockoutTools asset with no Properties
         "SourceHealLinkEffect": None, #vfx
         "SourceHealLinkDuration": "value",
         "MarkVictimEffect": None, #vfx

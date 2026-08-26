@@ -17,6 +17,7 @@ class MovementType(ParseObject):
             "MaxMobility": "value",
             "ChassisType": parse_colon_colon,
             "Flying_Z_Friction": "value",
+            "PerchRadiusThreshold": "value", # monowheel perch physics scalar
             "MovementProperties": self._p_movement_properties,
         }
 

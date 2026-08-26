@@ -199,6 +199,8 @@ class CharacterModule(ParseObject):
                 "Weapon": None, # essentially empty. RetributionAutoAim uses it
                 "TimeBetweenShakes": "value", #Bayonet- generally no clue what it means but its 1s
                 "HalfConeAngle": "value", # tesla coil
+                "bTargetPositionInEffectSpace": "value", # ShadowStrike laser firing behavior flag
+                "VictimReactionOnHoming": None, # voiceover reaction ref
 
                 # seen in template only
                 "ObstacleDamageModifier": self._p_obstacle_dmg_modifier,
