@@ -3,3 +3,4 @@ loguru==0.7.3
 psutil==5.9.8
 optionsconfig
 requests==2.32.5
+zstandard==0.23.0

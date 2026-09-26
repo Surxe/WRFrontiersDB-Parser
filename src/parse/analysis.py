@@ -468,13 +468,12 @@ class Analysis:
                     diff[key] = value
                     register_distinct_stat(key)
 
+            module_ref = Module.id_to_ref(module_id)
             for key in level_base.keys():
                 logger.debug(f"Calculating diff for key: {key} in module: {module_id}")
                 if key in superficial_keys or key in {'scrap_rewards_refs', 'upgrade_cost_ref'}:
                     continue
-                else:
-                    module_ref = Module.id_to_ref(module_id)
-                    add_diff(key, calc_diff(level_base[key], level_max[key], module_ref))
+                add_diff(key, calc_diff(level_base[key], level_max[key], module_ref))
 
             level_diffs[module_ref] = {
                 'stats_percent_increase': dict(sorted(diff.items()))
@@ -806,9 +805,13 @@ class Analysis:
     
     # For a given ability scalar index, get the primary or secondary stat object
     def get_ability_stat(self, module, i, stat_type: Literal['primary', 'secondary']):
-        ability_scalars = module.abilities_scalars[i]
+        ability_scalars = module.abilities_scalars
+        if i >= len(ability_scalars):
+            logger.warning(f"Module {module.id}: ability index {i} out of range for {len(ability_scalars)} scalers; skipping")
+            return None
+        scalars = ability_scalars[i]
         stat_ref_key = f'{stat_type}_stat_ref'
-        stat_ref = ability_scalars.get(stat_ref_key)
+        stat_ref = scalars.get(stat_ref_key)
         if stat_ref is None:
             return None
         module_stat = ModuleStat.get_from_ref(stat_ref)
