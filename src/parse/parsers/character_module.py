@@ -6,7 +6,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from parsers.object import ParseObject
 from parsers.ability import Ability, p_movement_component, p_collision_component, p_actor_class
 from parsers.movement_type import MovementType
-from utils import ParseTarget, asset_to_data, parse_colon_colon, parse_curve, merge_dicts, process_key_to_parser_function, asset_to_asset_path
+from utils import ParseTarget, asset_to_data, parse_colon_colon, parse_curve, merge_dicts, process_key_to_parser_function, asset_to_asset_path, path_to_id
 from loguru import logger
 
 class CharacterModule(ParseObject):
@@ -166,11 +166,36 @@ class CharacterModule(ParseObject):
             mesh_asset = component_props.get("SkeletalMesh") or component_props.get("StaticMesh")
             if not mesh_asset:
                 continue
-            meshes.append({
+            mesh = {
                 "component_class": component_class,
                 "mesh_path": asset_to_asset_path(mesh_asset),
-            })
+            }
+            armor_zone = self._armor_zone(component_props)
+            if armor_zone:
+                mesh["armor_zone"] = armor_zone
+            meshes.append(mesh)
         return meshes
+
+    def _armor_zone(self, component_props):
+        """The health pool a component's hits go to: its SArmorZoneLink user data's
+        ArmorZone id (e.g. "DA_ArmorZone_LeftLeg.0"), else None. Chassis split
+        across several (pelvis / left leg / right leg); a spider's two left legs
+        both link to LeftLeg.
+        """
+        for user_data_ref in component_props.get("AssetUserData") or []:
+            if not user_data_ref:
+                continue
+            try:
+                user_data = asset_to_data(user_data_ref)
+            except Exception:
+                logger.debug(f"CharacterModule {self.id}: could not resolve user data {user_data_ref}")
+                continue
+            if user_data.get("Type") != "SArmorZoneLink":
+                continue
+            zone_ref = user_data.get("Properties", {}).get("ArmorZone")
+            if zone_ref:
+                return path_to_id(asset_to_asset_path(zone_ref))
+        return None
 
     def _p_adapters(self, data):
         """Weapon Adapters keyed by ESCharacterModuleMountWay -> adapter BP refs.

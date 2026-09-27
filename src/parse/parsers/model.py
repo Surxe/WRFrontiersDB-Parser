@@ -22,7 +22,7 @@ Schema (goal: minimal storage, fast to convert, universally applicable):
       "boxes":    [ {bone, center:[x,y,z], rot:[pitch,yaw,roll], extent:[x,y,z], armor_zone?} ],
       "spheres":  [ {bone, center:[x,y,z], radius, armor_zone?} ],
       # armor_zone: health pool id of the prim's component (e.g. "DA_ArmorZone_LeftLeg.0"), when linked
-      "meshes":   [ {asset, verts:[x,y,z,...], indices:[a,b,c,...], num_tris} ]          # module space, LOD0
+      "meshes":   [ {asset, verts:[x,y,z,...], indices:[a,b,c,...], num_tris, armor_zone?} ]  # module space, LOD0
     }
 """
 
@@ -380,12 +380,15 @@ def extract_module_model(character_module):
         if os.path.exists(uemodel_path):
             try:
                 verts, indices = load_ueformat_mesh(uemodel_path)
-                meshes.append({
+                mesh = {
                     'asset': os.path.basename(sk_json)[:-len('.json')],
                     'verts': [round(v, 2) for v in verts],
                     'indices': [int(i) for i in indices],
                     'num_tris': len(indices) // 3,
-                })
+                }
+                if ref.get('armor_zone'):
+                    mesh['armor_zone'] = ref['armor_zone']
+                meshes.append(mesh)
             except Exception as e:
                 logger.debug(f"Model extraction {character_module.id}: geometry failed for {uemodel_path}: {e}")
 
