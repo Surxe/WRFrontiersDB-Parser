@@ -18,9 +18,10 @@ Schema (goal: minimal storage, fast to convert, universally applicable):
       "bounds": {origin, extent, sphere_radius},
       "bones":    [ {name, parent, pos:[x,y,z], rot:[qx,qy,qz,qw], scale:[sx,sy,sz]} ],  # local, parent-relative
       "sockets":  [ {name, bone, loc:[x,y,z], rot:[pitch,yaw,roll]} ],                   # bone-relative
-      "capsules": [ {bone, center:[x,y,z], rot:[pitch,yaw,roll], radius, length} ],      # bone-relative
-      "boxes":    [ {bone, center:[x,y,z], rot:[pitch,yaw,roll], extent:[x,y,z]} ],
-      "spheres":  [ {bone, center:[x,y,z], radius} ],
+      "capsules": [ {bone, center:[x,y,z], rot:[pitch,yaw,roll], radius, length, armor_zone?} ],  # bone-relative
+      "boxes":    [ {bone, center:[x,y,z], rot:[pitch,yaw,roll], extent:[x,y,z], armor_zone?} ],
+      "spheres":  [ {bone, center:[x,y,z], radius, armor_zone?} ],
+      # armor_zone: health pool id of the prim's component (e.g. "DA_ArmorZone_LeftLeg.0"), when linked
       "meshes":   [ {asset, verts:[x,y,z,...], indices:[a,b,c,...], num_tris} ]          # module space, LOD0
     }
 """
@@ -222,6 +223,50 @@ def _extract_physics(phys_json, name2i):
             })
     return capsules, boxes, spheres
 
+def _asset_side(path):
+    """'L'/'R' from a sided asset name (SK_Angler_ChassisLegR, PHYS_X_ShoulderL.0), else None."""
+    name = os.path.basename(path or '').split('.')[0]
+    if name.endswith(('L', '_L')):
+        return 'L'
+    if name.endswith(('R', '_R')):
+        return 'R'
+    return None
+
+def _mirror_physics(capsules, boxes, spheres, bones, name2i):
+    """Mirror bone-relative prims onto the opposite side's bones (_L <-> _R).
+
+    Some meshes reuse the other side's physics asset (SK_Angler_ChassisLegR ->
+    PHYS_Angler_ChassisLegL); the game mirrors it at runtime. Reflecting across the
+    XZ plane: center Y negates, FRotator yaw/roll negate, pitch/extents unchanged.
+    Exact when the L/R bone frames are mirror images (Y-negated positions, pitch-only
+    rotations), which holds for these symmetric rigs.
+    """
+    swap = {'_L': '_R', '_R': '_L'}
+
+    def other_bone(i):
+        if i < 0:
+            return i
+        name = bones[i]['name']
+        for a, b in swap.items():
+            if a in name:
+                return name2i.get(name.replace(a, b), i)
+        return i
+
+    def flip(v):
+        return [v[0], -v[1] or 0.0, v[2]]
+
+    for cap in capsules:
+        cap['bone'] = other_bone(cap['bone'])
+        cap['center'] = flip(cap['center'])
+        cap['rot'] = [cap['rot'][0], -cap['rot'][1] or 0.0, -cap['rot'][2] or 0.0]
+    for bx in boxes:
+        bx['bone'] = other_bone(bx['bone'])
+        bx['center'] = flip(bx['center'])
+        bx['rot'] = [bx['rot'][0], -bx['rot'][1] or 0.0, -bx['rot'][2] or 0.0]
+    for sp in spheres:
+        sp['bone'] = other_bone(sp['bone'])
+        sp['center'] = flip(sp['center'])
+
 def _extract_bounds(sk_json):
     try:
         sk = next((e for e in get_json_data(sk_json) if e.get('Type') == 'SkeletalMesh'), None)
@@ -314,6 +359,14 @@ def extract_module_model(character_module):
         if phys_json and os.path.exists(resolve_path_case_insensitive(phys_json)):
             try:
                 m_caps, m_boxes, m_spheres = _extract_physics(phys_json, name2i)
+                mesh_side, phys_side = _asset_side(mesh_asset_path), _asset_side(phys_json)
+                if mesh_side and phys_side and mesh_side != phys_side:
+                    _mirror_physics(m_caps, m_boxes, m_spheres, bones, name2i)
+                # Tag each prim with its component's health pool (armor zone).
+                armor_zone = ref.get('armor_zone')
+                if armor_zone:
+                    for prim in (*m_caps, *m_boxes, *m_spheres):
+                        prim['armor_zone'] = armor_zone
                 capsules.extend(m_caps); boxes.extend(m_boxes); spheres.extend(m_spheres)
             except Exception as e:
                 logger.debug(f"Model extraction {character_module.id}: physics failed: {e}")
