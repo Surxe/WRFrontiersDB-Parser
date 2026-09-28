@@ -6,7 +6,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from parsers.object import ParseObject
 from parsers.ability import Ability, p_movement_component, p_collision_component, p_actor_class
 from parsers.movement_type import MovementType
-from utils import ParseTarget, asset_to_data, parse_colon_colon, parse_curve, merge_dicts, process_key_to_parser_function
+from utils import ParseTarget, asset_to_data, parse_colon_colon, parse_curve, merge_dicts, process_key_to_parser_function, asset_to_asset_path, path_to_id
 from loguru import logger
 
 class CharacterModule(ParseObject):
@@ -22,7 +22,7 @@ class CharacterModule(ParseObject):
             "ModuleScaler": (self._p_module_scalar, "module_scaler"),
             "ModuleLevel": "value", #no clue what this means, its an integer like 17
             "ModuleDataAsset": None, # references index 0 which ofc references this spot, so ignoring it
-            "Components": None,
+            "Components": (self._p_components, "meshes"),
             "Abilities": (self._p_abilities, "abilities_refs"),
             "MovementType": (p_movement_type, "movement_type_ref"),
             "FootstepSettings": None,
@@ -60,7 +60,7 @@ class CharacterModule(ParseObject):
             "ReloadingFinishSoundEvent": None,
             "ChunkReloadStartAudioHandlingType": None,
             "ReloadType": parse_colon_colon,
-            "Adapters": None,
+            "Adapters": (self._p_adapters, "adapters"),
             "ZoomType": parse_colon_colon,  # ESWeaponZoomType::X -> X
             "ChunkReloadedSoundEvent": None,
             "ChargeStartedSoundEvent": None,
@@ -94,7 +94,7 @@ class CharacterModule(ParseObject):
         
         # Store data that wasn't parsed separately into defaultable_data
         other_data = dict()
-        keys_to_store_as_attrs = ['module_scaler', 'fire_modes', 'abilities_refs', 'movement_type_ref']
+        keys_to_store_as_attrs = ['module_scaler', 'fire_modes', 'abilities_refs', 'movement_type_ref', 'meshes', 'adapters']
         for key, value in parsed_data.items():
             if key not in keys_to_store_as_attrs:
                 other_data[key] = value
@@ -147,6 +147,71 @@ class CharacterModule(ParseObject):
     
     def _p_obstacle_dmg_modifier(self, data):
         return asset_to_data(data)["Properties"]["Value"]
+
+    def _p_components(self, data):
+        """Module BP components -> the module's meshes (SkeletalMesh/StaticMesh refs).
+
+        These are the link to the art assets (SK_*/SKEL_*/PHYS_* + .uemodel geometry)
+        needed to build the hitbox + untextured model.
+        """
+        meshes = []
+        for component_ref in data:
+            try:
+                component_data = asset_to_data(component_ref)
+            except Exception:
+                logger.debug(f"CharacterModule {self.id}: could not resolve component {component_ref}")
+                continue
+            component_props = component_data.get("Properties", {})
+            component_class = component_data.get("Type", "")
+            mesh_asset = component_props.get("SkeletalMesh") or component_props.get("StaticMesh")
+            if not mesh_asset:
+                continue
+            mesh = {
+                "component_class": component_class,
+                "mesh_path": asset_to_asset_path(mesh_asset),
+            }
+            armor_zone = self._armor_zone(component_props)
+            if armor_zone:
+                mesh["armor_zone"] = armor_zone
+            meshes.append(mesh)
+        return meshes
+
+    def _armor_zone(self, component_props):
+        """The health pool a component's hits go to: its SArmorZoneLink user data's
+        ArmorZone id (e.g. "DA_ArmorZone_LeftLeg.0"), else None. Chassis split
+        across several (pelvis / left leg / right leg); a spider's two left legs
+        both link to LeftLeg.
+        """
+        for user_data_ref in component_props.get("AssetUserData") or []:
+            if not user_data_ref:
+                continue
+            try:
+                user_data = asset_to_data(user_data_ref)
+            except Exception:
+                logger.debug(f"CharacterModule {self.id}: could not resolve user data {user_data_ref}")
+                continue
+            if user_data.get("Type") != "SArmorZoneLink":
+                continue
+            zone_ref = user_data.get("Properties", {}).get("ArmorZone")
+            if zone_ref:
+                return path_to_id(asset_to_asset_path(zone_ref))
+        return None
+
+    def _p_adapters(self, data):
+        """Weapon Adapters keyed by ESCharacterModuleMountWay -> adapter BP refs.
+
+        The adapter's StaticMesh socket ("Adapter") holds the weapon root offset
+        relative to the parent module's socket bone.
+        """
+        adapters = []
+        for elem in data:
+            mount_way = parse_colon_colon(elem["Key"])
+            adapter_path = asset_to_asset_path(elem["Value"])
+            adapters.append({
+                "mount_way": mount_way,
+                "adapter_path": adapter_path,
+            })
+        return adapters
 
     def _p_fire_modes(self, data):
         if len(data) != 1:

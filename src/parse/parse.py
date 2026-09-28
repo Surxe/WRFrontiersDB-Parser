@@ -15,6 +15,7 @@ from utils import clear_dir
 from options import OPTIONS
 
 from parsers.module import *
+from parsers.model import parse_models
 from parsers.localization import *
 from parsers.pilot import *
 from parsers.progression_table import *
@@ -43,6 +44,7 @@ def main():
     parse_factory_presets()
     parse_powerups()
     parse_shop_cards()
+    parse_models()  # hitbox + untextured models; relies on CharacterModules parsed by parse_modules()
     enrich()
     analyze()
 

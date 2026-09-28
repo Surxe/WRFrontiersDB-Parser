@@ -103,12 +103,17 @@ class Module(ParseObject):
         for elem in data:
             ability_scalar_data = asset_to_data(elem)
             scalars = self._p_scalars(ability_scalar_data)
+            if not scalars:
+                continue
 
             if not hasattr(self, "abilities_scalars"):
                 self.abilities_scalars = []
             self.abilities_scalars.append(scalars)
 
     def _p_scalars(self, data):
+        if not isinstance(data, dict) or "Properties" not in data:
+            logger.warning(f"Module {self.id} has an empty scaler struct (no 'Properties'); skipping scalars")
+            return None
         key_to_parser_function = {
             "LevelsData": (self._p_levels_data, "levels"),
             "PrimaryStatMetaInformation": (self._p_parameter, "primary_stat_ref"),
@@ -337,9 +342,18 @@ class Module(ParseObject):
 
     def _p_sockets(self, data):
         module_socket_type_refs = []
+        module_sockets = []
         for elem in data:
             module_socket_type_ref = ModuleSocketType.create_from_asset(elem["Type"]).to_ref()
             module_socket_type_refs.append(module_socket_type_ref)
+            module_sockets.append({
+                "name": elem["Name"],
+                "socket_type_ref": module_socket_type_ref,
+                "mount_way": parse_colon_colon(elem.get("MountWay", "")),
+            })
+        # The socket names + mount ways are the link to the parent module's skeleton
+        # hardpoint bones, needed to place mounted modules (e.g. weapons on shoulders).
+        self.sockets = module_sockets
         return module_socket_type_refs
     
 def find_module_element(path):

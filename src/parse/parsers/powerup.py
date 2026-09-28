@@ -71,7 +71,7 @@ def parse_powerup_wrapper(full_path, id):
     return powerup
 
 def parse_powerups(to_file=False):
-    powerups_source_path = join_path(OPTIONS.export_dir, r"WRFrontiers\Content\Sparrow\Mechanics\Powerups")
+    powerups_source_path = join_path(OPTIONS.export_dir, r"WRFrontiers\Content\Sparrow\Mechanics\PowerUps")
     
     # Maybe in the future the map files can be parsed directly which contains paths to the powerups. For now this will do.
     subdirs = ['Personal', 'Teams']
