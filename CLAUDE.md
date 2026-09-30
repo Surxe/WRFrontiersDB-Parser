@@ -106,9 +106,11 @@ tools/patch_day.sh viewer            # asset viewer for the patch's export, http
   `reports/latest.md` - the user keeps that open in VS Code's preview, and its links
   open the parser line and the export JSON. Read the file (it's small) rather than
   re-running with `--stdout`, so you and the user look at the same report.
-- Exports live at `/srv/dev/wrf/data/exports/<version>/WRFrontiers/Content/...`;
-  the pipeline keeps the 2 newest versions, so the previous patch's export is
-  usually there for comparison. An object id `Foo.1` is element `[1]` of `Foo.json`.
+- Exports live at `/srv/dev/wrf/data/exports/<version>/WRFrontiers/Content/...`
+  and the pipeline's parsed output at `/srv/dev/wrf/data/parsed/<version>/`; the
+  pipeline keeps the 2 newest versions of both, so the previous patch's export and
+  parsed output are there for comparison (except after its first run on this box).
+  An object id `Foo.1` is element `[1]` of `Foo.json`.
 
 ## Rules
 

@@ -64,9 +64,12 @@ Order: `error`, then `warning`, then `unknown-property`. For each group:
   gameplay stats vs an FX-only asset). Open the parser at the report's
   `parser:` location and look at the sibling keys and their skip comments.
   Classify with the decision rules in `CLAUDE.md` (*Key maps: parse or skip*).
-- **warning / error**: read the code at `logged at`, then compare the new export
-  with the previous patch's (`/srv/dev/wrf/data/exports/` keeps 2 versions) for
-  one of the listed ids to find what changed in the data. Decide whether the
+- **warning / error**: read the code at `logged at`, then compare this patch
+  with the previous one for one of the listed ids to find what changed: both the
+  export (`/srv/dev/wrf/data/exports/<prev-version>/`) and the pipeline's parsed
+  output (`/srv/dev/wrf/data/parsed/<prev-version>/`) are kept for the 2 newest
+  versions. (On the pipeline's first run on this box there is no previous
+  version yet.) Decide whether the
   parser logic needs fixing, and whether the log call should be elevated to
   `logger.error` (STANDARDS.md -> *Choosing a Log Level*): a warning that fires
   for many objects or drops published data is an error.
