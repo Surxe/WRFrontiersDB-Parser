@@ -170,3 +170,6 @@ WRFrontiersDB-Data
 # Personal
 notes.md
 todo.txt
+
+# tools/warning_report.py output
+/reports

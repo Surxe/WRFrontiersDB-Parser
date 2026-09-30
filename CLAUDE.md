@@ -42,7 +42,7 @@ unknown-property warning. Map values (full syntax in the
   `#audio`, `#voice line`, `#dupe data`, ...). These comments are the record of
   every past skip decision.
 
-Decision rules, as established in past patch PRs (e.g. #112):
+Decision rules, as established in past patch PRs:
 
 - FX, VFX, sound/Wwise events, voice lines, meshes, materials, UI/targeting
   markers -> `None` with a reason.
@@ -84,13 +84,13 @@ All from the dev worktree:
 
 ```bash
 tools/patch_day.sh init <version>    # point the loop at a patch (writes .env, resets review repo)
-tools/patch_day.sh parse             # scratch parse -> /srv/dev/wrf/dev/parsed, sync review repo, summary
-tools/patch_day.sh report            # grouped warnings for the latest scratch parse
+tools/patch_day.sh parse             # scratch parse -> /srv/dev/wrf/dev/parsed, sync review repo, write report
+tools/patch_day.sh report            # grouped warnings for the latest scratch parse -> reports/latest.md
 tools/patch_day.sh checkpoint "msg"  # commit review-repo state (next diff is incremental)
 tools/patch_day.sh status            # checkpoints + total diff vs pipeline baseline
 tools/patch_day.sh viewer            # asset viewer for the patch's export, http://127.0.0.1:8765/
 
-.venv/bin/python tools/warning_report.py [LOG|RUN_DIR]   # default: latest pipeline run
+.venv/bin/python tools/warning_report.py [LOG|RUN_DIR]   # default: latest pipeline run; --stdout to print
 ```
 
 - The **review repo** `/srv/dev/wrf/dev/parsed-review` is a scratch git repo:
@@ -101,7 +101,11 @@ tools/patch_day.sh viewer            # asset viewer for the patch's export, http
 - `warning_report.py` groups a log into `error` / `warning` / `unknown-property`
   groups with counts, example values, the parser location, the export files to
   open, and viewer links. It marks groups NEW vs. the previous completed pipeline
-  parse when one exists.
+  parse when one exists. It writes markdown to `reports/<name>.md` (gitignored;
+  `pipeline_<run>.md` or `parse-<version>-<stamp>.md`) and copies it to
+  `reports/latest.md` - the user keeps that open in VS Code's preview, and its links
+  open the parser line and the export JSON. Read the file (it's small) rather than
+  re-running with `--stdout`, so you and the user look at the same report.
 - Exports live at `/srv/dev/wrf/data/exports/<version>/WRFrontiers/Content/...`;
   the pipeline keeps the 2 newest versions, so the previous patch's export is
   usually there for comparison. An object id `Foo.1` is element `[1]` of `Foo.json`.
@@ -116,5 +120,5 @@ tools/patch_day.sh viewer            # asset viewer for the patch's export, http
   tests fail on `main` already (`test_parse_hex`, `test_push`); compare against
   `main`'s results rather than expecting a clean run.
 - Follow `STANDARDS.md` naming (`*_ref`, `*_refs`, `*_id`, `*_dir`, `*_file`).
-- Branch per patch: `patch/<version>`; PR body in the style of #112 (properties
+- Branch per patch: `patch/<version>`; PR body covering the properties
   handled, what was skipped and why, fixes, how it was verified).

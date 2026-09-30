@@ -12,9 +12,10 @@
 #                                         reset the review repo to the pipeline's
 #                                         parsed output for <version> (baseline)
 #   tools/patch_day.sh parse              scratch-parse, sync into the review
-#                                         repo, print the warning summary
+#                                         repo, write the warning report
 #   tools/patch_day.sh report [args]      grouped warning report of the latest
-#                                         scratch parse (tools/warning_report.py)
+#                                         scratch parse -> reports/latest.md
+#                                         (tools/warning_report.py; --stdout to print)
 #   tools/patch_day.sh sync               re-copy scratch output into review repo
 #   tools/patch_day.sh checkpoint <msg>   commit the review repo's current state
 #   tools/patch_day.sh status             version, checkpoints, diff vs baseline
@@ -136,8 +137,7 @@ cmd_parse() {
     exit $rc
   fi
   cmd_sync
-  "$PY" "$REPO_DIR/tools/warning_report.py" "$log" --summary || true
-  echo "details: tools/patch_day.sh report"
+  cmd_report
 }
 
 cmd_report() {

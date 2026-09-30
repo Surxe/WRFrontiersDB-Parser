@@ -21,10 +21,16 @@ right slice of the export instead of reading the whole log. With a baseline log
 (by default the newest earlier *completed* pipeline parse), groups that were not
 present there are marked NEW.
 
+The report is written as markdown to reports/<name>.md in this repo (gitignored)
+and copied to reports/latest.md, for VS Code's markdown preview (Ctrl+Shift+V;
+the preview refreshes when the file is rewritten). Links in it open the parser
+source at the owning line and the export JSON in the editor.
+
 Usage:
     python tools/warning_report.py                          # latest pipeline run
     python tools/warning_report.py /srv/dev/wrf/logs/2026-09-29_022234
     python tools/warning_report.py /srv/dev/wrf/dev/logs/latest.log --no-baseline
+    python tools/warning_report.py --stdout                 # print instead of writing
     python tools/warning_report.py --json > report.json
 
 Exit code: 0 = no groups, 1 = at least one group, 2 = bad input.
@@ -37,9 +43,12 @@ import os
 import re
 import sys
 from collections import OrderedDict
+from datetime import datetime
 from pathlib import Path
 from urllib.parse import quote
 
+REPO_DIR = Path(__file__).resolve().parent.parent
+REPORTS_DIR = REPO_DIR / "reports"
 WRF_ROOT = Path(os.environ.get("WRF_ROOT", "/srv/dev/wrf"))
 PIPELINE_LOG_ROOT = WRF_ROOT / "logs"
 EXPORTS_ROOT = WRF_ROOT / "data" / "exports"
@@ -274,53 +283,119 @@ def default_export_dir(log: Path) -> Path | None:
 # -------------------------------------------------------------------- output
 
 def _clip(text: str, width: int) -> str:
-    text = text.replace("|", "\\|").replace("\n", " ")
+    text = text.replace("\n", " ").replace("`", "'")
     return text if len(text) <= width else text[: width - 1] + "…"
 
 
-def render_markdown(log: Path, baseline: Path | None, export_dir: Path | None, groups, total: int) -> str:
+def _cell(text: str, width: int) -> str:
+    """_clip for a markdown table cell."""
+    return _clip(text, width).replace("|", "\\|")
+
+
+def report_path(log: Path) -> Path:
+    """reports/pipeline_<run-dir>.md for a pipeline run, else reports/<log stem>.md."""
+    try:
+        log.resolve().relative_to(PIPELINE_LOG_ROOT.resolve())
+        return REPORTS_DIR / f"pipeline_{log.parent.name}.md"
+    except ValueError:
+        return REPORTS_DIR / f"{log.stem}.md"
+
+
+class Linker:
+    """Markdown links to local files: relative to the report's dir when writing a
+    file (VS Code's preview opens them in the editor), absolute for stdout."""
+
+    def __init__(self, base_dir: Path | None):
+        self.base_dir = base_dir
+        self._modules: dict[str, Path] | None = None
+
+    def href(self, target: Path, line: int | None = None) -> str:
+        path = os.path.relpath(target, self.base_dir) if self.base_dir else str(target)
+        return quote(path.replace(os.sep, "/")) + (f"#L{line}" if line else "")
+
+    def file(self, label: str, target: Path, line: int | None = None) -> str:
+        return f"[{label}]({self.href(target, line)})"
+
+    def parser_location(self, location: str) -> str:
+        """'src/x.py:12 func' (unknown-property) -> link to the line."""
+        m = re.match(r"^(?P<file>\S+?):(?P<line>\d+)(?: (?P<func>\S+))?$", location)
+        if not m:
+            return f"`{location}`"
+        link = self.file(f"{m['file']}:{m['line']}", REPO_DIR / m["file"], int(m["line"]))
+        return f"{link} `{m['func']}`" if m["func"] else link
+
+    def logged_at(self, loc: str) -> str:
+        """'module:function:line' (loguru) -> link to the line, if the module is in src/."""
+        module, _, rest = loc.partition(":")
+        func, _, line = rest.rpartition(":")
+        target = self._module_file(module)
+        if target is None or not line.isdigit():
+            return f"`{loc}`"
+        return f"{self.file(f'{target.relative_to(REPO_DIR)}:{line}', target, int(line))} `{func}`"
+
+    def _module_file(self, module: str) -> Path | None:
+        if self._modules is None:
+            self._modules = {}
+            for path in sorted((REPO_DIR / "src").rglob("*.py")):
+                self._modules.setdefault(path.stem, path)
+        return self._modules.get(module.rpartition(".")[2])
+
+
+def render_markdown(log: Path, baseline: Path | None, export_dir: Path | None, groups, total: int,
+                    linker: Linker) -> str:
     ordered = sorted(groups.values(), key=lambda g: (KIND_ORDER[g["kind"]], -g["count"]))
     by_kind = {k: [g for g in ordered if g["kind"] == k] for k in KIND_ORDER}
-    out = [f"# Parse warning report", "",
-           f"- log: `{log}`",
-           f"- baseline: `{baseline}`" if baseline else "- baseline: none (NEW markers unavailable)",
-           f"- export dir: `{export_dir}`" if export_dir else "- export dir: none (files not resolved)",
-           f"- {total} WARNING+ lines -> {len(groups)} groups: "
-           + ", ".join(f"{len(by_kind[k])} {k}" for k in KIND_ORDER), ""]
-    if not groups:
-        out.append("Clean: no warnings or errors.")
-        return "\n".join(out)
+    for n, g in enumerate(ordered, 1):
+        g["n"] = n
+    new_count = sum(1 for g in ordered if g.get("new"))
 
-    n = 0
+    out = ["# Parse warning report", "",
+           f"**{total}** WARNING+ lines -> **{len(groups)}** groups: "
+           + ", ".join(f"{len(by_kind[k])} {k}" for k in KIND_ORDER)
+           + (f"; **{new_count} NEW** vs baseline" if baseline else ""), "",
+           f"- log: {linker.file(log.name, log)} (`{log}`)",
+           f"- baseline: {linker.file(baseline.name, baseline)} (`{baseline}`)" if baseline
+           else "- baseline: none (NEW markers unavailable)",
+           f"- export dir: `{export_dir}`" if export_dir else "- export dir: none (files not resolved)",
+           f"- generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ""]
+    if not groups:
+        out.append("**Clean: no warnings or errors.**")
+        return "\n".join(out) + "\n"
+
+    out += ["| # | kind | group | count | |", "| ---: | --- | --- | ---: | --- |"]
+    for g in ordered:
+        out.append(f"| {g['n']} | {g['kind']} | {_cell(g['title'], 110)} | {g['count']} | {'NEW' if g.get('new') else ''} |")
+    out.append("")
+
     for kind in KIND_ORDER:
         if not by_kind[kind]:
             continue
         out += [f"## {kind} ({len(by_kind[kind])})", ""]
         for g in by_kind[kind]:
-            n += 1
-            g["n"] = n
-            new = " **NEW**" if g.get("new") else ""
-            out.append(f"### {n}. {_clip(g['title'], 160)}{new}")
-            out.append("")
-            out.append(f"- count: {g['count']}")
+            new = " - NEW" if g.get("new") else ""
+            out += [f"### {g['n']}. {_clip(g['title'], 160)}{new}", ""]
+            out.append(f"- count: **{g['count']}**")
             if kind == "unknown-property":
                 if g.get("parser"):
-                    out.append(f"- parser: `{g['parser']}`")
+                    out.append(f"- parser: {linker.parser_location(g['parser'])}")
                 if g["owners"]:
                     out.append(f"- owners: {', '.join(f'`{o}`' for o in g['owners'])}")
                 out.append(f"- value: `{_clip(g['examples'][0], 240)}`")
             else:
-                out.append(f"- logged at: `{g['logged_at']}` ({g['level']})")
+                out.append(f"- logged at: {linker.logged_at(g['logged_at'])} ({g['level']})")
                 if g["ids"]:
                     out.append(f"- ids: {', '.join(f'`{i}`' for i in g['ids'])}")
                 for ex in g["examples"]:
                     out.append(f"- example: `{_clip(ex, 240)}`")
-                for d in g.get("detail", [])[:MAX_DETAIL_LINES]:
-                    out.append(f"    {d}")
+                if g.get("detail"):
+                    out += ["", "```text", *g["detail"][:MAX_DETAIL_LINES], "```"]
             for f in g["files"]:
-                out.append(f"- export: `{f}`  [viewer]({VIEWER_URL}#{quote(f)})")
+                rel, _, index = f.partition("#")
+                label = f"{rel.rsplit('/', 1)[-1]}#{index or 0}"
+                target = linker.file(label, export_dir / rel) if export_dir else f"`{f}`"
+                out.append(f"- export: {target} - [viewer]({VIEWER_URL}#{quote(f)})")
             out.append("")
-    return "\n".join(out)
+    return "\n".join(out) + "\n"
 
 
 def main() -> int:
@@ -333,6 +408,8 @@ def main() -> int:
     ap.add_argument("--max-examples", type=int, default=3)
     ap.add_argument("--json", action="store_true", help="emit JSON instead of markdown")
     ap.add_argument("--summary", action="store_true", help="print only the one-line group counts")
+    ap.add_argument("--stdout", action="store_true", help="print the markdown instead of writing reports/")
+    ap.add_argument("--out", help="write the markdown here instead of reports/<name>.md (no latest.md copy)")
     args = ap.parse_args()
 
     log = resolve_log(args.log)
@@ -373,8 +450,17 @@ def main() -> int:
             "counts": counts,
             "groups": sorted(groups.values(), key=lambda g: (KIND_ORDER[g["kind"]], -g["count"])),
         }, indent=2))
+    elif args.stdout:
+        print(render_markdown(log, baseline, export_dir if index else None, groups, total, Linker(None)), end="")
     else:
-        print(render_markdown(log, baseline, export_dir if index else None, groups, total))
+        out = Path(args.out).resolve() if args.out else report_path(log)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        text = render_markdown(log, baseline, export_dir if index else None, groups, total, Linker(out.parent))
+        out.write_text(text, encoding="utf-8")
+        if not args.out:
+            (REPORTS_DIR / "latest.md").write_text(text, encoding="utf-8")
+        print(f"report: {out}" + ("" if args.out else f" (and {REPORTS_DIR / 'latest.md'})"))
+        print(text.split("\n", 3)[2])  # the counts line
     return 1 if groups else 0
 
 
