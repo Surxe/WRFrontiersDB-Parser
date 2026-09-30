@@ -12,7 +12,7 @@ replace /Game/ -> <game>/Content/, add .json, and the trailing .N is the array
 index to jump to).
 
 Usage:
-    python tools/asset-viewer/serve.py            # defaults to /srv/dev/wrf/data/exports
+    python tools/asset-viewer/serve.py            # EXPORT_DIR from the repo .env, else the newest /srv/dev/wrf/data/exports/<version>
     python tools/asset-viewer/serve.py --export-dir /path/to/exports --port 8765
     python tools/asset-viewer/serve.py --game-name WRFrontiers
 
@@ -30,6 +30,23 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 VIEWER = HERE / "viewer.html"
+EXPORTS_ROOT = Path("/srv/dev/wrf/data/exports")
+
+# Take EXPORT_DIR / GAME_NAME defaults from the repo's .env (tools/patch_day.sh
+# init points it at the current patch), without overriding the real environment.
+try:
+    from dotenv import load_dotenv
+    load_dotenv(HERE.parent.parent / ".env", override=False)
+except ImportError:
+    pass
+
+
+def default_export_dir() -> str:
+    """EXPORT_DIR if set, else the newest versioned export (exports/<version>)."""
+    if os.environ.get("EXPORT_DIR"):
+        return os.environ["EXPORT_DIR"]
+    versions = sorted(p for p in EXPORTS_ROOT.glob("*") if p.is_dir())
+    return str(versions[-1] if versions else EXPORTS_ROOT)
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -77,8 +94,9 @@ class Server(socketserver.ThreadingTCPServer):
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--export-dir", default=os.environ.get("EXPORT_DIR", "/srv/dev/wrf/data/exports"),
-                    help="Root of the exported JSON tree (default: /srv/dev/wrf/data/exports).")
+    ap.add_argument("--export-dir", default=default_export_dir(),
+                    help="Root of one patch's exported JSON tree, the dir holding <game>/Content "
+                         "(default: EXPORT_DIR from env/.env, else the newest /srv/dev/wrf/data/exports/<version>).")
     ap.add_argument("--game-name", default=os.environ.get("GAME_NAME", "WRFrontiers"),
                     help="Game name used in the /Game/ -> <game>/Content/ mapping (default: WRFrontiers).")
     ap.add_argument("--port", type=int, default=8765, help="Port to serve on (default: 8765).")

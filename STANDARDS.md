@@ -55,6 +55,23 @@ character_module_mounts = {
 * **Log Levels** - `TRACE`, `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`
 * **Sensitive Data** - Password fields masked with `***HIDDEN***`
 
+### Choosing a Log Level
+The pipeline publishes whatever a completed parse produces - only an exception
+that stops execution stops the data push. The run-report email counts WARNING
+and ERROR lines per step, so the level is how a problem gets noticed. Pick it by
+what the problem means for the published data:
+
+* **`raise`** - Continuing would publish wrong data or cannot continue at all. Stops the parse, and with it the push.
+* **`logger.error`** - Execution can continue, but the output is knowingly wrong or missing something that matters (e.g. a stat dropped for every module of a type, a computed value that fell back to a placeholder). Elevated so it is fixed promptly; does not stop the push.
+* **`logger.warning`** - Something was not handled but the output is otherwise sound: an unknown property (new game data not yet parsed or skipped), an optional reference that is absent, a single odd record skipped.
+* **`logger.info` / `debug` / `trace`** - Progress and detail. Never use these for something a human needs to act on.
+
+When a warning turns out to hide real data loss (it fires for many objects, or
+the site shows a gap), change that call to `logger.error` as part of the fix.
+Unknown-property warnings stay warnings: they come from
+`utils.process_key_to_parser_function`, whose message format is parsed by
+`tools/warning_report.py` - change the two together.
+
 ## Testing Conventions
 
 ### Test File Structure
