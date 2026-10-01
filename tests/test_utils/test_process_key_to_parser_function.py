@@ -506,5 +506,63 @@ class TestProcessKeyToParserFunction(unittest.TestCase):
         self.assertEqual(self.mock_obj.data["key3"], 42)             # New
 
 
+
+class _WrapperObject(MockObject):
+    """Mimics ParseObject's _process_key_to_parser_function wrapper."""
+    def _process_key_to_parser_function(self, key_map, data, log_descriptor=""):
+        return process_key_to_parser_function(key_map, data, obj=self, log_descriptor=log_descriptor)
+
+
+class TestUnknownPropertyWarning(unittest.TestCase):
+    """The unknown-property warning names its owner and the parser that owns the key map.
+
+    tools/warning_report.py parses this message; keep the two in sync.
+    """
+
+    def setUp(self):
+        self.messages = []
+        self.sink_id = src_utils.logger.add(self.messages.append, format="{message}", level="WARNING")
+
+    def tearDown(self):
+        src_utils.logger.remove(self.sink_id)
+
+    def _only_message(self):
+        self.assertEqual(len(self.messages), 1)
+        return str(self.messages[0]).strip()
+
+    def test_names_obj_and_parser_location(self):
+        process_key_to_parser_function({}, {"NewKey": 1.5}, MockObject(), log_descriptor="SpawnAction")
+        msg = self._only_message()
+        self.assertTrue(msg.startswith("Warning: MockObject mock_object_id has unknown property: 'NewKey' of value '1.5' in SpawnAction [parser: "))
+        self.assertIn("tests/test_utils/test_process_key_to_parser_function.py:", msg)
+        self.assertTrue(msg.endswith(" test_names_obj_and_parser_location]"))
+
+    def test_no_obj_outside_parse(self):
+        process_key_to_parser_function({}, {"NewKey": "v"}, obj=None, set_attrs=False)
+        msg = self._only_message()
+        self.assertTrue(msg.startswith("Warning: (no parse object) has unknown property: 'NewKey' of value 'v' [parser: "))
+
+    def test_no_obj_uses_enclosing_parse_object(self):
+        with src_utils.parse_context(MockObject()):
+            process_key_to_parser_function({}, {"NewKey": "v"}, obj=None, log_descriptor="ActorClass", set_attrs=False)
+        msg = self._only_message()
+        self.assertIn("Warning: MockObject mock_object_id has unknown property: 'NewKey' of value 'v' in ActorClass [parser: ", msg)
+        self.assertNotIn("None None", msg)
+
+    def test_parse_context_is_popped(self):
+        with src_utils.parse_context(MockObject()):
+            pass
+        self.assertIsNone(src_utils.current_parse_object())
+        with self.assertRaises(RuntimeError):
+            with src_utils.parse_context(MockObject()):
+                raise RuntimeError("parse failed")
+        self.assertIsNone(src_utils.current_parse_object())
+
+    def test_location_skips_object_wrapper(self):
+        _WrapperObject()._process_key_to_parser_function({}, {"NewKey": "v"})
+        msg = self._only_message()
+        self.assertTrue(msg.endswith(" test_location_skips_object_wrapper]"))
+
+
 if __name__ == '__main__':
     unittest.main()

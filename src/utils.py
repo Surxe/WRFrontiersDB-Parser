@@ -6,6 +6,8 @@ import os
 from loguru import logger
 import shutil
 import re
+import sys
+from contextlib import contextmanager
 from options import OPTIONS
 
 ###############################
@@ -338,6 +340,50 @@ class ParseTarget:
     MATCH_KEY_SNAKE = "match_key_snake"  # Convert key to snake_case
     MATCH_KEY_NO_DEFAULT = "match_key_no_default"  # Use original key as-is, without the 'Default' prefix
 
+###############################
+#        PARSE CONTEXT        #
+###############################
+
+# ParseObjects currently being parsed, innermost last. ParseObject pushes itself
+# around _parse(), so the module-level p_* helpers (which call
+# process_key_to_parser_function without an obj) can still name the object whose
+# parse reached them when they log an unknown property.
+_parse_object_stack: list = []
+
+@contextmanager
+def parse_context(obj):
+    """Mark obj as the object being parsed for the duration of the block."""
+    _parse_object_stack.append(obj)
+    try:
+        yield obj
+    finally:
+        _parse_object_stack.pop()
+
+def current_parse_object():
+    """The innermost ParseObject being parsed, or None outside any parse."""
+    return _parse_object_stack[-1] if _parse_object_stack else None
+
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Plumbing frames to skip when finding the parser that owns a key map.
+_KEY_MAP_PLUMBING = {"process_key_to_parser_function", "_process_key_to_parser_function", "_caller_parser_location"}
+
+def _caller_parser_location() -> str:
+    """'<repo-relative file>:<line> <function>' of the code that passed the key map."""
+    frame = sys._getframe(1)
+    while frame is not None and frame.f_code.co_name in _KEY_MAP_PLUMBING:
+        frame = frame.f_back
+    if frame is None:
+        return "unknown"
+    file = os.path.relpath(frame.f_code.co_filename, _REPO_ROOT).replace(os.sep, "/")
+    return f"{file}:{frame.f_lineno} {frame.f_code.co_name}"
+
+def _describe_parse_owner(obj) -> str:
+    """'<Class> <id>' of obj, else of the enclosing ParseObject being parsed."""
+    owner = obj if obj is not None else current_parse_object()
+    if owner is None:
+        return "(no parse object)"
+    return f"{owner.__class__.__name__} {getattr(owner, 'id', '(no id)')}"
+
 def process_key_to_parser_function(key_to_parser_function_map, data, obj=None, log_descriptor="", set_attrs=True, default_configuration={}):
     """
     Enhanced version that supports flexible target destinations.
@@ -409,9 +455,9 @@ def process_key_to_parser_function(key_to_parser_function_map, data, obj=None, l
             key = re.sub(r'\[\d+\]$', '', key)
 
         if not key in key_to_parser_function_map:
-            obj_id = getattr(obj, 'id', 'Error, no id found for obj') if obj else None
-            obj_class_ref_str = f"{class_name} {obj_id} has unknown property: '{key}' of value '{value.__str__()}'"
-            logger.warning(f"Warning: {obj_class_ref_str} {log_descriptor}")
+            # Format is parsed by tools/warning_report.py - keep them in sync.
+            owner = _describe_parse_owner(obj)
+            logger.warning(f"Warning: {owner} has unknown property: '{key}' of value '{value}'{log_descriptor} [parser: {_caller_parser_location()}]")
         
         else:
             config = key_to_parser_function_map[key]

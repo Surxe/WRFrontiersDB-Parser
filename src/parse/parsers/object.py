@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import OPTIONS, asset_to_asset_path, path_to_id, asset_path_to_file_path_and_index, get_json_data, logger, merge_dicts, asset_path_to_data, process_key_to_parser_function, sort_dict
+from utils import OPTIONS, asset_to_asset_path, path_to_id, asset_path_to_file_path_and_index, get_json_data, logger, merge_dicts, asset_path_to_data, process_key_to_parser_function, sort_dict, parse_context
 
 import json
 
@@ -17,7 +17,8 @@ class ParseObject: #generic object that all classes extend
             return
         if id.startswith('OBJID_'):
             raise ValueError(f"Object ID should be just the ID, not the full reference: {id}")
-        self._parse()
+        with parse_context(self):
+            self._parse()
 
         self.objects[id] = self  # Store the instance in the class dictionary
 
