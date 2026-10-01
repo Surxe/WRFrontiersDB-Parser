@@ -127,9 +127,9 @@ tools/patch_day.sh viewer            # asset viewer for the patch's export, http
   `sed -n`. A parse log is ~5 MB and export files can be large; never read one whole.
 - Scratch parses only (`tools/patch_day.sh parse`). Never run with
   `--should-push-data true`; publishing is the pipeline's job.
-- Tests: `.venv/bin/python -m unittest discover -s tests -p "test_*.py"`. Some
-  tests fail on `main` already (`test_parse_hex`, `test_push`); compare against
-  `main`'s results rather than expecting a clean run.
+- Tests: `.venv/bin/python -m unittest discover -s tests -p "test_*.py"`. The
+  suite passes clean on `main`; any failure is a regression. A new test directory
+  needs an `__init__.py` or discover skips it.
 - Follow `STANDARDS.md` naming (`*_ref`, `*_refs`, `*_id`, `*_dir`, `*_file`).
 - Branch per patch: `patch/<version>`; PR body covering the properties
   handled, what was skipped and why, fixes, how it was verified).

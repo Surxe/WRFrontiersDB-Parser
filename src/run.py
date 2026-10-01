@@ -9,7 +9,7 @@ from typing import Optional
 from optionsconfig import init_options, ArgumentWriter
 from options import set_options
 from parse.parse import main as parse_main
-from push.push import main as push_main
+from push.push import main as push_main, ensure_parser_tree_clean
 from parse.process_parsed_images import main as process_images_main
 
 # Add project root to path
@@ -61,6 +61,10 @@ def main():
     from optionsconfig import logger
 
     logger.info(f"WRFrontiersDB-Parser@run.py started at time {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+    # Check before parsing too, so a dirty tree fails fast instead of after a full parse
+    if options.should_push_data:
+        ensure_parser_tree_clean()
 
     if options.should_parse:
         logger.debug(f"should_parse is set to {options.should_parse}, proceeding with parsing.")
