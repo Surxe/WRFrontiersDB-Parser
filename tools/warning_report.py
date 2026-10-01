@@ -31,7 +31,9 @@ decisions/<version>.json (gitignored - local only) in sync: new groups are added
 as "undecided"; the user (or Claude, on the user's word) fills in proposal /
 reason and moves status through proposed -> approved | deferred. The script
 only moves approved -> done when a newer *completed* parse no longer has the
-group (and done -> approved if a newer one has it again). Decisions for the
+group (and done -> approved if a newer one has it again). `patch_day.sh
+checkpoint` stamps each newly done entry with its review-repo checkpoint and
+parser commit ("checkpoint" / "commit"). Decisions for the
 same id in other versions' files show up as "previously". The report renders
 all of it, so reports/latest.md doubles as the patch's progress tracker.
 
@@ -385,6 +387,9 @@ def sync_decisions(path: Path, version: str, groups, log: Path) -> dict:
             if entry.get("status") == "done" and log_time > entry.get("done_at", ""):
                 entry["status"] = "approved"
                 entry["notes"] = f"{entry.get('notes', '')} [reappeared in {log.name}]".strip()
+                # no longer settled by its checkpoint; the next one picks it up again
+                entry.pop("checkpoint", None)
+                entry.pop("commit", None)
             changed = True
         g["decision"] = entry
 
@@ -552,9 +557,13 @@ def render_markdown(log: Path, baseline: Path | None, export_dir: Path | None, g
     if absent:
         out += ["## Not in this log", "",
                 "Decided groups this parse no longer produces (done = fixed and confirmed by a newer completed parse).", "",
-                "| id | group | status | proposal |", "| --- | --- | --- | --- |"]
+                "| id | group | status | proposal | checkpoint |", "| --- | --- | --- | --- | --- |"]
         for gid, e in absent:
-            out.append(f"| `{gid}` | {_cell(e.get('title', ''), 90)} | {e.get('status', '')} | {_cell(e.get('proposal', ''), 60)} |")
+            checkpoint = e.get("checkpoint", "")
+            if checkpoint:
+                checkpoint = f"`{checkpoint}`" + (f" (code `{e['commit']}`)" if e.get("commit") else "")
+            out.append(f"| `{gid}` | {_cell(e.get('title', ''), 90)} | {e.get('status', '')} "
+                       f"| {_cell(e.get('proposal', ''), 60)} | {checkpoint} |")
         out.append("")
     return "\n".join(out) + "\n"
 

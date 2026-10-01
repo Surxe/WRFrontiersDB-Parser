@@ -139,14 +139,23 @@ it. Statuses: `undecided` -> `proposed` (you) -> `approved` | `deferred` (the us
 
 Tell the user the review is ready: the `parsed-review` folder in VS Code's Source
 Control shows the diff since the last checkpoint. Give your summary from step 5
-and **wait**. On approval, `tools/patch_day.sh checkpoint "<what changed>"`. If the
-user asks for changes, go back to Phase 3.
+and **wait**. On approval, `tools/patch_day.sh checkpoint "<what changed>"`: it
+commits the parser code (`src/`, `tests/`) on `patch/<version>` and the review
+repo with the same message, links them by hash, lists the decision ids that
+became `done` in both, and stamps those entries with `checkpoint` / `commit`. It
+refuses code changes on another branch, or edited after the last scratch parse
+(parse again first). Never commit parser code by hand - one checkpoint per
+approved step keeps code, data and decisions in step. If the user asks for
+changes, go back to Phase 3.
 
 ## Phase 4 - PR
 
-1. Commit on `patch/<version>` (one commit is fine; message `Parse <version>: <summary>`).
+1. The code is already committed, one commit per checkpoint (`git log` on
+   `patch/<version>`); there is nothing to commit here. Check `git status` is clean
+   for `src/` and `tests/`.
 2. Open the PR with the `pr` skill (don't create another branch - you're on one).
-   Title `Parse <version>: <summary>`; build the body from `decisions/<version>.json`
+   Title `Parse <version>: <summary>`; the per-checkpoint commits let the user review
+   it step by step (past PRs were squash-merged; that's the user's call). Build the body from `decisions/<version>.json`
    (the file itself stays local) with these sections:
    - **New properties handled** - per parser file: property -> how, one line each.
    - **Skipped** - property -> reason.
