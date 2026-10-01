@@ -128,7 +128,8 @@ tools/patch_day.sh viewer            # asset viewer for the patch's export, http
 - Scratch parses only (`tools/patch_day.sh parse`). Never run with
   `--should-push-data true`; publishing is the pipeline's job.
 - Tests: `.venv/bin/python -m unittest discover -s tests -p "test_*.py"`. Some
-  tests fail on `main` already (`test_parse_hex`, `test_push`); compare against
+  tests fail on `main` already (`test_parse_hex`, `test_parse_editor_curve_data`,
+  `test_push`, `test_simple`); compare against
   `main`'s results rather than expecting a clean run.
 - Follow `STANDARDS.md` naming (`*_ref`, `*_refs`, `*_id`, `*_dir`, `*_file`).
 - Branch per patch: `patch/<version>`; PR body covering the properties
