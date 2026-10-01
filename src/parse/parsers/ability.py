@@ -462,6 +462,7 @@ class Ability(ParseObject):
             "ActorClass": self._p_actor_class,
             "bAttachedActor": None,
             "AttachSocketName": None,
+            "RelativeLocation": "value", #angler tesla feed drone spawns 1000 above the attach socket
             "OnActorSpawning": None, #matriarch shoulder L
             "LaunchFXColorIdParam": None,
         }
@@ -517,6 +518,7 @@ class Ability(ParseObject):
             "ConeRadius": "value",
             "ConeHalfAngleInDegrees": "value",
             "MaxTargetNum": "value",
+            "ActorsType": "value", #angler tesla feed, raw int (1) - likely which actors can be targeted; no enum name in the export
             "TargetingMarkerAction": None,
             "TargetingStartedSoundEvent": None,
             "TargetingEndedSoundEvent": None,
