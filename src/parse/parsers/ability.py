@@ -25,6 +25,11 @@ class Ability(ParseObject):
         # Locate WeaponInfos under the misc attribute and move it to the weapon_char_module_ref attribute
         if hasattr(self, 'misc') and 'spawn_actor_action' in self.misc and 'ActorClass' in self.misc['spawn_actor_action'] and 'WeaponInfos' in self.misc['spawn_actor_action']['ActorClass']:
             self.weapon_char_module_ref = self.misc['spawn_actor_action']['ActorClass'].pop('WeaponInfos')
+            # Drop the containers the pop may have emptied
+            if not self.misc['spawn_actor_action']['ActorClass']:
+                del self.misc['spawn_actor_action']['ActorClass']
+            if not self.misc['spawn_actor_action']:
+                del self.misc['spawn_actor_action']
 
     def _parse_from_data(self, source_data: dict):
         props = source_data.get("Properties")
@@ -1278,6 +1283,7 @@ def p_actor_class(data: dict):
         "PassiveWeaponComponent": None, #contains no data
         "SoundSystemComponent": None,
         "WeaponInfos": p_weapon_infos, #cant use action.attribute here because set_attrs=False below
+        "WeaponInfo": (lambda weapon_info: p_weapon_infos([weapon_info]), "WeaponInfos"), #angler tesla feed drone; single entry, stored like WeaponInfos so Ability hoists it to weapon_char_module_ref
         "EnemyMaterialInstance": None,
         "FriendMaterialInstance": None,
         "bCanBeDamaged": "value",

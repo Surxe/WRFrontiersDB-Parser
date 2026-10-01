@@ -84,6 +84,7 @@ class CharacterModule(ParseObject):
             "bShouldUseCharactersFocusTarget": "value", #tesla coil weapon
             "Muzzles": None, # list of sockets for tesla coil
             "bUseCharacterWideMuzzleSearch": "value",
+            "bUseOwnerWideMuzzleSearch": "value", #angler tesla feed drone weapon
             "Socket_Muzzle": None, #old tesla coil
             "bShotMuzzleSwitch": None, #vfx horde
         }
