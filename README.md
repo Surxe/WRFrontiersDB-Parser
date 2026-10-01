@@ -32,7 +32,7 @@ still completes and publishes, logging each gap as a warning. On the home-server
 the fix happens in a dedicated dev worktree, never in the clone the pipeline runs:
 
 * [`CLAUDE.md`](CLAUDE.md) - checkouts, key-map conventions, parse-vs-skip rules, log levels.
-* `tools/warning_report.py` - groups a parse log's thousands of lines into a short triage report, written to `reports/latest.md` (gitignored) for VS Code's markdown preview.
+* `tools/warning_report.py` - groups a parse log's thousands of lines into a short triage report, written to `reports/latest.md` (gitignored) for VS Code's markdown preview, and tracks a parse/skip/fix decision per group in `decisions/<version>.json` (gitignored, local only).
 * `tools/patch_day.sh` - scratch parse + a git "review repo" of the parsed output, so each parser change shows up as a diff in VS Code.
 * `tools/asset-viewer/serve.py` - click through the exported JSON (reads `EXPORT_DIR` from `.env`).
 * `.claude/skills/patch-warnings` - the Claude Code skill that runs the process with two human approval gates.

@@ -173,3 +173,5 @@ todo.txt
 
 # tools/warning_report.py output
 /reports
+# patch decisions (tools/warning_report.py) - local only, never pushed
+/decisions
