@@ -26,11 +26,21 @@ and copied to reports/latest.md, for VS Code's markdown preview (Ctrl+Shift+V;
 the preview refreshes when the file is rewritten). Links in it open the parser
 source at the owning line and the export JSON in the editor.
 
+Decisions: every group has a stable id (u-/w-/e- + 8 hex). The report keeps
+decisions/<version>.json (gitignored - local only) in sync: new groups are added
+as "undecided"; the user (or Claude, on the user's word) fills in proposal /
+reason and moves status through proposed -> approved | deferred. The script
+only moves approved -> done when a newer *completed* parse no longer has the
+group (and done -> approved if a newer one has it again). Decisions for the
+same id in other versions' files show up as "previously". The report renders
+all of it, so reports/latest.md doubles as the patch's progress tracker.
+
 Usage:
     python tools/warning_report.py                          # latest pipeline run
     python tools/warning_report.py /srv/dev/wrf/logs/2026-09-29_022234
     python tools/warning_report.py /srv/dev/wrf/dev/logs/latest.log --no-baseline
     python tools/warning_report.py --stdout                 # print instead of writing
+    python tools/warning_report.py --no-decisions           # don't read/update decisions/
     python tools/warning_report.py --json > report.json
 
 Exit code: 0 = no groups, 1 = at least one group, 2 = bad input.
@@ -38,6 +48,7 @@ Exit code: 0 = no groups, 1 = at least one group, 2 = bad input.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -49,6 +60,9 @@ from urllib.parse import quote
 
 REPO_DIR = Path(__file__).resolve().parent.parent
 REPORTS_DIR = REPO_DIR / "reports"
+DECISIONS_DIR = REPO_DIR / "decisions"
+VERSION_RE = r"\d{4}-\d\d-\d\d(?:-\d+)?"
+STATUSES = ("undecided", "proposed", "approved", "deferred", "done")
 WRF_ROOT = Path(os.environ.get("WRF_ROOT", "/srv/dev/wrf"))
 PIPELINE_LOG_ROOT = WRF_ROOT / "logs"
 EXPORTS_ROOT = WRF_ROOT / "data" / "exports"
@@ -266,18 +280,126 @@ def attach_files(groups, index: ExportIndex | None) -> None:
         g["files"] = files[:6]
 
 
-def default_export_dir(log: Path) -> Path | None:
-    """exports/<version> named after the log (<version>.log), else the newest one."""
-    stem = log.stem
-    if re.match(r"^\d{4}-\d\d-\d\d(-\d+)?$", stem) and (EXPORTS_ROOT / stem).is_dir():
-        return EXPORTS_ROOT / stem
+def log_version(log: Path) -> str | None:
+    """The patch version a log belongs to: <version>.log (parser's own log),
+    parse-<version>-<stamp>.log (patch_day.sh), or version= in the run's run.log."""
+    m = re.match(rf"^(?:parse-)?({VERSION_RE})(?:-\d{{8}}_\d{{6}})?$", log.stem)
+    if m:
+        return m[1]
     run_log = log.parent / "run.log"
     if run_log.is_file():
-        m = re.search(r"version=(\d{4}-\d\d-\d\d(?:-\d+)?)", run_log.read_text(errors="replace"))
-        if m and (EXPORTS_ROOT / m[1]).is_dir():
-            return EXPORTS_ROOT / m[1]
+        m = re.search(rf"version=({VERSION_RE})", run_log.read_text(errors="replace"))
+        if m:
+            return m[1]
+    return None
+
+
+def default_export_dir(log: Path) -> Path | None:
+    """exports/<version> for the log's version, else the newest one."""
+    version = log_version(log)
+    if version and (EXPORTS_ROOT / version).is_dir():
+        return EXPORTS_ROOT / version
     versions = sorted(p for p in EXPORTS_ROOT.glob("*") if p.is_dir())
     return versions[-1] if versions else None
+
+
+# ------------------------------------------------------------------ decisions
+
+def _hash_id(kind: str, parts: tuple) -> str:
+    text = "\x1f".join("" if p is None else str(p) for p in parts)
+    return f"{kind[0]}-{hashlib.sha1(text.encode()).hexdigest()[:8]}"
+
+
+def assign_ids(groups) -> None:
+    """Stable ids. Unknown-property ids leave out the owner class, so a group keeps
+    its id across the old ("None None") and new warning formats; only if two owner
+    classes share context + property in one log does the owner disambiguate."""
+    taken: set[str] = set()
+    for key, g in groups.items():
+        kind = key[0]
+        gid = _hash_id(kind, _ownerless(key) if kind == "unknown-property" else key)
+        if gid in taken:
+            gid = _hash_id(kind, key)
+        taken.add(gid)
+        g["id"] = gid
+
+
+def _log_time(log: Path) -> str:
+    return datetime.fromtimestamp(log.stat().st_mtime).isoformat(timespec="seconds")
+
+
+def previous_decision(gid: str, version: str) -> dict | None:
+    """The newest decision for gid in an earlier version's decisions file."""
+    for path in sorted(DECISIONS_DIR.glob("*.json"), reverse=True):
+        if path.stem >= version:
+            continue
+        try:
+            entry = json.loads(path.read_text(encoding="utf-8")).get("groups", {}).get(gid)
+        except (OSError, ValueError):
+            continue
+        if entry and entry.get("status") != "undecided":
+            return {"version": path.stem, **{k: entry.get(k, "") for k in ("status", "proposal", "reason")}}
+    return None
+
+
+def sync_decisions(path: Path, version: str, groups, log: Path) -> dict:
+    """Add new groups as undecided and move approved <-> done; returns the file's data.
+
+    Transitions only follow logs newer than the evidence already recorded, so
+    re-running the report on an old log never marks anything done or undoes it.
+    """
+    data = {"version": version, "groups": {}}
+    if path.is_file():
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except ValueError as exc:
+            raise SystemExit(f"decisions file is not valid JSON - fix it first: {path}: {exc}")
+    entries = data.setdefault("groups", {})
+    log_time = _log_time(log)
+    completed = _completed(log)
+    changed = not path.is_file()
+
+    for g in groups.values():
+        entry = entries.get(g["id"])
+        if entry is None:
+            entry = entries[g["id"]] = {
+                "title": g["title"],
+                "kind": g["kind"],
+                "status": "undecided",
+                "proposal": "",
+                "reason": "",
+                "where": g.get("parser") or g.get("logged_at") or "",
+                "confidence": "",
+                "notes": "",
+                "last_seen": log_time,
+            }
+            previous = previous_decision(g["id"], version)
+            if previous:
+                entry["previous"] = previous
+            changed = True
+        elif log_time > entry.get("last_seen", ""):
+            entry["last_seen"] = log_time
+            if entry.get("status") == "done" and log_time > entry.get("done_at", ""):
+                entry["status"] = "approved"
+                entry["notes"] = f"{entry.get('notes', '')} [reappeared in {log.name}]".strip()
+            changed = True
+        g["decision"] = entry
+
+    present = {g["id"] for g in groups.values()}
+    if completed:
+        for gid, entry in entries.items():
+            if (gid not in present and entry.get("status") == "approved"
+                    and log_time > entry.get("last_seen", "")):
+                entry["status"] = "done"
+                entry["done_at"] = log_time
+                changed = True
+
+    if changed:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        tmp.replace(path)
+    return data
 
 
 # -------------------------------------------------------------------- output
@@ -342,7 +464,7 @@ class Linker:
 
 
 def render_markdown(log: Path, baseline: Path | None, export_dir: Path | None, groups, total: int,
-                    linker: Linker) -> str:
+                    linker: Linker, decisions: dict | None = None, decisions_path: Path | None = None) -> str:
     ordered = sorted(groups.values(), key=lambda g: (KIND_ORDER[g["kind"]], -g["count"]))
     by_kind = {k: [g for g in ordered if g["kind"] == k] for k in KIND_ORDER}
     for n, g in enumerate(ordered, 1):
@@ -357,14 +479,26 @@ def render_markdown(log: Path, baseline: Path | None, export_dir: Path | None, g
            f"- baseline: {linker.file(baseline.name, baseline)} (`{baseline}`)" if baseline
            else "- baseline: none (NEW markers unavailable)",
            f"- export dir: `{export_dir}`" if export_dir else "- export dir: none (files not resolved)",
-           f"- generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ""]
+           f"- generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"]
+    entries = (decisions or {}).get("groups", {})
+    if decisions is not None and decisions_path is not None:
+        by_status = {st: sum(1 for e in entries.values() if e.get("status") == st) for st in STATUSES}
+        out.append(f"- decisions: {linker.file(decisions_path.name, decisions_path)} - "
+                   + ", ".join(f"{n} {st}" for st, n in by_status.items() if n))
+    out.append("")
     if not groups:
-        out.append("**Clean: no warnings or errors.**")
-        return "\n".join(out) + "\n"
-
-    out += ["| # | kind | group | count | |", "| ---: | --- | --- | ---: | --- |"]
-    for g in ordered:
-        out.append(f"| {g['n']} | {g['kind']} | {_cell(g['title'], 110)} | {g['count']} | {'NEW' if g.get('new') else ''} |")
+        out += ["**Clean: no warnings or errors.**", ""]
+    elif decisions is not None:
+        out += ["| # | id | kind | group | count | status | proposal | |",
+                "| ---: | --- | --- | --- | ---: | --- | --- | --- |"]
+        for g in ordered:
+            d = g.get("decision", {})
+            out.append(f"| {g['n']} | `{g['id']}` | {g['kind']} | {_cell(g['title'], 90)} | {g['count']} "
+                       f"| {d.get('status', '')} | {_cell(d.get('proposal', ''), 60)} | {'NEW' if g.get('new') else ''} |")
+    else:
+        out += ["| # | kind | group | count | |", "| ---: | --- | --- | ---: | --- |"]
+        for g in ordered:
+            out.append(f"| {g['n']} | {g['kind']} | {_cell(g['title'], 110)} | {g['count']} | {'NEW' if g.get('new') else ''} |")
     out.append("")
 
     for kind in KIND_ORDER:
@@ -374,7 +508,21 @@ def render_markdown(log: Path, baseline: Path | None, export_dir: Path | None, g
         for g in by_kind[kind]:
             new = " - NEW" if g.get("new") else ""
             out += [f"### {g['n']}. {_clip(g['title'], 160)}{new}", ""]
-            out.append(f"- count: **{g['count']}**")
+            out.append(f"- id: `{g['id']}` - count: **{g['count']}**")
+            d = g.get("decision")
+            if d is not None:
+                line = f"- decision: **{d.get('status', '?')}**"
+                if d.get("proposal"):
+                    line += f" - {_clip(d['proposal'], 200)}"
+                if d.get("reason"):
+                    line += f" ({_clip(d['reason'], 200)})"
+                out.append(line)
+                if d.get("notes"):
+                    out.append(f"- notes: {_clip(d['notes'], 300)}")
+                prev = d.get("previous")
+                if prev:
+                    out.append(f"- previously ({prev['version']}): {prev.get('status', '')}"
+                               + (f" - {_clip(prev['proposal'], 160)}" if prev.get("proposal") else ""))
             if kind == "unknown-property":
                 if g.get("parser"):
                     out.append(f"- parser: {linker.parser_location(g['parser'])}")
@@ -395,6 +543,16 @@ def render_markdown(log: Path, baseline: Path | None, export_dir: Path | None, g
                 target = linker.file(label, export_dir / rel) if export_dir else f"`{f}`"
                 out.append(f"- export: {target} - [viewer]({VIEWER_URL}#{quote(f)})")
             out.append("")
+
+    present = {g["id"] for g in ordered}
+    absent = [(gid, e) for gid, e in entries.items() if gid not in present]
+    if absent:
+        out += ["## Not in this log", "",
+                "Decided groups this parse no longer produces (done = fixed and confirmed by a newer completed parse).", "",
+                "| id | group | status | proposal |", "| --- | --- | --- | --- |"]
+        for gid, e in absent:
+            out.append(f"| `{gid}` | {_cell(e.get('title', ''), 90)} | {e.get('status', '')} | {_cell(e.get('proposal', ''), 60)} |")
+        out.append("")
     return "\n".join(out) + "\n"
 
 
@@ -410,10 +568,14 @@ def main() -> int:
     ap.add_argument("--summary", action="store_true", help="print only the one-line group counts")
     ap.add_argument("--stdout", action="store_true", help="print the markdown instead of writing reports/")
     ap.add_argument("--out", help="write the markdown here instead of reports/<name>.md (no latest.md copy)")
+    ap.add_argument("--version", help="patch version (default: from the log name / run.log)")
+    ap.add_argument("--decisions", help="decisions file (default: decisions/<version>.json)")
+    ap.add_argument("--no-decisions", action="store_true", help="don't read or update a decisions file")
     args = ap.parse_args()
 
     log = resolve_log(args.log)
     groups = group_records(log, args.max_examples)
+    assign_ids(groups)
     total = sum(g["count"] for g in groups.values())
 
     baseline = None
@@ -435,6 +597,18 @@ def main() -> int:
               + (f"; {new} NEW vs baseline" if baseline else "") + ")")
         return 1 if groups else 0
 
+    decisions = decisions_path = None
+    if not args.no_decisions:
+        version = args.version or log_version(log)
+        if args.decisions:
+            decisions_path = Path(args.decisions).resolve()
+        elif version:
+            decisions_path = DECISIONS_DIR / f"{version}.json"
+        else:
+            print("no patch version for this log - decisions skipped (pass --version)", file=sys.stderr)
+        if decisions_path is not None:
+            decisions = sync_decisions(decisions_path, version or decisions_path.stem, groups, log)
+
     export_dir = None
     if not args.no_resolve:
         export_dir = Path(args.export_dir) if args.export_dir else default_export_dir(log)
@@ -451,11 +625,13 @@ def main() -> int:
             "groups": sorted(groups.values(), key=lambda g: (KIND_ORDER[g["kind"]], -g["count"])),
         }, indent=2))
     elif args.stdout:
-        print(render_markdown(log, baseline, export_dir if index else None, groups, total, Linker(None)), end="")
+        print(render_markdown(log, baseline, export_dir if index else None, groups, total, Linker(None),
+                              decisions, decisions_path), end="")
     else:
         out = Path(args.out).resolve() if args.out else report_path(log)
         out.parent.mkdir(parents=True, exist_ok=True)
-        text = render_markdown(log, baseline, export_dir if index else None, groups, total, Linker(out.parent))
+        text = render_markdown(log, baseline, export_dir if index else None, groups, total, Linker(out.parent),
+                               decisions, decisions_path)
         out.write_text(text, encoding="utf-8")
         if not args.out:
             (REPORTS_DIR / "latest.md").write_text(text, encoding="utf-8")

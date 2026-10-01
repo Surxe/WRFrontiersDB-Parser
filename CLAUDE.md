@@ -106,6 +106,15 @@ tools/patch_day.sh viewer            # asset viewer for the patch's export, http
   `reports/latest.md` - the user keeps that open in VS Code's preview, and its links
   open the parser line and the export JSON. Read the file (it's small) rather than
   re-running with `--stdout`, so you and the user look at the same report.
+- **Decisions** live in `decisions/<version>.json` - **gitignored, local only;
+  never commit or push them** (the user may back them up separately). The report
+  keeps the file in sync: each group (stable id `u-`/`w-`/`e-` + 8 hex) gets an
+  entry, new ones as `undecided`; `proposal` / `reason` / `confidence` / `status`
+  are written by you or the user (`proposed` -> `approved` | `deferred`), and the
+  script moves `approved` -> `done` once a newer completed parse no longer has the
+  group. Earlier versions' decisions for the same id show as `previous`. The
+  report renders status + proposal per group, so `reports/latest.md` is also the
+  patch's progress tracker. `--no-decisions` skips all of it.
 - Exports live at `/srv/dev/wrf/data/exports/<version>/WRFrontiers/Content/...`
   and the pipeline's parsed output at `/srv/dev/wrf/data/parsed/<version>/`; the
   pipeline keeps the 2 newest versions of both, so the previous patch's export and
