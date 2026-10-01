@@ -41,11 +41,6 @@ class TestPushModuleFunctions(unittest.TestCase):
         self.assertTrue(hasattr(push_module, 'run_git_command'))
         self.assertTrue(callable(push_module.run_git_command))
 
-    def test_upload_to_archive_function_exists(self):
-        """Test that upload_to_archive function exists and is callable."""
-        self.assertTrue(hasattr(push_module, 'upload_to_archive'))
-        self.assertTrue(callable(push_module.upload_to_archive))
-
     def test_main_function_exists(self):
         """Test that main function exists and is callable."""
         self.assertTrue(hasattr(push_module, 'main'))
@@ -59,9 +54,10 @@ class TestPushModuleFunctions(unittest.TestCase):
             'clone_data_repo',
             'configure_git_repo',
             'switch_to_target_branch',
+            'ensure_parser_tree_clean',
             'get_latest_commit_info',
-            'upload_to_archive',
             'update_current_data',
+            'upload_textures',
             'push_changes',
             'main'
         ]

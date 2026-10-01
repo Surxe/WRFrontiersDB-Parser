@@ -18,7 +18,7 @@ sys.path.insert(0, src_path)
 try:
     from push.push import (
         remove_readonly, run_git_command, clone_data_repo, configure_git_repo,
-        switch_to_target_branch, get_latest_commit_info, upload_to_archive,
+        switch_to_target_branch, get_latest_commit_info,
         update_current_data, push_changes, main
     )
 except ImportError:
@@ -35,7 +35,6 @@ except ImportError:
     configure_git_repo = push_module.configure_git_repo
     switch_to_target_branch = push_module.switch_to_target_branch
     get_latest_commit_info = push_module.get_latest_commit_info
-    upload_to_archive = push_module.upload_to_archive
     update_current_data = push_module.update_current_data
     push_changes = push_module.push_changes
     main = push_module.main

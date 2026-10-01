@@ -19,193 +19,60 @@ spec.loader.exec_module(src_utils)
 
 parse_hex = src_utils.parse_hex
 
-
 class TestParseHex(unittest.TestCase):
-    """Test cases for the parse_hex function."""
-    
-    def test_direct_hex_structure(self):
-        """Test extracting hex from direct structure with Hex key."""
-        data = {"Hex": "#FF0000"}
+    """Test cases for parse_hex, which returns both the RGBA channels and the Hex string."""
+
+    def test_direct_structure(self):
+        data = {"R": 255, "G": 0, "B": 0, "A": 255, "Hex": "FF0000FF"}
         result = parse_hex(data)
-        self.assertEqual(result, "#FF0000")
-        
-        data = {"Hex": "0xFF00FF"}
-        result = parse_hex(data)
-        self.assertEqual(result, "0xFF00FF")
-        
-        data = {"Hex": "AABBCC"}
-        result = parse_hex(data)
-        self.assertEqual(result, "AABBCC")
-    
+        self.assertEqual(result, {
+            "RGBA": {"R": 255, "G": 0, "B": 0, "A": 255},
+            "Hex": "FF0000FF"
+        })
+
     def test_specified_color_structure(self):
-        """Test extracting hex from SpecifiedColor nested structure."""
-        data = {
-            "SpecifiedColor": {
-                "Hex": "#00FF00"
-            }
-        }
+        data = {"SpecifiedColor": {"R": 0, "G": 255, "B": 0, "A": 128, "Hex": "00FF0080"}}
         result = parse_hex(data)
-        self.assertEqual(result, "#00FF00")
-        
-        # With additional keys in SpecifiedColor
-        data = {
-            "SpecifiedColor": {
-                "Hex": "#123456",
-                "Alpha": 255,
-                "Other": "value"
-            }
-        }
-        result = parse_hex(data)
-        self.assertEqual(result, "#123456")
-    
-    def test_complex_nested_structure(self):
-        """Test with complex nested structures containing SpecifiedColor."""
-        data = {
-            "ColorData": "unused",
-            "SpecifiedColor": {
-                "Hex": "#ABCDEF",
-                "RGB": {
-                    "R": 171,
-                    "G": 205,
-                    "B": 239
-                }
-            },
-            "Other": "data"
-        }
-        result = parse_hex(data)
-        self.assertEqual(result, "#ABCDEF")
-    
-    def test_different_hex_formats(self):
-        """Test with different hex color formats."""
-        # Standard 6-digit hex with #
-        data = {"Hex": "#FF0000"}
-        self.assertEqual(parse_hex(data), "#FF0000")
-        
-        # Standard 6-digit hex without #
-        data = {"Hex": "FF0000"}
-        self.assertEqual(parse_hex(data), "FF0000")
-        
-        # 8-digit hex with alpha
-        data = {"Hex": "#FF0000FF"}
-        self.assertEqual(parse_hex(data), "#FF0000FF")
-        
-        # Lowercase hex
-        data = {"Hex": "#ff0000"}
-        self.assertEqual(parse_hex(data), "#ff0000")
-        
-        # Mixed case
-        data = {"Hex": "#FfAaBb"}
-        self.assertEqual(parse_hex(data), "#FfAaBb")
-    
-    def test_numeric_hex_values(self):
-        """Test with numeric hex representations."""
-        data = {"Hex": 0xFF0000}
-        result = parse_hex(data)
-        self.assertEqual(result, 0xFF0000)
-        
-        data = {"Hex": 16777215}  # 0xFFFFFF in decimal
-        result = parse_hex(data)
-        self.assertEqual(result, 16777215)
-    
+        self.assertEqual(result, {
+            "RGBA": {"R": 0, "G": 255, "B": 0, "A": 128},
+            "Hex": "00FF0080"
+        })
+
     def test_prefers_specified_color(self):
-        """Test that SpecifiedColor takes precedence over direct Hex."""
         data = {
-            "Hex": "#FF0000",  # This should be ignored
-            "SpecifiedColor": {
-                "Hex": "#00FF00"  # This should be returned
-            }
+            "R": 1, "G": 1, "B": 1, "A": 1, "Hex": "01010101",
+            "SpecifiedColor": {"R": 2, "G": 2, "B": 2, "A": 2, "Hex": "02020202"}
         }
         result = parse_hex(data)
-        self.assertEqual(result, "#00FF00")
-    
-    def test_missing_hex_key_raises_error(self):
-        """Test that missing Hex key raises KeyError."""
-        # Direct structure without Hex
-        data = {"Color": "#FF0000"}
-        with self.assertRaises(KeyError):
-            parse_hex(data)
-        
-        # SpecifiedColor structure without Hex
-        data = {
-            "SpecifiedColor": {
-                "RGB": {"R": 255, "G": 0, "B": 0}
-            }
-        }
-        with self.assertRaises(KeyError):
-            parse_hex(data)
-    
-    def test_empty_structures(self):
-        """Test behavior with empty structures."""
-        # Empty dict
-        data = {}
-        with self.assertRaises(KeyError):
-            parse_hex(data)
-        
-        # SpecifiedColor with empty dict
-        data = {"SpecifiedColor": {}}
-        with self.assertRaises(KeyError):
-            parse_hex(data)
-    
-    def test_none_values(self):
-        """Test behavior with None values."""
-        # None in Hex key
-        data = {"Hex": None}
+        self.assertEqual(result["Hex"], "02020202")
+        self.assertEqual(result["RGBA"], {"R": 2, "G": 2, "B": 2, "A": 2})
+
+    def test_rgba_and_hex_kept_even_when_they_disagree(self):
+        """Game data sometimes has RGBA and Hex that don't match, so both are kept as-is."""
+        data = {"R": 10, "G": 20, "B": 30, "A": 40, "Hex": "FFFFFFFF"}
         result = parse_hex(data)
-        self.assertIsNone(result)
-        
-        # None in SpecifiedColor Hex
-        data = {"SpecifiedColor": {"Hex": None}}
-        result = parse_hex(data)
-        self.assertIsNone(result)
-    
-    def test_empty_string_hex(self):
-        """Test behavior with empty string hex values."""
-        data = {"Hex": ""}
-        result = parse_hex(data)
-        self.assertEqual(result, "")
-        
-        data = {"SpecifiedColor": {"Hex": ""}}
-        result = parse_hex(data)
-        self.assertEqual(result, "")
-    
-    def test_game_specific_examples(self):
-        """Test with game-specific color data structures."""
-        # Typical game color structure
-        game_color_data = {
-            "ColorType": "Custom",
-            "SpecifiedColor": {
-                "Hex": "#FF4500",
-                "LinearColor": {
-                    "R": 1.0,
-                    "G": 0.271,
-                    "B": 0.0,
-                    "A": 1.0
-                }
-            }
-        }
-        result = parse_hex(game_color_data)
-        self.assertEqual(result, "#FF4500")
-        
-        # Simple direct hex
-        simple_color = {"Hex": "#800080"}
-        result = parse_hex(simple_color)
-        self.assertEqual(result, "#800080")
-    
+        self.assertEqual(result["RGBA"], {"R": 10, "G": 20, "B": 30, "A": 40})
+        self.assertEqual(result["Hex"], "FFFFFFFF")
+
     def test_additional_keys_ignored(self):
-        """Test that additional keys in the data structure are ignored."""
-        data = {
-            "Hex": "#123456",
-            "Name": "Custom Color",
-            "Type": "Specified",
-            "Alpha": 1.0,
-            "SpecifiedColor": {
-                "Hex": "#654321",
-                "ExtraData": "ignored"
-            }
-        }
-        # Should prefer SpecifiedColor
+        data = {"R": 1, "G": 2, "B": 3, "A": 4, "Hex": "01020304", "Name": "Custom", "LinearColor": {}}
         result = parse_hex(data)
-        self.assertEqual(result, "#654321")
+        self.assertEqual(set(result.keys()), {"RGBA", "Hex"})
+        self.assertEqual(set(result["RGBA"].keys()), {"R", "G", "B", "A"})
+
+    def test_missing_key_raises_error(self):
+        for missing in ["R", "G", "B", "A", "Hex"]:
+            data = {"R": 1, "G": 2, "B": 3, "A": 4, "Hex": "01020304"}
+            del data[missing]
+            with self.subTest(missing=missing):
+                with self.assertRaises(KeyError):
+                    parse_hex(data)
+
+    def test_empty_structures_raise_error(self):
+        with self.assertRaises(KeyError):
+            parse_hex({})
+        with self.assertRaises(KeyError):
+            parse_hex({"SpecifiedColor": {}})
 
 
 if __name__ == '__main__':
