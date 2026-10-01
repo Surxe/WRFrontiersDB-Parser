@@ -807,7 +807,7 @@ class Analysis:
     def get_ability_stat(self, module, i, stat_type: Literal['primary', 'secondary']):
         ability_scalars = module.abilities_scalars
         if i >= len(ability_scalars):
-            logger.warning(f"Module {module.id}: ability index {i} out of range for {len(ability_scalars)} scalers; skipping")
+            logger.error(f"Module {module.id}: ability index {i} out of range for {len(ability_scalars)} scalers; skipping")
             return None
         scalars = ability_scalars[i]
         stat_ref_key = f'{stat_type}_stat_ref'

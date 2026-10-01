@@ -102,9 +102,9 @@ class Module(ParseObject):
     def _p_ability_scalars(self, data):
         for elem in data:
             ability_scalar_data = asset_to_data(elem)
-            scalars = self._p_scalars(ability_scalar_data)
-            if not scalars:
-                continue
+            # Keep empty scalers as {} - abilities_scalars[i] must line up with the
+            # character module's abilities_refs[i]
+            scalars = self._p_scalars(ability_scalar_data) or {}
 
             if not hasattr(self, "abilities_scalars"):
                 self.abilities_scalars = []

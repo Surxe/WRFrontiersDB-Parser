@@ -25,6 +25,11 @@ class Ability(ParseObject):
         # Locate WeaponInfos under the misc attribute and move it to the weapon_char_module_ref attribute
         if hasattr(self, 'misc') and 'spawn_actor_action' in self.misc and 'ActorClass' in self.misc['spawn_actor_action'] and 'WeaponInfos' in self.misc['spawn_actor_action']['ActorClass']:
             self.weapon_char_module_ref = self.misc['spawn_actor_action']['ActorClass'].pop('WeaponInfos')
+            # Drop the containers the pop may have emptied
+            if not self.misc['spawn_actor_action']['ActorClass']:
+                del self.misc['spawn_actor_action']['ActorClass']
+            if not self.misc['spawn_actor_action']:
+                del self.misc['spawn_actor_action']
 
     def _parse_from_data(self, source_data: dict):
         props = source_data.get("Properties")
@@ -337,6 +342,8 @@ class Ability(ParseObject):
             "BuffToOwner": p_actor_class,
             "BuffToTeammate": p_actor_class,
             "bSyncOwnerKickbackFromProjectileAndScaler": "value",
+            "DamageResistance": "value", #paladin's ward
+            "VisibilityConeHalfAngle": "value", #tesla feed, line of sight to the marked ally
         }
 
         my_ability_data = self._process_key_to_parser_function(
@@ -455,6 +462,7 @@ class Ability(ParseObject):
             "ActorClass": self._p_actor_class,
             "bAttachedActor": None,
             "AttachSocketName": None,
+            "RelativeLocation": "value", #angler tesla feed drone spawns 1000 above the attach socket
             "OnActorSpawning": None, #matriarch shoulder L
             "LaunchFXColorIdParam": None,
         }
@@ -510,6 +518,7 @@ class Ability(ParseObject):
             "ConeRadius": "value",
             "ConeHalfAngleInDegrees": "value",
             "MaxTargetNum": "value",
+            "ActorsType": "value", #angler tesla feed, raw int (1) - likely which actors can be targeted; no enum name in the export
             "TargetingMarkerAction": None,
             "TargetingStartedSoundEvent": None,
             "TargetingEndedSoundEvent": None,
@@ -1276,6 +1285,7 @@ def p_actor_class(data: dict):
         "PassiveWeaponComponent": None, #contains no data
         "SoundSystemComponent": None,
         "WeaponInfos": p_weapon_infos, #cant use action.attribute here because set_attrs=False below
+        "WeaponInfo": (lambda weapon_info: p_weapon_infos([weapon_info]), "WeaponInfos"), #angler tesla feed drone; single entry, stored like WeaponInfos so Ability hoists it to weapon_char_module_ref
         "EnemyMaterialInstance": None,
         "FriendMaterialInstance": None,
         "bCanBeDamaged": "value",
@@ -1330,6 +1340,7 @@ def p_actor_class(data: dict):
         "StopHealingSoundEvent": None,
         "FriendlyColor": None,
         "Buff": p_actor_class,
+        "BuffClass": p_actor_class, #angler tesla feed drone, shield regen on the marked ally
         "WasSpottedSoundEvent": None, #echo burst
         "SpottedSoundEvent": None,
         "bIndestructible": "value", #ares torso
@@ -1343,6 +1354,7 @@ def p_actor_class(data: dict):
         "SpeedMultiplier": "value", #matriarch nanite field
         "MaxAccelMultiplier": "value",
         "ArmorRegenPercentPerSecond": "value",
+        "ShieldRegenPercentPerSecond": "value", #angler tesla feed buff
         "AbilityClasses": (p_ability_classes, "abilities_refs"), #orbital strike powerup
         "MaxAbilitiesInvocationsCount": "value",
         "ProjectileArmorDamageMult": "value",
@@ -1364,6 +1376,12 @@ def p_actor_class(data: dict):
         "PushSettingsClass": p_push_settings_class,
         "BarrierMeshComponent": None, #mesh
         "OverlapSphere": p_overlap_sphere,
+        "BeamFXSettings": None, #vfx, tesla feed beam
+        "TargetPosParam": None, #vfx param
+        "ShowRayParam": None, #vfx param
+        "FadeOutParam": None, #vfx param
+        "ConnectionOnInstigatorSoundEvent": None, #audio
+        "DisconnectionOnInstigatorSoundEvent": None, #audio
     }
 
     parsed_data = process_key_to_parser_function(
