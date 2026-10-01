@@ -17,7 +17,10 @@
 #                                         scratch parse -> reports/latest.md
 #                                         (tools/warning_report.py; --stdout to print)
 #   tools/patch_day.sh sync               re-copy scratch output into review repo
-#   tools/patch_day.sh checkpoint <msg>   commit the review repo's current state
+#   tools/patch_day.sh checkpoint <msg>   accept a decision step: commit the parser
+#                                         code (src/, tests/) on patch/<version> and
+#                                         the review repo, same message, linked by
+#                                         hash + the decision ids now done
 #   tools/patch_day.sh status             version, checkpoints, diff vs baseline
 #   tools/patch_day.sh viewer [args]      asset viewer on the patch's export
 #
@@ -150,16 +153,79 @@ cmd_report() {
   [[ $rc -le 1 ]] || exit $rc
 }
 
+# Decisions this checkpoint covers: `done` entries of decisions/<version>.json not
+# yet tied to a checkpoint. `pending` prints their ids; `mark <review> <code>`
+# records the checkpoint (and code commit, if any) on them.
+checkpoint_decisions() {
+  local file="$REPO_DIR/decisions/$(version).json"
+  [[ -f "$file" ]] || return 0
+  "$PY" - "$file" "$@" <<'PY'
+import json, sys
+path, mode, *args = sys.argv[1:]
+with open(path, encoding="utf-8") as f:
+    data = json.load(f)
+pending = [gid for gid, e in data.get("groups", {}).items()
+           if e.get("status") == "done" and not e.get("checkpoint")]
+if mode == "pending":
+    print(" ".join(pending))
+else:
+    review, code = args
+    for gid in pending:
+        data["groups"][gid]["checkpoint"] = review
+        data["groups"][gid]["commit"] = code
+    with open(path + ".tmp", "w", encoding="utf-8") as f:
+        f.write(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+    import os
+    os.replace(path + ".tmp", path)
+PY
+}
+
+# One checkpoint = one decision step on both sides: the parser code change
+# (src/, tests/) is committed on patch/<version>, and the review repo's parsed
+# output is committed with the same message plus the code commit's hash. Either
+# side may be empty (a sanity parse has no code; a skip-only change no data diff).
 cmd_checkpoint() {
   [[ $# -ge 1 ]] || die "usage: checkpoint <message>"
   [[ -d "$REVIEW_DIR/.git" ]] || die "no review repo - run init first"
+  require_dev_worktree
+  local msg="$*" v branch code_files data_changed=0 log stale="" f ids code_sha="" review_sha
+  v="$(version)"
+  branch="$(git -C "$REPO_DIR" rev-parse --abbrev-ref HEAD)"
+  code_files="$(git -C "$REPO_DIR" status --porcelain --untracked-files=all -- src tests | cut -c4-)"
   git -C "$REVIEW_DIR" add -A
-  if git -C "$REVIEW_DIR" diff --cached --quiet; then
+  git -C "$REVIEW_DIR" diff --cached --quiet || data_changed=1
+  if [[ -z "$code_files" && $data_changed -eq 0 ]]; then
     echo "patch_day: nothing to checkpoint"
     return
   fi
-  git -C "$REVIEW_DIR" commit -q -m "$*"
-  echo "patch_day: checkpoint '$*'"
+
+  if [[ -n "$code_files" ]]; then
+    [[ "$branch" == "patch/$v" ]] \
+      || die "parser code changes on '$branch' - checkpoints commit code only on patch/$v (git switch -c patch/$v)"
+    # The data side must come from this code: refuse if it was edited after the last parse.
+    log="$(readlink -f "$LOG_DIR/latest.log" 2>/dev/null || true)"
+    [[ -n "$log" ]] || die "no scratch parse yet - run: tools/patch_day.sh parse"
+    while IFS= read -r f; do
+      [[ -e "$REPO_DIR/$f" && "$REPO_DIR/$f" -nt "$log" ]] && stale+=" $f"
+    done <<< "$code_files"
+    [[ -z "$stale" ]] || die "changed since the last scratch parse:$stale - run: tools/patch_day.sh parse"
+  fi
+
+  ids="$(checkpoint_decisions pending)"
+  if [[ -n "$code_files" ]]; then
+    git -C "$REPO_DIR" add -A -- src tests
+    git -C "$REPO_DIR" commit -q -m "$msg" ${ids:+-m "Decisions: $ids"} -- src tests
+    code_sha="$(git -C "$REPO_DIR" rev-parse --short HEAD)"
+  fi
+  git -C "$REVIEW_DIR" commit -q --allow-empty -m "$msg" \
+      ${code_sha:+-m "Code: $code_sha ($branch)"} ${ids:+-m "Decisions: $ids"}
+  review_sha="$(git -C "$REVIEW_DIR" rev-parse --short HEAD)"
+  [[ -z "$ids" ]] || checkpoint_decisions mark "$review_sha" "$code_sha"
+
+  echo "patch_day: checkpoint '$msg'"
+  echo "  review repo : $review_sha$([[ $data_changed -eq 1 ]] || echo ' (no data change)')"
+  echo "  code        : ${code_sha:-none} ${code_sha:+on $branch}"
+  echo "  decisions   : ${ids:-none}"
 }
 
 cmd_status() {

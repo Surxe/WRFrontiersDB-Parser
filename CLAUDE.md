@@ -86,7 +86,7 @@ All from the dev worktree:
 tools/patch_day.sh init <version>    # point the loop at a patch (writes .env, resets review repo)
 tools/patch_day.sh parse             # scratch parse -> /srv/dev/wrf/dev/parsed, sync review repo, write report
 tools/patch_day.sh report            # grouped warnings for the latest scratch parse -> reports/latest.md
-tools/patch_day.sh checkpoint "msg"  # commit review-repo state (next diff is incremental)
+tools/patch_day.sh checkpoint "msg"  # accept a step: commit parser code (patch/<version>) + review repo, linked
 tools/patch_day.sh status            # checkpoints + total diff vs pipeline baseline
 tools/patch_day.sh viewer            # asset viewer for the patch's export, http://127.0.0.1:8765/
 
