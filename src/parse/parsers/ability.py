@@ -1338,6 +1338,7 @@ def p_actor_class(data: dict):
         "StopHealingSoundEvent": None,
         "FriendlyColor": None,
         "Buff": p_actor_class,
+        "BuffClass": p_actor_class, #angler tesla feed drone, shield regen on the marked ally
         "WasSpottedSoundEvent": None, #echo burst
         "SpottedSoundEvent": None,
         "bIndestructible": "value", #ares torso
@@ -1351,6 +1352,7 @@ def p_actor_class(data: dict):
         "SpeedMultiplier": "value", #matriarch nanite field
         "MaxAccelMultiplier": "value",
         "ArmorRegenPercentPerSecond": "value",
+        "ShieldRegenPercentPerSecond": "value", #angler tesla feed buff
         "AbilityClasses": (p_ability_classes, "abilities_refs"), #orbital strike powerup
         "MaxAbilitiesInvocationsCount": "value",
         "ProjectileArmorDamageMult": "value",
