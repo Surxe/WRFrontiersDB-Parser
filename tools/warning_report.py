@@ -93,7 +93,10 @@ MAX_DETAIL_LINES = 12
 # ---------------------------------------------------------------- log reading
 
 def resolve_log(arg: str | None) -> Path:
-    """A log file, a pipeline run dir (-> its NN-parse.log), or None (-> latest run)."""
+    """A log file, a pipeline run dir (-> its NN-parse.log), or None (-> latest run).
+
+    Symlinks are resolved (e.g. patch_day.sh's logs/latest.log): the version, the
+    report's name and the decisions file all come from the real file name."""
     if arg is None:
         runs = sorted(p for p in PIPELINE_LOG_ROOT.glob("*/") if _parse_log_in(p))
         if not runs:
@@ -107,7 +110,7 @@ def resolve_log(arg: str | None) -> Path:
         return found
     if not path.is_file():
         raise SystemExit(f"log not found: {path}")
-    return path
+    return path.resolve()
 
 
 def _parse_log_in(run_dir: Path) -> Path | None:
