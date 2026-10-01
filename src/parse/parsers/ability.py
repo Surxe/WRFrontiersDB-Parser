@@ -337,6 +337,8 @@ class Ability(ParseObject):
             "BuffToOwner": p_actor_class,
             "BuffToTeammate": p_actor_class,
             "bSyncOwnerKickbackFromProjectileAndScaler": "value",
+            "DamageResistance": "value", #paladin's ward
+            "VisibilityConeHalfAngle": "value", #tesla feed, line of sight to the marked ally
         }
 
         my_ability_data = self._process_key_to_parser_function(
@@ -1364,6 +1366,12 @@ def p_actor_class(data: dict):
         "PushSettingsClass": p_push_settings_class,
         "BarrierMeshComponent": None, #mesh
         "OverlapSphere": p_overlap_sphere,
+        "BeamFXSettings": None, #vfx, tesla feed beam
+        "TargetPosParam": None, #vfx param
+        "ShowRayParam": None, #vfx param
+        "FadeOutParam": None, #vfx param
+        "ConnectionOnInstigatorSoundEvent": None, #audio
+        "DisconnectionOnInstigatorSoundEvent": None, #audio
     }
 
     parsed_data = process_key_to_parser_function(
