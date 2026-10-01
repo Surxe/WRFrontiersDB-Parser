@@ -80,6 +80,16 @@ OPTIONS_SCHEMA = {
         "help": "Whether to reclone the data repository from scratch before pushing data. If false, will assume the repository is already cloned at GH_DATA_REPO_DIR and is currently checked out.",
         "help_extended": "Recommended to be True unless running in bulk."
     },
+    "ALLOW_DIRTY_PUSH": {
+        "env": "ALLOW_DIRTY_PUSH",
+        "arg": "--allow-dirty-push",
+        "type": bool,
+        "default": False,
+        "section": "Push Data",
+        "depends_on": ["SHOULD_PUSH_DATA"],
+        "help": "Whether to push data even if the parser's working tree has uncommitted changes. If false, the push is refused, since the data commit is labelled with the parser's HEAD commit and would not match the code that produced it.",
+        "help_extended": "Leave False. Publishing is the pipeline's job, and the pipeline's clone is always clean."
+    },
     "GH_DATA_REPO_PAT": {
         "env": "GH_DATA_REPO_PAT",
         "arg": "--gh-data-repo-pat",

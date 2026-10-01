@@ -171,6 +171,30 @@ def switch_to_target_branch(repo_dir, target_branch):
         # Branch doesn't exist, create it
         raise ValueError(f"Target branch '{target_branch}' does not exist in the repository.")
 
+def ensure_parser_tree_clean():
+    """
+    Refuse to publish from a parser checkout with uncommitted changes.
+
+    The data commit is labelled with the parser's HEAD commit, which is the
+    only record of which parser code produced a publish. If the working tree
+    is dirty, that label names code that didn't produce the output. Set
+    ALLOW_DIRTY_PUSH to publish anyway.
+
+    Raises:
+        RuntimeError: If the tree is dirty and ALLOW_DIRTY_PUSH is not set.
+    """
+    parser_repo_dir = Path(__file__).resolve().parents[2]
+    result = run_git_command(['git', 'status', '--porcelain'], cwd=parser_repo_dir)
+    changes = result.stdout.rstrip()
+    if not changes:
+        return
+
+    message = f"Parser working tree at {parser_repo_dir} has uncommitted changes:\n{changes}"
+    if OPTIONS.allow_dirty_push:
+        logger.warning(f"{message}\nPushing anyway because ALLOW_DIRTY_PUSH is set; the data commit's parser label will not match the code that produced it.")
+        return
+    raise RuntimeError(f"{message}\nCommit or stash them before pushing, or set ALLOW_DIRTY_PUSH to override.")
+
 def get_latest_commit_info():
     """
     Get the latest commit title and date from the current repository.
@@ -341,6 +365,8 @@ def main():
     valid_branches = ['testing-grounds', 'main', 'dev']
     if OPTIONS.target_branch not in valid_branches:
         raise ValueError(f"Invalid branch '{OPTIONS.target_branch}'. Only {valid_branches} are allowed.")
+
+    ensure_parser_tree_clean()
     
     # Configuration
     data_repo_url = f"https://{OPTIONS.gh_data_repo_pat}@github.com/Surxe/WRFrontiersDB-Data.git"

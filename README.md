@@ -98,6 +98,12 @@ python src/run.py --log-level INFO   # Run all steps with default/env values, ex
   - Depends on: `SHOULD_PUSH_DATA`
   - Recommended to be True unless running in bulk.
 
+* **ALLOW_DIRTY_PUSH** - Whether to push data even if the parser's working tree has uncommitted changes. If false, the push is refused, since the data commit is labelled with the parser's HEAD commit and would not match the code that produced it.
+  - Default: `"false"`
+  - Command line: `--allow-dirty-push`
+  - Depends on: `SHOULD_PUSH_DATA`
+  - Leave False. Publishing is the pipeline's job, and the pipeline's clone is always clean.
+
 * **GH_DATA_REPO_PAT** - PAT token to the GitHub repository that stores the data.
   - Example: `"github_pat_XXXXXXXXXXXXXXXX"`
   - Default: None - required when SHOULD_PUSH_DATA is True
