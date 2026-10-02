@@ -13,7 +13,10 @@ triage order:
                     (e.g. analysis:get_ability_stat "index out of range"). These
                     are the likely regressions - existing logic vs. new data.
   unknown-property  process_key_to_parser_function met a key its map doesn't
-                    list: new game data to parse or skip.
+                    list: new game data to parse or skip. Logged at the custom
+                    UNKNOWN_PROPERTY level (just above WARNING); logs from
+                    before 2026-10-01 have these at WARNING, prefixed
+                    "Warning: ".
 
 Each group gets a count, examples, and the export JSON files it points at
 (resolved like the parser / asset viewer do), so a human or agent can open the
@@ -76,18 +79,21 @@ FINISHED_MARKER = "WRFrontiersDB-Parser@run.py finished"
 # "[<timestamp> | ]LEVEL | module:function:line - message"
 LINE_RE = re.compile(
     r"^(?:\d{4}-\d\d-\d\d \d\d:\d\d:\d\d(?:\.\d+)? \| )?"
-    r"(?P<level>TRACE|DEBUG|INFO|SUCCESS|WARNING|ERROR|CRITICAL)\s*\| "
+    r"(?P<level>TRACE|DEBUG|INFO|SUCCESS|UNKNOWN_PROPERTY|WARNING|ERROR|CRITICAL)\s*\| "
     r"(?P<loc>\S+) - (?P<msg>.*)$"
 )
-# src/utils.py process_key_to_parser_function. Also matches the pre-2026-09-29
-# format ("None None" owner, no [parser: ...] suffix).
+# src/utils.py process_key_to_parser_function. Also matches the pre-2026-10-01
+# "Warning: " prefix and the pre-2026-09-29 format ("None None" owner, no
+# [parser: ...] suffix).
 UNKNOWN_RE = re.compile(
-    r"^Warning: (?P<owner>.+?) has unknown property: '(?P<key>[^']*)' of value '(?P<value>.*?)'"
+    r"^(?:Warning: )?(?P<owner>.+?) has unknown property: '(?P<key>[^']*)' of value '(?P<value>.*?)'"
     r"(?:\s+in (?P<desc>.+?))?(?:\s+\[parser: (?P<parser>[^\]]+)\])?\s*$"
 )
 OBJECT_PATH_RE = re.compile(r"/Game/[^'\"\s,}]+")
 ID_RE = re.compile(r"\b[A-Za-z][A-Za-z0-9_]*\.\d+\b")
-LEVELS = ("CRITICAL", "ERROR", "WARNING")
+LEVELS = ("CRITICAL", "ERROR", "WARNING", "UNKNOWN_PROPERTY")
+# Levels an unknown-property message can carry (WARNING in older logs).
+UNKNOWN_LEVELS = ("UNKNOWN_PROPERTY", "WARNING")
 KIND_ORDER = {"error": 0, "warning": 1, "unknown-property": 2}
 MAX_DETAIL_LINES = 12
 
@@ -186,7 +192,7 @@ def _ownerless(key: tuple) -> tuple:
 def group_records(log: Path, max_examples: int) -> "OrderedDict[tuple, dict]":
     groups: "OrderedDict[tuple, dict]" = OrderedDict()
     for level, loc, msg, detail in read_records(log):
-        um = UNKNOWN_RE.match(msg) if level == "WARNING" else None
+        um = UNKNOWN_RE.match(msg) if level in UNKNOWN_LEVELS else None
         if um:
             owner = um["owner"].strip()
             if owner in ("None None", "(no parse object)"):

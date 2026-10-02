@@ -514,14 +514,15 @@ class _WrapperObject(MockObject):
 
 
 class TestUnknownPropertyWarning(unittest.TestCase):
-    """The unknown-property warning names its owner and the parser that owns the key map.
+    """The unknown-property message logs at UNKNOWN_PROPERTY and names its owner and
+    the parser that owns the key map.
 
     tools/warning_report.py parses this message; keep the two in sync.
     """
 
     def setUp(self):
         self.messages = []
-        self.sink_id = src_utils.logger.add(self.messages.append, format="{message}", level="WARNING")
+        self.sink_id = src_utils.logger.add(self.messages.append, format="{message}", level=src_utils.UNKNOWN_PROPERTY_LEVEL)
 
     def tearDown(self):
         src_utils.logger.remove(self.sink_id)
@@ -533,21 +534,40 @@ class TestUnknownPropertyWarning(unittest.TestCase):
     def test_names_obj_and_parser_location(self):
         process_key_to_parser_function({}, {"NewKey": 1.5}, MockObject(), log_descriptor="SpawnAction")
         msg = self._only_message()
-        self.assertTrue(msg.startswith("Warning: MockObject mock_object_id has unknown property: 'NewKey' of value '1.5' in SpawnAction [parser: "))
+        self.assertTrue(msg.startswith("MockObject mock_object_id has unknown property: 'NewKey' of value '1.5' in SpawnAction [parser: "))
         self.assertIn("tests/test_utils/test_process_key_to_parser_function.py:", msg)
         self.assertTrue(msg.endswith(" test_names_obj_and_parser_location]"))
 
     def test_no_obj_outside_parse(self):
         process_key_to_parser_function({}, {"NewKey": "v"}, obj=None, set_attrs=False)
         msg = self._only_message()
-        self.assertTrue(msg.startswith("Warning: (no parse object) has unknown property: 'NewKey' of value 'v' [parser: "))
+        self.assertTrue(msg.startswith("(no parse object) has unknown property: 'NewKey' of value 'v' [parser: "))
 
     def test_no_obj_uses_enclosing_parse_object(self):
         with src_utils.parse_context(MockObject()):
             process_key_to_parser_function({}, {"NewKey": "v"}, obj=None, log_descriptor="ActorClass", set_attrs=False)
         msg = self._only_message()
-        self.assertIn("Warning: MockObject mock_object_id has unknown property: 'NewKey' of value 'v' in ActorClass [parser: ", msg)
+        self.assertIn("MockObject mock_object_id has unknown property: 'NewKey' of value 'v' in ActorClass [parser: ", msg)
         self.assertNotIn("None None", msg)
+
+    def test_logs_at_unknown_property_level(self):
+        process_key_to_parser_function({}, {"NewKey": 1}, MockObject())
+        self.assertEqual(len(self.messages), 1)
+        self.assertEqual(self.messages[0].record["level"].name, "UNKNOWN_PROPERTY")
+
+    def test_level_is_just_above_warning(self):
+        level = src_utils.logger.level(src_utils.UNKNOWN_PROPERTY_LEVEL).no
+        self.assertGreater(level, src_utils.logger.level("WARNING").no)
+        self.assertLess(level, src_utils.logger.level("ERROR").no)
+
+    def test_shown_by_warning_sink(self):
+        warnings = []
+        sink_id = src_utils.logger.add(warnings.append, format="{message}", level="WARNING")
+        try:
+            process_key_to_parser_function({}, {"NewKey": 1}, MockObject())
+        finally:
+            src_utils.logger.remove(sink_id)
+        self.assertEqual(len(warnings), 1)
 
     def test_parse_context_is_popped(self):
         with src_utils.parse_context(MockObject()):

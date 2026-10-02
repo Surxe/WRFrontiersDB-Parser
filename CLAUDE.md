@@ -62,15 +62,17 @@ Decision rules, as established in past patch PRs:
 Only an exception stops the pipeline (and the data push). Everything else is
 published, and the level is how it gets noticed: `raise` if continuing would
 publish garbage, `logger.error` if output is knowingly wrong/incomplete in a way
-that matters, `logger.warning` for unhandled-but-harmless. Full rules:
+that matters, `logger.warning` for unhandled-but-harmless. Unknown properties
+log at the custom `UNKNOWN_PROPERTY` level (no 31, just above WARNING's 30), so
+they are counted apart from real warnings. Full rules:
 `STANDARDS.md` -> *Choosing a Log Level*. When fixing a warning that turned out to
 hide real data loss, elevate that call to `logger.error`.
 
-The unknown-property warning names the owning object and the parser code that
+The unknown-property message names the owning object and the parser code that
 owns the key map:
 
 ```
-Warning: Ability BP_Module_Angler_Torso.1 has unknown property: 'ActorsType' of value '1' in ConfirmationAction [parser: src/parse/parsers/ability.py:520 _p_targeting_action]
+UNKNOWN_PROPERTY | utils:process_key_to_parser_function:470 - Ability BP_Module_Angler_Torso.1 has unknown property: 'ActorsType' of value '1' in ConfirmationAction [parser: src/parse/parsers/ability.py:520 _p_targeting_action]
 ```
 
 Module-level `p_*` helpers have no object of their own; the owner is then the
