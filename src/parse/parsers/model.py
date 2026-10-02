@@ -7,7 +7,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 For every parsed CharacterModule that carries a mesh, read the exported art assets
 (SK_*.json mesh meta, SKEL_*.json skeleton + sockets, PHYS_*.json physics capsules,
-SK_*.uemodel geometry) and emit ONE compact JSON per module:
+SK_*.uemodel geometry + the mesh's own reference skeleton, which the bone poses
+come from) and emit ONE compact JSON per module:
 
     <output_dir>/Models/<CharacterModuleId>.json
 
@@ -50,13 +51,18 @@ def _fstr(b, i):
     n, i = _i32(b, i)
     return b[i:i + n].decode('utf-8', 'replace'), i + n
 
-def read_ueformat_payload(raw: bytes):
-    """Return the decompressed chunk payload from a .uemodel file (UEFormat v9/v10)."""
+def read_ueformat_version(raw: bytes):
+    """UEFormat file version: the byte after the identifier fstring."""
     if raw[:8] != b'UEFORMAT':
         raise ValueError("not a UEFORMAT file")
-    i = 8
-    ident, i = _fstr(raw, i)
-    ver, i = raw[i], i + 1
+    ident, i = _fstr(raw, 8)
+    return raw[i]
+
+def read_ueformat_payload(raw: bytes):
+    """Return the decompressed chunk payload from a .uemodel file (UEFormat v9/v10)."""
+    ver = read_ueformat_version(raw)
+    ident, i = _fstr(raw, 8)
+    i += 1
     # v10+ adds an ObjectPath fstring before the compression flag; v9 doesn't.
     # Locate the compression marker robustly instead of walking the header.
     for ctype in (b'ZSTD', b'GZIP', b'LZ4'):
@@ -110,6 +116,37 @@ def load_ueformat_mesh(uemodel_path):
     if indices and max(indices) >= vc:
         raise ValueError(f"{uemodel_path}: index out of range")
     return verts, indices
+
+def load_ueformat_bones(uemodel_path):
+    """Read the mesh's own reference skeleton (BONES chunk) from a .uemodel file.
+
+    Each record is [fstring name][i32 parent][3f pos][4f quat xyzw], plus [3f scale]
+    from v10. Returns local (parent-relative) bones in the model schema -- `scale`
+    is None before v10 -- or None when the file has no BONES chunk."""
+    raw = open(uemodel_path, 'rb').read()
+    ver = read_ueformat_version(raw)
+    d = read_ueformat_payload(raw)
+    ch = find_ueformat_chunk(d, 'BONES')
+    if not ch:
+        return None
+    count, i, _ = ch
+    bones = []
+    for _ in range(count):
+        name, i = _fstr(d, i)
+        parent, i = _i32(d, i)
+        pos = struct.unpack_from('<3f', d, i); i += 12
+        rot = struct.unpack_from('<4f', d, i); i += 16
+        scale = None
+        if ver >= 10:
+            scale = [round(s, 4) for s in struct.unpack_from('<3f', d, i)]; i += 12
+        bones.append({
+            'name': name,
+            'parent': parent,
+            'pos': [round(p, 3) for p in pos],
+            'rot': [round(r, 6) for r in rot],
+            'scale': scale,
+        })
+    return bones
 
 
 # ---------------- asset resolution ----------------
@@ -183,6 +220,36 @@ def _extract_skeleton(skel_json):
             'rot': [round(rot.get('Pitch', 0), 4), round(rot.get('Yaw', 0), 4), round(rot.get('Roll', 0), 4)],
         })
     return bones, sockets
+
+def _merge_mesh_bones(mesh_bones, skel_bones, sockets):
+    """Module bones = the mesh's own reference skeleton, then any SKEL-only bones.
+
+    The shared USkeleton's ref pose is not the pose the mesh is bound to: it
+    drifts with whichever mesh was merged into it last, and re-exports have
+    shifted whole bone sets by 100x. The mesh's own skeleton matches its
+    vertices, so its bones win. SKEL bones the mesh lacks (sockets or physics
+    can still name them) are appended in SKEL order with their SKEL poses, which
+    keeps parents before children. Socket bone indices are remapped in place.
+    """
+    bones = []
+    for b in mesh_bones:
+        b = dict(b)
+        if b['scale'] is None:
+            # Pre-v10 .uemodel has no bone scale; take the skeleton's.
+            skel = next((s for s in skel_bones if s['name'] == b['name']), None)
+            b['scale'] = skel['scale'] if skel else [1.0, 1.0, 1.0]
+        bones.append(b)
+    name2i = {b['name']: i for i, b in enumerate(bones)}
+    for b in skel_bones:
+        if b['name'] in name2i:
+            continue
+        parent = skel_bones[b['parent']]['name'] if b['parent'] >= 0 else None
+        name2i[b['name']] = len(bones)
+        bones.append({**b, 'parent': name2i.get(parent, -1)})
+    for s in sockets:
+        if s['bone'] >= 0:
+            s['bone'] = name2i.get(skel_bones[s['bone']]['name'], -1)
+    return bones
 
 def _rot3(rot):
     return [round(rot.get('Pitch', 0), 4), round(rot.get('Yaw', 0), 4), round(rot.get('Roll', 0), 4)]
@@ -318,6 +385,18 @@ def _extract_adapters(adapter_refs):
 
 # ---------------- per-module model ----------------
 
+def _load_mesh_bones(module_id, uemodel):
+    """The mesh's own reference skeleton, or None (falls back to the SKEL pose)."""
+    uemodel_path = resolve_path_case_insensitive(uemodel)
+    if not os.path.exists(uemodel_path):
+        return None
+    try:
+        return load_ueformat_bones(uemodel_path)
+    except Exception as e:
+        logger.warning(f"Model extraction {module_id}: could not read mesh bones from {uemodel_path}, "
+                       f"using the skeleton asset's ref pose: {e}")
+        return None
+
 def extract_module_model(character_module):
     """Build the minimal model structure for one CharacterModule. Returns dict or None."""
     mesh_refs = getattr(character_module, 'meshes', []) or []
@@ -348,6 +427,9 @@ def extract_module_model(character_module):
                 if not bones:
                     # First skeletal mesh defines the module skeleton; later
                     # components (e.g. the 4 chassis legs) share it.
+                    mesh_bones = _load_mesh_bones(character_module.id, uemodel)
+                    if mesh_bones:
+                        m_bones = _merge_mesh_bones(mesh_bones, m_bones, m_sockets)
                     bones = m_bones
                     sockets = m_sockets
             except Exception as e:
