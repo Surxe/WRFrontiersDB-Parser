@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
-# Patch-day parser dev loop on the home-server: re-parse a patch's export with
+# Patch-day parser dev loop: re-parse a patch's export with
 # the parser you are editing, into scratch dirs, and review what changed in the
 # parsed output as a git diff (VS Code Source Control).
 #
-# Run it from the parser DEV WORKTREE (/srv/dev/repos/WRFrontiersDB-Parser-dev),
-# never from the pipeline's clone. It never pushes data. The full human process
+# It never pushes data. The full human process
 # is in WRFrontiersDB-Orchestrator/PATCH_DAY.md; the agent process is the
 # patch-warnings skill (.claude/skills/patch-warnings/SKILL.md).
 #
@@ -24,7 +23,7 @@
 #   tools/patch_day.sh status             version, checkpoints, diff vs baseline
 #   tools/patch_day.sh viewer [args]      asset viewer on the patch's export
 #
-# Layout (all under $WRF_ROOT/dev, default /srv/dev/wrf/dev):
+# Layout (all under $WRF_ROOT/dev):
 #   VERSION        the patch version the loop is pointed at
 #   parsed/        scratch OUTPUT_DIR (cleared by every parse)
 #   textures/      scratch TEXTURE_OUTPUT_DIR
@@ -45,11 +44,7 @@ PY="$REPO_DIR/.venv/bin/python"
 
 die() { echo "patch_day: $*" >&2; exit 1; }
 
-require_dev_worktree() {
-  local branch
-  branch="$(git -C "$REPO_DIR" rev-parse --abbrev-ref HEAD)"
-  [[ "$branch" != "main" ]] \
-    || die "on 'main' in $REPO_DIR - this looks like the pipeline's clone. Run from the dev worktree on a patch branch."
+require_venv() {
   [[ -x "$PY" ]] || die "no venv at $REPO_DIR/.venv (python3 -m venv .venv && .venv/bin/pip install -r requirements.txt)"
 }
 
@@ -58,7 +53,7 @@ version() {
   cat "$VERSION_FILE"
 }
 
-# Set KEY="value" in the worktree's .env (created from .env.example if missing).
+# Set KEY="value" in the repo's .env (created from .env.example if missing).
 set_env() {
   local env_file="$REPO_DIR/.env" key="$1" value="$2"
   [[ -f "$env_file" ]] || cp "$REPO_DIR/.env.example" "$env_file"
@@ -72,7 +67,7 @@ set_env() {
 cmd_init() {
   local v="${1:-}"
   [[ "$v" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}(-[0-9]+)?$ ]] || die "usage: init <yyyy-mm-dd[-N]>"
-  require_dev_worktree
+  require_venv
   local exports="$WRF_ROOT/data/exports/$v" pipeline_parsed="$WRF_ROOT/data/parsed/$v"
   [[ -d "$exports" ]] || die "no export for $v at $exports"
   [[ -d "$pipeline_parsed" ]] || die "no pipeline parse for $v at $pipeline_parsed"
@@ -115,7 +110,7 @@ cmd_sync() {
 }
 
 cmd_parse() {
-  require_dev_worktree
+  require_venv
   local v stamp log rc
   v="$(version)"
   stamp="$(date +%Y%m%d_%H%M%S)"
@@ -187,7 +182,7 @@ PY
 cmd_checkpoint() {
   [[ $# -ge 1 ]] || die "usage: checkpoint <message>"
   [[ -d "$REVIEW_DIR/.git" ]] || die "no review repo - run init first"
-  require_dev_worktree
+  require_venv
   local msg="$*" v branch code_files data_changed=0 log stale="" f ids code_sha="" review_sha
   v="$(version)"
   branch="$(git -C "$REPO_DIR" rev-parse --abbrev-ref HEAD)"
@@ -232,7 +227,7 @@ cmd_status() {
   local v
   v="$(version)"
   echo "version  : $v"
-  echo "worktree : $REPO_DIR ($(git -C "$REPO_DIR" rev-parse --abbrev-ref HEAD))"
+  echo "repo     : $REPO_DIR ($(git -C "$REPO_DIR" rev-parse --abbrev-ref HEAD))"
   if [[ -d "$REVIEW_DIR/.git" ]]; then
     echo "checkpoints:"
     git -C "$REVIEW_DIR" log --oneline | sed 's/^/  /'

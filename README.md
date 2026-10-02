@@ -28,10 +28,9 @@ To leave the virtual environment, run `deactivate`.
 ## Patch-day development
 
 A new game patch usually brings data the parser doesn't handle yet; the parse
-still completes and publishes, logging each gap as a warning. On the home-server
-the fix happens in a dedicated dev worktree, never in the clone the pipeline runs:
+still completes and publishes, logging each gap as a warning. Tooling for the fix:
 
-* [`CLAUDE.md`](CLAUDE.md) - checkouts, key-map conventions, parse-vs-skip rules, log levels.
+* [`CLAUDE.md`](CLAUDE.md) - key-map conventions, parse-vs-skip rules, log levels.
 * `tools/warning_report.py` - groups a parse log's thousands of lines into a short triage report, written to `reports/latest.md` (gitignored) for VS Code's markdown preview, and tracks a parse/skip/fix decision per group in `decisions/<version>.json` (gitignored, local only).
 * `tools/patch_day.sh` - scratch parse + a git "review repo" of the parsed output, so each parser change shows up as a diff in VS Code.
 * `tools/asset-viewer/serve.py` - click through the exported JSON (reads `EXPORT_DIR` from `.env`).
@@ -102,7 +101,7 @@ python src/run.py --log-level INFO   # Run all steps with default/env values, ex
   - Default: `"false"`
   - Command line: `--allow-dirty-push`
   - Depends on: `SHOULD_PUSH_DATA`
-  - Leave False. Publishing is the pipeline's job, and the pipeline's clone is always clean.
+  - Leave False. Publishing is the pipeline's job.
 
 * **GH_DATA_REPO_PAT** - PAT token to the GitHub repository that stores the data.
   - Example: `"github_pat_XXXXXXXXXXXXXXXX"`
