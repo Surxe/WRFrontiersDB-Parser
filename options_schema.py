@@ -88,7 +88,7 @@ OPTIONS_SCHEMA = {
         "section": "Push Data",
         "depends_on": ["SHOULD_PUSH_DATA"],
         "help": "Whether to push data even if the parser's working tree has uncommitted changes. If false, the push is refused, since the data commit is labelled with the parser's HEAD commit and would not match the code that produced it.",
-        "help_extended": "Leave False. Publishing is the pipeline's job, and the pipeline's clone is always clean."
+        "help_extended": "Leave False. Publishing is the pipeline's job."
     },
     "GH_DATA_REPO_PAT": {
         "env": "GH_DATA_REPO_PAT",

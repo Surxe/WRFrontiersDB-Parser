@@ -1,22 +1,12 @@
 # WRFrontiersDB-Parser - agent context
 
 Parses the Exporter's JSON dump of War Robots Frontiers into the objects that
-WRFrontiersDB-Data publishes and WRFrontiersDB-Site renders. On the home-server
-it runs as the PARSE/PUSH stage of **WRFrontiersDB-Orchestrator** after every
+WRFrontiersDB-Data publishes and WRFrontiersDB-Site renders. In the pipeline it
+runs as the PARSE/PUSH stage of **WRFrontiersDB-Orchestrator** after every
 game patch. Nearly every patch adds data the parser has not seen, so this is the
 one repo that changes on every patch; the human process for that is
 `WRFrontiersDB-Orchestrator/PATCH_DAY.md`, and the agent process is the
 `patch-warnings` skill (`.claude/skills/patch-warnings/SKILL.md`).
-
-## Two checkouts - never develop in the pipeline's
-
-| Path | Role |
-| --- | --- |
-| `/srv/dev/repos/WRFrontiersDB-Parser` | **Pipeline clone.** Always `main`, always clean, no `.env` (the orchestrator passes every option as an argument). The orchestrator runs whatever is checked out here, so never edit it; it only moves by `git pull --ff-only` after a PR merges. |
-| `/srv/dev/repos/WRFrontiersDB-Parser-dev` | **Dev worktree** (`git worktree` of the same repo). Patch work happens here on a `patch/<version>` branch, with its own `.venv` and a `.env` written by `tools/patch_day.sh init`. It cannot check out `main` (the pipeline clone has it); park it detached at `origin/main` between patches. |
-
-Other WRF repos (Orchestrator, Exporter, Site, Data) are developed on the home
-PC; patch-day work only touches this one.
 
 ## Layout
 
@@ -82,11 +72,11 @@ together (tests: `tests/test_utils/test_process_key_to_parser_function.py`).
 
 ## Patch-day tools
 
-All from the dev worktree:
+Paths below are under `$WRF_ROOT` (see `tools/patch_day.sh`).
 
 ```bash
 tools/patch_day.sh init <version>    # point the loop at a patch (writes .env, resets review repo)
-tools/patch_day.sh parse             # scratch parse -> /srv/dev/wrf/dev/parsed, sync review repo, write report
+tools/patch_day.sh parse             # scratch parse -> $WRF_ROOT/dev/parsed, sync review repo, write report
 tools/patch_day.sh report            # grouped warnings for the latest scratch parse -> reports/latest.md
 tools/patch_day.sh checkpoint "msg"  # accept a step: commit parser code (patch/<version>) + review repo, linked
 tools/patch_day.sh status            # checkpoints + total diff vs pipeline baseline
@@ -95,9 +85,9 @@ tools/patch_day.sh viewer            # asset viewer for the patch's export, http
 .venv/bin/python tools/warning_report.py [LOG|RUN_DIR]   # default: latest pipeline run; --stdout to print
 ```
 
-- The **review repo** `/srv/dev/wrf/dev/parsed-review` is a scratch git repo:
+- The **review repo** `$WRF_ROOT/dev/parsed-review` is a scratch git repo:
   commit `baseline` = the pipeline's parse of the patch, working tree = the latest
-  scratch parse. `git -C /srv/dev/wrf/dev/parsed-review diff` (or VS Code Source
+  scratch parse. `git -C $WRF_ROOT/dev/parsed-review diff` (or VS Code Source
   Control with the folder in the workspace) shows exactly what a parser change
   did to the output.
 - `warning_report.py` groups a log into `error` / `warning` / `unknown-property`
@@ -117,10 +107,10 @@ tools/patch_day.sh viewer            # asset viewer for the patch's export, http
   group. Earlier versions' decisions for the same id show as `previous`. The
   report renders status + proposal per group, so `reports/latest.md` is also the
   patch's progress tracker. `--no-decisions` skips all of it.
-- Exports live at `/srv/dev/wrf/data/exports/<version>/WRFrontiers/Content/...`
-  and the pipeline's parsed output at `/srv/dev/wrf/data/parsed/<version>/`; the
-  pipeline keeps the 2 newest versions of both, so the previous patch's export and
-  parsed output are there for comparison (except after its first run on this box).
+- Pipeline exports live at `$WRF_ROOT/data/exports/<version>/WRFrontiers/Content/...`
+  and its parsed output at `$WRF_ROOT/data/parsed/<version>/`; the pipeline keeps
+  the 2 newest versions of both, so the previous patch's export and parsed output
+  are there for comparison (except after the pipeline's first run on a machine).
   An object id `Foo.1` is element `[1]` of `Foo.json`.
 
 ## Rules
