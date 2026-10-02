@@ -1,5 +1,6 @@
 # Can be run directly for convenience, but only offers env vars, and not arguments. For running just push with args, use run.py with --should-push-data
 
+import base64
 import sys
 import os
 import stat
@@ -16,6 +17,37 @@ from options import OPTIONS
 from loguru import logger
 
 SECRET_MASK = "********"
+
+# The remote URL never carries the PAT: a PAT embedded in the URL is written to the
+# clone's .git/config and stays readable on disk between runs. git_auth_env() hands
+# the PAT to each git process through its environment instead.
+DATA_REPO_URL = "https://github.com/Surxe/WRFrontiersDB-Data.git"
+
+
+def _basic_auth_value(pat):
+    """Base64 credentials for an HTTP Authorization header."""
+    return base64.b64encode(f"x-access-token:{pat}".encode()).decode()
+
+
+def git_auth_env():
+    """
+    Environment variables that authenticate git to GitHub with the data repo PAT.
+
+    Uses git's GIT_CONFIG_COUNT/KEY/VALUE environment config (git 2.31+) to set an
+    http.extraheader for this one process, the way actions/checkout authenticates,
+    so nothing is written to .git/config.
+
+    Returns:
+        Dict of environment variables, or an empty dict when no PAT is configured.
+    """
+    pat = getattr(OPTIONS, "gh_data_repo_pat", None) if OPTIONS else None
+    if not pat:
+        return {}
+    return {
+        'GIT_CONFIG_COUNT': '1',
+        'GIT_CONFIG_KEY_0': 'http.https://github.com/.extraheader',
+        'GIT_CONFIG_VALUE_0': f"AUTHORIZATION: basic {_basic_auth_value(pat)}",
+    }
 
 
 def redact_secrets(text):
@@ -43,6 +75,8 @@ def redact_secrets(text):
         value = str(value)
         if value:
             result = result.replace(value, SECRET_MASK)
+            # Also its encoded form, as sent in git_auth_env()'s header.
+            result = result.replace(_basic_auth_value(value), SECRET_MASK)
     return result
 
 
@@ -70,6 +104,7 @@ def run_git_command(cmd, cwd=None, capture_output=True, check=True, log_output=F
         'GIT_CONFIG_GLOBAL': '/dev/null',
         'HOME': env.get('USERPROFILE', env.get('HOME', ''))
     })
+    env.update(git_auth_env())
     
     if log_command_str:
         logger.debug(f"Running git command: {redact_secrets(' '.join(cmd))}")
@@ -140,14 +175,12 @@ def configure_git_repo(repo_dir):
     """
     logger.debug("Configuring Git settings...")
     
-    # Ensure the remote URL contains the PAT for authentication
-    data_repo_url = f"https://{OPTIONS.gh_data_repo_pat}@github.com/Surxe/WRFrontiersDB-Data.git"
-    
     commands = [
         ['git', 'config', '--local', 'user.email', 'parser@example.com'],
         ['git', 'config', '--local', 'user.name', 'Parser'],
         ['git', 'config', '--local', 'credential.helper', ''],
-        ['git', 'remote', 'set-url', 'origin', data_repo_url]
+        # Plain URL: also scrubs a PAT that older parser versions embedded in it.
+        ['git', 'remote', 'set-url', 'origin', DATA_REPO_URL]
     ]
     
     for cmd in commands:
@@ -369,7 +402,7 @@ def main():
     ensure_parser_tree_clean()
     
     # Configuration
-    data_repo_url = f"https://{OPTIONS.gh_data_repo_pat}@github.com/Surxe/WRFrontiersDB-Data.git"
+    data_repo_url = DATA_REPO_URL
     data_repo_dir = OPTIONS.gh_data_repo_dir
     output_dir = OPTIONS.output_dir or "output"
     
