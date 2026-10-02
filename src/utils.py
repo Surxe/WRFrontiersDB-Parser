@@ -10,6 +10,16 @@ import sys
 from contextlib import contextmanager
 from options import OPTIONS
 
+# Unknown properties (new game data not yet parsed or skipped) log at their own
+# level, just above WARNING (so a WARNING log level still shows them), so they
+# can be counted apart from the warnings raised by parser checks.
+# tools/warning_report.py and the orchestrator's run report match the name.
+UNKNOWN_PROPERTY_LEVEL = "UNKNOWN_PROPERTY"
+try:
+    logger.level(UNKNOWN_PROPERTY_LEVEL)
+except ValueError:
+    logger.level(UNKNOWN_PROPERTY_LEVEL, no=31, color="<magenta>")
+
 ###############################
 #             FILE            #
 ###############################
@@ -457,7 +467,7 @@ def process_key_to_parser_function(key_to_parser_function_map, data, obj=None, l
         if not key in key_to_parser_function_map:
             # Format is parsed by tools/warning_report.py - keep them in sync.
             owner = _describe_parse_owner(obj)
-            logger.warning(f"Warning: {owner} has unknown property: '{key}' of value '{value}'{log_descriptor} [parser: {_caller_parser_location()}]")
+            logger.log(UNKNOWN_PROPERTY_LEVEL, f"{owner} has unknown property: '{key}' of value '{value}'{log_descriptor} [parser: {_caller_parser_location()}]")
         
         else:
             config = key_to_parser_function_map[key]
