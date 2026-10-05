@@ -27,7 +27,8 @@ from parsers.stat import Stat
 
 PILOT_TYPE_LEGENDARY_REF = 'OBJID_PilotType::DA_PilotType_Legendary.0'
 
-def slugify(text: str) -> str:
+def generate_robot_id(text: str) -> str:
+    """Generate a robot ID from its display name, e.g. "Ares Mk II" -> "ares-mk-ii"."""
     if not text:
         return ""
     text = text.lower()
@@ -196,7 +197,7 @@ def enrich_modules_with_bots():
                             break
 
             bot_name_str = get_default_string(bot_name_localization) or first_preset_id
-            bot_id = slugify(bot_name_str)
+            bot_id = generate_robot_id(bot_name_str)
 
             # Map all virtual bot modules in this preset to this bot_id
             for m_data in preset.modules:
@@ -275,7 +276,7 @@ def enrich_modules_with_bots():
                     
                 # Check if this preset has titan weapons
                 bot_name = get_default_string(preset.name) or preset_id
-                bot_slug = slugify(bot_name)
+                bot_id = generate_robot_id(bot_name)
                 
                 # Look for titan weapons in this preset
                 for m_data in preset.modules:
@@ -288,13 +289,13 @@ def enrich_modules_with_bots():
                             group_id = ModuleGroup.get_group_id_for_type(type_id)
                             if group_id == 'titan-weapon':
                                 # Find the virtual bot with the same name
-                                if bot_slug in virtual_bots:
+                                if bot_id in virtual_bots:
                                     m_ref = Module.id_to_ref(m_id)
-                                    if m_ref not in virtual_bots[bot_slug].core_module_refs:
-                                        virtual_bots[bot_slug].core_module_refs.append(m_ref)
+                                    if m_ref not in virtual_bots[bot_id].core_module_refs:
+                                        virtual_bots[bot_id].core_module_refs.append(m_ref)
                                         # Also update the core_module_to_bot_id mapping
-                                        core_module_to_bot_id[m_id] = bot_slug
-                                        logger.info(f"Added titan weapon {m_id} to virtual bot {bot_slug} from AI bot {bot_name}")
+                                        core_module_to_bot_id[m_id] = bot_id
+                                        logger.info(f"Added titan weapon {m_id} to virtual bot {bot_id} from AI bot {bot_name}")
 
     # Finally, enrich Module objects with virtual_bot_ref and shoulder_side
     for module_id, module in Module.objects.items():
