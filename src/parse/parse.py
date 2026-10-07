@@ -30,6 +30,7 @@ from parsers.module_group import ModuleGroup
 from parsers.shop_card import ShopCard, parse_shop_cards
 from parsers.rarity_upgrade_cost import RarityUpgradeCost
 from parsers.stat import Stat
+from parsers.armor_zone import ArmorZone, parse_armor_zones
 def main():
     """Main parsing function - uses global OPTIONS singleton."""
     os.makedirs(OPTIONS.output_dir, exist_ok=True)
@@ -37,6 +38,7 @@ def main():
 
     parse_localizations()
     parse_modules() #module relies on english localization being added to each key just as a helpful Ctrl+F reference
+    parse_armor_zones()  # roles for the zones module meshes link; after parse_modules() so unnamed zones are reported
     parse_pilots()  # Pilot parser relies on module data being parsed first
     parse_progression_table()
     parse_game_modes()
@@ -80,6 +82,7 @@ def main():
     UpgradeCost.to_file()
     ScrapReward.to_file()
     MovementType.to_file()
+    ArmorZone.to_file()
 
     Pilot.to_file()
     PilotType.to_file()
