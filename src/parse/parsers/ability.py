@@ -597,6 +597,9 @@ class Ability(ParseObject):
                 "bAlwaysRelevant": None, #no clue what this means
                 "InitialLifeSpan": "value",
                 "CanBeTransfused": ("value", "CanBeTransferred"), # fairly positive this is referring to loki decoy transferring statuses
+                "AllyHealRatio": "value", #fraction of ally's max armor restored on hit (e.g. Tyr repairing shot)
+                "SelfHealRatio": "value", #fraction of heal amount returned to self (e.g. Tyr repairing shot)
+                "ReturnDelay": "value", #delay (s) before return heal applies (e.g. Tyr repairing shot)
                 "RootComponent": None,
                 "Stream": None,
                 "DamgeZoneMultiplyer": "value", #blast wave
@@ -781,10 +784,11 @@ def p_expansion_template(data: dict):
         "Type": parse_colon_colon,
         "ExpansionDistance": "value",
         "bFactorGravityIntoExpansion": "value",
-        "ExpansionSettings": p_expansion_settings, 
+        "ExpansionSettings": p_expansion_settings,
         "InitialRadius": "value",
         "FinishRadius": "value",
         "bWithCenter": "value", #crix
+        "SpinRatePerCm": "value", #spiral rotation rate per cm travelled
     }
     return process_key_to_parser_function(key_to_parser_function, props, log_descriptor="ExpansionTemplate", set_attrs=False, default_configuration={
         'target': ParseTarget.MATCH_KEY
