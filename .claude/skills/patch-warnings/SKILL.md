@@ -1,6 +1,7 @@
 ---
 name: patch-warnings
 description: Patch-day parser work - triage a patch's parse warnings/errors, agree parse/skip/fix decisions with the user, implement them in the parser, verify with scratch parses + the parsed-output diff, and open the PR. Use when the user runs /patch-warnings [version], or asks to handle / triage / fix the parser warnings from a patch-day run.
+argument-hint: "[version yyyy-mm-dd[-N]; default: latest completed pipeline run]"
 ---
 
 # patch-warnings
@@ -11,14 +12,19 @@ The user makes the calls at two gates and reviews the output diff in VS Code. Th
 human side of the same process is `WRFrontiersDB-Orchestrator/PATCH_DAY.md`;
 repo context is this repo's `CLAUDE.md` (read it first if you haven't).
 
-Argument: the patch version (`yyyy-mm-dd[-N]`). If omitted, use the version of
-the latest pipeline run: `grep -o 'version=[^ ]*' $WRF_ROOT/logs/<latest>/run.log`.
+Argument: the patch version (`yyyy-mm-dd[-N]`), optional - omitted means the
+latest completed pipeline run. Either way, `tools/patch_day.sh resolve [version]`
+turns it into `<version> <run-dir>` (the run used in Phase 1).
 
 Run everything from this repo. Never push data, never read a whole log or export file (use the report, `grep -n`, `jq`,
 `sed -n`).
 
 ## Phase 0 - Set up
 
+0. `tools/patch_day.sh resolve [version]`, before anything else (the branch name
+   depends on it). If it fails, the given version has no export: stop and ask,
+   quoting its message (it lists the versions on disk and the latest run) - don't
+   substitute a version yourself. Use the printed `<version>` and `<run-dir>` below.
 1. Repo state: `git status -sb`.
    - Uncommitted changes that aren't this patch's -> stop and ask.
    - Already on `patch/<version>` -> resuming; skip to the phase the state implies
@@ -35,7 +41,7 @@ Run everything from this repo. Never push data, never read a whole log or export
 .venv/bin/python tools/warning_report.py $WRF_ROOT/logs/<run-dir>
 ```
 
-(`<run-dir>` = the pipeline run for this version; no argument = latest run.)
+(`<run-dir>` from Phase 0's `resolve`.)
 It writes `reports/pipeline_<run-dir>.md` and `reports/latest.md` and prints the
 path + group count line; read the report file. Point the user at
 `reports/latest.md` (VS Code: open it, `Ctrl+Shift+V` for the preview) and give

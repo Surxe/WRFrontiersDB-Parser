@@ -75,6 +75,7 @@ together (tests: `tests/test_utils/test_process_key_to_parser_function.py`).
 Paths below are under `$WRF_ROOT` (see `tools/patch_day.sh`).
 
 ```bash
+tools/patch_day.sh resolve [version] # "<version> <run-dir>" of the latest completed run; validates a given version
 tools/patch_day.sh init <version>    # point the loop at a patch (writes .env, resets review repo)
 tools/patch_day.sh parse             # scratch parse -> $WRF_ROOT/dev/parsed, sync review repo, write report
 tools/patch_day.sh report            # grouped warnings for the latest scratch parse -> reports/latest.md
