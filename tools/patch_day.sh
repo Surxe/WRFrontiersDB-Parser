@@ -7,6 +7,9 @@
 # is in WRFrontiersDB-Orchestrator/PATCH_DAY.md; the agent process is the
 # patch-warnings skill (.claude/skills/patch-warnings/SKILL.md).
 #
+#   tools/patch_day.sh resolve [version]  print "<version> <run-dir>": the newest
+#                                         completed pipeline run (of <version>, if
+#                                         given); fails listing the versions on disk
 #   tools/patch_day.sh init <version>     point the loop at a patch: write .env,
 #                                         reset the review repo to the pipeline's
 #                                         parsed output for <version> (baseline)
@@ -62,6 +65,27 @@ set_env() {
   else
     printf '%s="%s"\n' "$key" "$value" >> "$env_file"
   fi
+}
+
+# Newest completed pipeline run dir (of version $1, if given), as "<version> <run-dir>".
+latest_run() {
+  local want="${1:-}" d v
+  for d in $(ls -1r "$WRF_ROOT/logs"); do
+    [[ -f "$WRF_ROOT/logs/$d/run.log" ]] || continue
+    grep -q 'Pipeline complete' "$WRF_ROOT/logs/$d/run.log" || continue
+    v="$(grep -om1 'version=[^ ]*' "$WRF_ROOT/logs/$d/run.log" | cut -d= -f2)" || continue
+    [[ -z "$want" || "$v" == "$want" ]] && { echo "$v $d"; return 0; }
+  done
+  return 1
+}
+
+cmd_resolve() {
+  local v="${1:-}" found
+  if [[ -n "$v" && ! -d "$WRF_ROOT/data/exports/$v" ]]; then
+    found="$(latest_run)" || found="none"
+    die "no export for '$v'. On disk: $(ls "$WRF_ROOT/data/exports" | tr '\n' ' ')- latest completed run: $found"
+  fi
+  latest_run "$v" || die "no completed pipeline run${v:+ for $v} under $WRF_ROOT/logs"
 }
 
 cmd_init() {
@@ -247,6 +271,7 @@ cmd_viewer() {
 sub="${1:-}"
 shift || true
 case "$sub" in
+  resolve)    cmd_resolve "$@" ;;
   init)       cmd_init "$@" ;;
   parse)      cmd_parse ;;
   report)     cmd_report "$@" ;;
@@ -254,5 +279,5 @@ case "$sub" in
   checkpoint) cmd_checkpoint "$@" ;;
   status)     cmd_status ;;
   viewer)     cmd_viewer "$@" ;;
-  *) sed -n '2,29p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 2 ;;
+  *) sed -n '2,32p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 2 ;;
 esac
