@@ -6,7 +6,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from parsers.object import ParseObject
 from parsers.ability import Ability, p_movement_component, p_collision_component, p_actor_class
 from parsers.movement_type import MovementType
-from utils import ParseTarget, asset_to_data, parse_colon_colon, parse_curve, merge_dicts, process_key_to_parser_function, asset_to_asset_path, path_to_id
+from parsers.armor_zone import ArmorZone
+from utils import ParseTarget, asset_to_data, parse_colon_colon, parse_curve, merge_dicts, process_key_to_parser_function, asset_to_asset_path
 from loguru import logger
 
 class CharacterModule(ParseObject):
@@ -179,7 +180,7 @@ class CharacterModule(ParseObject):
 
     def _armor_zone(self, component_props):
         """The health pool a component's hits go to: its SArmorZoneLink user data's
-        ArmorZone id (e.g. "DA_ArmorZone_LeftLeg.0"), else None. Chassis split
+        ArmorZone id (e.g. "DA_ArmorZone_LeftLeg.0", an ArmorZone object), else None. Chassis split
         across several (pelvis / left leg / right leg); a spider's two left legs
         both link to LeftLeg.
         """
@@ -195,7 +196,7 @@ class CharacterModule(ParseObject):
                 continue
             zone_ref = user_data.get("Properties", {}).get("ArmorZone")
             if zone_ref:
-                return path_to_id(asset_to_asset_path(zone_ref))
+                return ArmorZone.create_from_asset(zone_ref).id
         return None
 
     def _p_adapters(self, data):
