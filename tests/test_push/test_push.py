@@ -159,6 +159,35 @@ class TestRemoveReadonly(unittest.TestCase):
         mock_func.assert_called_once_with(test_path)
 
 
+class TestUpdateCurrentDataCommit(unittest.TestCase):
+    """The Data commit records the parser commit, as text and as a hash trailer."""
+
+    def setUp(self):
+        self.repo_dir = tempfile.mkdtemp()
+        self.output_dir = tempfile.mkdtemp()
+        Path(self.output_dir, 'Objects.json').write_text('{}')
+
+    def tearDown(self):
+        shutil.rmtree(self.repo_dir, ignore_errors=True)
+        shutil.rmtree(self.output_dir, ignore_errors=True)
+
+    def _commit_args(self, **kwargs):
+        with patch('push.push.run_git_command') as mock_git_command:
+            update_current_data(self.repo_dir, self.output_dir, '2026-10-06', 'Fix X (#1) - 2026-10-07', 'main', **kwargs)
+        return next(c.args[0] for c in mock_git_command.call_args_list if c.args[0][1] == 'commit')
+
+    def test_sha_trailer(self):
+        self.assertEqual(self._commit_args(latest_commit_sha='abc123'), [
+            'git', 'commit',
+            '-m', "Update current to version '2026-10-06'",
+            '-m', "Parser commit: 'Fix X (#1) - 2026-10-07'",
+            '-m', 'Parser-Commit: abc123',
+        ])
+
+    def test_no_sha_no_trailer(self):
+        self.assertNotIn('Parser-Commit', ' '.join(self._commit_args()))
+
+
 class TestCloneDataRepo(unittest.TestCase):
     """Test cases for clone_data_repo function."""
 
