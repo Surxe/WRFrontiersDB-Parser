@@ -168,5 +168,5 @@ changes, go back to Phase 3.
      pipeline-environment findings.
    - **Verified** - scratch parse exit 0, remaining groups (ideally 0), tests vs main,
      parsed-output diff summary.
-3. Stop. Merging is the user's. After the merge, the next step is `/republish-patch
-   <version>` in the Orchestrator repo.
+3. Stop. Merging is the user's. After the merge, the next step is `/republish
+` in the Orchestrator repo.
