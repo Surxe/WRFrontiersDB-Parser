@@ -248,7 +248,16 @@ def get_latest_commit_info():
         logger.warning("Could not get latest commit info")
         return "Unknown commit"
 
-def update_current_data(repo_dir, output_dir, game_version, latest_commit, target_branch):
+def get_latest_commit_sha():
+    """The full hash of the parser repo's HEAD, or None if git can't tell."""
+    try:
+        result = run_git_command(['git', 'rev-parse', 'HEAD'], capture_output=True, log_output=True)
+        return result.stdout.strip()
+    except subprocess.CalledProcessError:
+        logger.warning("Could not get latest commit hash")
+        return None
+
+def update_current_data(repo_dir, output_dir, game_version, latest_commit, target_branch, latest_commit_sha=None):
     """
     Update the current directory with new parsed output.
     
@@ -258,6 +267,7 @@ def update_current_data(repo_dir, output_dir, game_version, latest_commit, targe
         game_version: Version string for the new data
         latest_commit: Latest commit info for commit message
         target_branch: Name of the target branch (used for tag naming)
+        latest_commit_sha: Parser commit hash, recorded as a Parser-Commit trailer
 
     Returns:
         changes_made: Boolean indicating if changes were made. False if e.g. its the same as before.
@@ -306,12 +316,18 @@ def update_current_data(repo_dir, output_dir, game_version, latest_commit, targe
     # Commit the changes
     commit_title = f"Update current to version '{game_version}'"
     commit_description = f"Parser commit: '{latest_commit}'"
+    # The Orchestrator's republish compares this trailer with Parser main to tell
+    # whether there is anything new to publish.
+    commit_messages = [commit_title, commit_description]
+    if latest_commit_sha:
+        commit_messages.append(f"Parser-Commit: {latest_commit_sha}")
     
     run_git_command(['git', 'add', '.'], cwd=repo_dir, log_output=True)
     
     # Try to commit, but don't fail if there's nothing to commit
     try:
-        run_git_command(['git', 'commit', '-m', commit_title, '-m', commit_description], cwd=repo_dir,
+        message_args = [arg for message in commit_messages for arg in ('-m', message)]
+        run_git_command(['git', 'commit', *message_args], cwd=repo_dir,
                        log_output=True)
         logger.info(f"Updated current data to version {game_version} and committed changes.")
         
@@ -430,12 +446,13 @@ def main():
         
         # Get latest commit info from parser repo
         latest_commit = get_latest_commit_info()
+        latest_commit_sha = get_latest_commit_sha()
         
         # Update json if enabled
         changes_made = False
         if OPTIONS.should_push_json:
             logger.info("Pushing to current is true, updating current directory...")
-            changes_made = update_current_data(data_repo_dir, output_dir, OPTIONS.game_version, latest_commit, OPTIONS.target_branch)
+            changes_made = update_current_data(data_repo_dir, output_dir, OPTIONS.game_version, latest_commit, OPTIONS.target_branch, latest_commit_sha)
         else:
             logger.info("Pushing to current is false, skipping current directory update.")
 
