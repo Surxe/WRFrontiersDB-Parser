@@ -1,6 +1,8 @@
 """
 The data repo PAT must reach git through the environment only, never the remote URL
-(which git writes to .git/config, leaving the PAT on disk between runs).
+(which git writes to .git/config, leaving the PAT on disk between runs). The Parser's
+commit identity also comes from the environment, so the shared clone's config keeps
+its user's own identity and credential helper.
 """
 import base64
 import os
@@ -72,6 +74,26 @@ class TestGitAuthEnv(unittest.TestCase):
                 config = f.read()
             self.assertNotIn(FAKE_PAT, config)
             self.assertNotIn('extraheader', config)
+
+    def test_real_git_commits_as_parser_and_scrubs_legacy_config(self):
+        """configure_git_repo drops what older versions wrote; commits still say Parser."""
+        with tempfile.TemporaryDirectory() as repo_dir:
+            subprocess.run(['git', 'init', '-q', repo_dir], check=True)
+            for key, value in (('user.name', 'Parser'), ('user.email', 'parser@example.com'),
+                               ('credential.helper', '')):
+                subprocess.run(['git', '-C', repo_dir, 'config', '--local', key, value], check=True)
+            subprocess.run(['git', '-C', repo_dir, 'remote', 'add', 'origin', DATA_REPO_URL], check=True)
+
+            configure_git_repo(repo_dir)
+            run_git_command(['git', 'commit', '-q', '--allow-empty', '-m', 'x'], cwd=repo_dir)
+
+            with open(os.path.join(repo_dir, '.git', 'config'), encoding='utf-8') as f:
+                config = f.read()
+            for key in ('[user]', 'credential', 'parser@example.com'):
+                self.assertNotIn(key, config)
+            log = subprocess.run(['git', '-C', repo_dir, 'log', '-1', '--format=%an <%ae> / %cn <%ce>'],
+                                 capture_output=True, text=True, check=True).stdout.strip()
+            self.assertEqual(log, 'Parser <parser@example.com> / Parser <parser@example.com>')
 
 
 if __name__ == '__main__':
