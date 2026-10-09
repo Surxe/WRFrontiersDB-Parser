@@ -23,6 +23,19 @@ SECRET_MASK = "********"
 # the PAT to each git process through its environment instead.
 DATA_REPO_URL = "https://github.com/Surxe/WRFrontiersDB-Data.git"
 
+# The data commits' author, set per git process like the PAT: the data repo clone is
+# shared (people and other tools commit there too), so nothing is written to its
+# .git/config.
+GIT_IDENTITY = {
+    'GIT_AUTHOR_NAME': 'Parser',
+    'GIT_AUTHOR_EMAIL': 'parser@example.com',
+    'GIT_COMMITTER_NAME': 'Parser',
+    'GIT_COMMITTER_EMAIL': 'parser@example.com',
+}
+
+# Written to the clone's .git/config by older parser versions; removed on each run.
+LEGACY_LOCAL_CONFIG = ('user.email', 'user.name', 'credential.helper')
+
 
 def _basic_auth_value(pat):
     """Base64 credentials for an HTTP Authorization header."""
@@ -97,13 +110,15 @@ def run_git_command(cmd, cwd=None, capture_output=True, check=True, log_output=F
     if isinstance(cmd, str):
         cmd = cmd.split()
     
-    # Set Git environment variables to avoid config issues on Windows
+    # Set Git environment variables to avoid config issues on Windows. Without the
+    # global and system config, no stored credential helper is used either: only the PAT.
     env = os.environ.copy()
     env.update({
         'GIT_CONFIG_NOSYSTEM': '1',
         'GIT_CONFIG_GLOBAL': '/dev/null',
         'HOME': env.get('USERPROFILE', env.get('HOME', ''))
     })
+    env.update(GIT_IDENTITY)
     env.update(git_auth_env())
     
     if log_command_str:
@@ -174,17 +189,14 @@ def configure_git_repo(repo_dir):
         repo_dir: Path to the repository directory
     """
     logger.debug("Configuring Git settings...")
-    
-    commands = [
-        ['git', 'config', '--local', 'user.email', 'parser@example.com'],
-        ['git', 'config', '--local', 'user.name', 'Parser'],
-        ['git', 'config', '--local', 'credential.helper', ''],
-        # Plain URL: also scrubs a PAT that older parser versions embedded in it.
-        ['git', 'remote', 'set-url', 'origin', DATA_REPO_URL]
-    ]
-    
-    for cmd in commands:
-        run_git_command(cmd, cwd=repo_dir, log_output=False)
+
+    # Identity and credentials come from each process's environment (GIT_IDENTITY,
+    # git_auth_env()); drop what older versions wrote, so the shared clone keeps the
+    # user's own identity and credential helper. Exit 5 = the key wasn't set.
+    for key in LEGACY_LOCAL_CONFIG:
+        run_git_command(['git', 'config', '--local', '--unset-all', key], cwd=repo_dir, check=False)
+    # Plain URL: also scrubs a PAT that older parser versions embedded in it.
+    run_git_command(['git', 'remote', 'set-url', 'origin', DATA_REPO_URL], cwd=repo_dir, log_output=False)
 
 
 def switch_to_target_branch(repo_dir, target_branch):
