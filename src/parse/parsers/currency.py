@@ -9,6 +9,8 @@ from parsers.image import parse_image_asset_path
 
 from utils import parse_hex
 
+CURRENCY_ASSET_DIR = "/Game/Sparrow/Mechanics/Meta/Entities/Currency"
+
 class Currency(ParseObject):
     objects = dict()  # Dictionary to hold all ModuleStat instances
     
@@ -42,6 +44,14 @@ class Currency(ParseObject):
             parsed_localizations.append(parse_localization(elem))
         return parsed_localizations
     
+def currency_name_to_ref(currency_name: str) -> str:
+    """
+    Module levels name their currency by bare asset name rather than by ObjectPath.
+    Parses that Currency if it hasn't been yet, so the returned ref is never dangling.
+    DA_Meta_Currency_Alloys -> OBJID_Currency::DA_Meta_Currency_Alloys.0
+    """
+    return Currency.create_from_asset_path(f"{CURRENCY_ASSET_DIR}/{currency_name}.0").to_ref()
+
 def parse_currency(data):
     """
     data may contain 

@@ -22,8 +22,8 @@ from parsers.scrap_reward import ScrapReward
 from parsers.character_preset import CharacterPreset
 from parsers.ability import Ability
 
-INTEL_CURRENCY_REF = 'OBJID_Currency::DA_Meta_Currency_Intel'
-ALLOY_CURRENCY_REF = 'OBJID_Currency::DA_Meta_Currency_Alloys'
+INTEL_CURRENCY_REF = 'OBJID_Currency::DA_Meta_Currency_Intel.0'
+ALLOY_CURRENCY_REF = 'OBJID_Currency::DA_Meta_Currency_Alloys.0'
 
 # Manually defined discounted upgrade costs per rarity, currency, and level.
 # Only levels that actually have a non-zero upgrade cost for that currency should be listed.
