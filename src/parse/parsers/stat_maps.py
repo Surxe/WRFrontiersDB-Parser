@@ -4,6 +4,7 @@
 # Developer guidance: If a newly added stat short_key relates to an existing ModuleStat, add the mapping here.
 STAT_KEY_TO_MODULE_STAT_ID: dict[str, str] = {
     "ChargeDuration":       "DA_ModuleStat_ChargeDrain.0",
+    "MaxCharges":           "DA_ModuleStat_Consumables.0",  # a gear's uses per deployment; the stats table names it Consumables
     "TimeToReload":         "DA_ModuleStat_ReloadingTime.0",
     "DamageArmor":          "DA_ModuleStat_ArmorDamage.0",
     "RoundsPerMinute":      "DA_ModuleStat_FireRate.0",
@@ -26,7 +27,6 @@ SYNTHETIC_STAT_MORE_IS_BETTER: dict[str, bool] = {
     "RechargeTime":          False,
     "DelayAndRechargeTotal": False,
     # Weapon / ability constants with no ModuleStat
-    "MaxCharges":            True,
     "ProjectileSpeed":       True,
     "ProjectilesPerShot":    True,
     "RangeMin":              False,
