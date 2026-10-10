@@ -77,8 +77,8 @@ MODULE_GROUPS_DATA = { #english translation is added here in enrichment.py
         'titan': True,
         'virtual_bot_module': True,
     },
-    'titan-shoulder': { #except for this one because the translation is on the Site. Shortsight unfortunately. Realistically this is only used for the slug map anyways.
-        'name': {'Key': 'GRP_TitanShoulders_Name', 'TableNamespace': 'ModuleGroups', 'en': 'Titan Shoulder'},
+    'titan-shoulder': { #except for this one: the game has no "Titan Shoulder" string (CMP_Type_Titan_*_Shoulder is plain "Shoulder"), so the name is keyless and the Site attaches its own key
+        'name': {'InvariantString': 'Titan Shoulder', 'en': 'Titan Shoulder'},
         'titan': True,
         'virtual_bot_module': True,
     },
@@ -140,7 +140,7 @@ class ModuleGroup(ParseObject):
         index = 0
         en_loc = Localization.objects.get('en')
         for group_id, data in MODULE_GROUPS_DATA.items():
-            if en_loc:
+            if en_loc and 'Key' in data['name']: # a keyless name already carries its en
                 data['name']['en'] = en_loc.localize_from_name(data['name'])
             # Supply gear needs a specific description, the rest can infer from arbitrary module type since theyre the same
             desc = None
