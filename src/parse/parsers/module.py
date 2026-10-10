@@ -20,7 +20,7 @@ from parsers.module_category import ModuleCategory
 from parsers.module_socket_type import ModuleSocketType
 from parsers.module_stat import ModuleStat
 from parsers.module_stats_table import ModuleStatsTable
-from parsers.currency import Currency
+from parsers.currency import currency_name_to_ref
 from parsers.upgrade_cost import UpgradeCost
 from parsers.scrap_reward import ScrapReward
 from parsers.movement_type import MovementType
@@ -204,7 +204,7 @@ class Module(ParseObject):
                 
                 # consciously not excluding 0 amounts, as it messes up ability to check if its a constant or a variable
                 if upgrade_currency_id is not None and upgrade_currency_id != "None": #it may be None if its say a torso ability module, as the ability is not what costs currency to upgrade, rather the module its attached to (torso) will have the cost
-                    upgrade_currency_ref = Currency.id_to_ref(upgrade_currency_id)
+                    upgrade_currency_ref = currency_name_to_ref(upgrade_currency_id)
                     upgrade_cost = UpgradeCost(module_lvl_id, upgrade_currency_ref, upgrade_cost_amount) 
                     parsed_level["upgrade_cost_ref"] = upgrade_cost.to_ref()
 
@@ -220,7 +220,7 @@ class Module(ParseObject):
                     scrap_reward_amount = level[scrap_reward_amount_key]
                     if scrap_reward_currency_id is not None and scrap_reward_currency_id != "None": # consciously not excluding 0 amounts, as it messes up ability to check if its a constant or a variable
                         scrap_num_id = len(scrap_rewards_refs) + 1 #index the next scrap reward will be at, +1
-                        scrap_currency_ref = Currency.id_to_ref(scrap_reward_currency_id)
+                        scrap_currency_ref = currency_name_to_ref(scrap_reward_currency_id)
                         module_lvl_scrapindex_id = f"{module_lvl_id}_scrap{scrap_num_id}"
                         scrap_reward = ScrapReward(module_lvl_scrapindex_id, scrap_currency_ref, scrap_reward_amount)
                         scrap_rewards_refs.append(scrap_reward.to_ref())
