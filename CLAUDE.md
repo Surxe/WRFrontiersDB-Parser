@@ -16,6 +16,10 @@ one repo that changes on every patch; the human process for that is
   `key_to_parser_function` map and hands it to `process_key_to_parser_function`.
 - `src/utils.py` - `process_key_to_parser_function`, path/asset helpers.
 - `src/parse/analysis.py`, `src/parse/enrichment.py` - derived data after parsing.
+- `src/parse/maps/` - the 3D maps (`SHOULD_PARSE_MAPS`): `ueformat.py` (the one `.uemodel`
+  reader, also used by `parsers/model.py`), `scene.py` / `bake.py` / `objectives.py` (the map
+  export as mesh library + instances, and its gameplay objects), `cook.py` (the GLBs + pins
+  under `Maps/`). The map list is `parsers/map.py`.
 - `src/push/push.py` - push to the data repo (the pipeline does this; you never do).
 - `tools/` - `patch_day.sh`, `warning_report.py`, `asset-viewer/`.
 

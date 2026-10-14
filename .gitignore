@@ -175,3 +175,7 @@ todo.txt
 /reports
 # patch decisions (tools/warning_report.py) - local only, never pushed
 /decisions
+
+# maps: the pinned gltfpack and the map cook cache (src/parse/maps/)
+/build/gltfpack/
+/build/map_cook_cache/

@@ -1,5 +1,4 @@
 import os
-import struct
 import sys
 import tempfile
 import types
@@ -21,22 +20,15 @@ sys.path.insert(0, src_path)
 sys.path.insert(0, parse_path)
 
 from parsers import model  # noqa: E402
+from maps.ueformat import UEFormatError  # noqa: E402
 
-
-def _fstr(s):
-    b = s.encode()
-    return struct.pack('<i', len(b)) + b
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from maps_fixtures import build_model  # noqa: E402
 
 
 def _uemodel(version, bones):
-    """Uncompressed .uemodel holding only a BONES chunk."""
-    data = b''
-    for name, parent, pos, rot, scale in bones:
-        data += _fstr(name) + struct.pack('<i', parent) + struct.pack('<3f', *pos) + struct.pack('<4f', *rot)
-        if version >= 10:
-            data += struct.pack('<3f', *scale)
-    chunk = _fstr('BONES') + struct.pack('<i', len(data) + 4) + struct.pack('<i', len(bones)) + data
-    return b'UEFORMAT' + _fstr('UEMODEL') + bytes([version]) + _fstr('SK_Test') + b'\x00' + chunk
+    """Uncompressed .uemodel holding only a skeleton."""
+    return build_model(bones=bones, compressed=False, version=version)
 
 
 def _skel_bone(name, parent, pos, scale=(1.0, 1.0, 1.0)):
@@ -65,10 +57,19 @@ class TestLoadUeformatBones(unittest.TestCase):
         self.assertEqual(bones[1]['rot'], [0.0, 0.0, 0.0, 1.0])
         self.assertEqual(bones[1]['scale'], [1.0, 1.0, 2.0])
 
-    def test_v9_has_no_scale(self):
-        bones = self._load(9)
-        self.assertEqual(bones[1]['pos'], [13.65, -216.39, 267.74])
-        self.assertIsNone(bones[1]['scale'])
+    def test_pre_v10_is_rejected(self):
+        with self.assertRaises(UEFormatError):
+            self._load(9)
+
+    def test_no_skeleton(self):
+        with tempfile.NamedTemporaryFile(suffix='.uemodel', delete=False) as f:
+            f.write(build_model([[0, 0, 0], [1, 0, 0], [0, 1, 0]], [0, 1, 2], compressed=False))
+        try:
+            self.assertIsNone(model.load_ueformat_bones(f.name))
+            verts, indices = model.load_ueformat_mesh(f.name)
+        finally:
+            os.unlink(f.name)
+        self.assertEqual((verts, indices), ([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0], [0, 1, 2]))
 
 
 class TestMergeMeshBones(unittest.TestCase):

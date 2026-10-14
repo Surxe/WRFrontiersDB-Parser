@@ -27,126 +27,42 @@ Schema (goal: minimal storage, fast to convert, universally applicable):
     }
 """
 
-import struct
 import json
 from loguru import logger
 
-try:
-    import zstandard
-    HAS_ZSTD = True
-except ImportError:
-    HAS_ZSTD = False
-
 from utils import OPTIONS, asset_path_to_file_path, get_json_data, resolve_path_case_insensitive, asset_to_data
+from maps.ueformat import read_uemodel
 
 MODEL_FILE_VERSION = 1
 
 
 # ---------------- .uemodel (UEFormat) geometry reading ----------------
 
-def _i32(b, i):
-    return struct.unpack_from('<i', b, i)[0], i + 4
-
-def _fstr(b, i):
-    n, i = _i32(b, i)
-    return b[i:i + n].decode('utf-8', 'replace'), i + n
-
-def read_ueformat_version(raw: bytes):
-    """UEFormat file version: the byte after the identifier fstring."""
-    if raw[:8] != b'UEFORMAT':
-        raise ValueError("not a UEFORMAT file")
-    ident, i = _fstr(raw, 8)
-    return raw[i]
-
-def read_ueformat_payload(raw: bytes):
-    """Return the decompressed chunk payload from a .uemodel file (UEFormat v9/v10)."""
-    ver = read_ueformat_version(raw)
-    ident, i = _fstr(raw, 8)
-    i += 1
-    # v10+ adds an ObjectPath fstring before the compression flag; v9 doesn't.
-    # Locate the compression marker robustly instead of walking the header.
-    for ctype in (b'ZSTD', b'GZIP', b'LZ4'):
-        mark = b'\x04\x00\x00\x00' + ctype
-        p = raw.find(mark)
-        if p >= 0:
-            j = p + len(mark)
-            usize, j = _i32(raw, j)
-            csize, j = _i32(raw, j)
-            blob = raw[j:j + csize]
-            if ctype == b'ZSTD':
-                if not HAS_ZSTD:
-                    raise RuntimeError("zstandard package is required for ZSTD .uemodel files")
-                return zstandard.ZstdDecompressor().decompress(blob, max_output_size=usize)
-            if ctype == b'GZIP':
-                import gzip
-                return gzip.decompress(blob)
-            raise NotImplementedError(f"unsupported ueformat compression {ctype}")
-    # Uncompressed: payload starts after object-name fstring + is_compressed bool
-    obj, i = _fstr(raw, i)
-    comp, i = raw[i], i + 1
-    return raw[i:]
-
-def find_ueformat_chunk(d, name):
-    """Locate a chunk by name. Layout (v9/v10 compatible): [fstring name][i32 size][i32 count][data].
-    `size` includes the trailing count i32; returns (count, data_offset, size)."""
-    nb = name.encode()
-    k = d.find(nb)
-    while k >= 0:
-        if k >= 4 and struct.unpack_from('<i', d, k - 4)[0] == len(nb):
-            size = struct.unpack_from('<i', d, k + len(nb))[0]
-            count = struct.unpack_from('<i', d, k + len(nb) + 4)[0]
-            return count, k + len(nb) + 8, size
-        k = d.find(nb, k + 1)
-    return None
-
 def load_ueformat_mesh(uemodel_path):
-    """Read LOD0 positions + triangle indices from a .uemodel file."""
-    raw = open(uemodel_path, 'rb').read()
-    d = read_ueformat_payload(raw)
-    vch = find_ueformat_chunk(d, 'VERTICES')
-    ich = find_ueformat_chunk(d, 'INDICES')
-    if not vch or not ich:
-        raise ValueError(f"{uemodel_path}: missing VERTICES or INDICES chunk")
-    vc, vo, _ = vch
-    verts = struct.unpack_from(f'<{vc * 3}f', d, vo)
-    ic, io, isize = ich
-    ibytes = (isize - 4) // ic if ic else 2
-    ifmt = 'H' if ibytes == 2 else 'i'
-    indices = struct.unpack_from(f'<{ic}{ifmt}', d, io)
-    if indices and max(indices) >= vc:
+    """Read LOD0 positions + triangle indices from a .uemodel file, flattened."""
+    model = read_uemodel(uemodel_path)
+    if not model.lods:
+        raise ValueError(f"{uemodel_path}: no LODs")
+    lod = model.lods[0]
+    if lod.indices.size and int(lod.indices.max()) >= len(lod.vertices):
         raise ValueError(f"{uemodel_path}: index out of range")
-    return verts, indices
+    return lod.vertices.reshape(-1).tolist(), lod.indices.reshape(-1).tolist()
 
 def load_ueformat_bones(uemodel_path):
-    """Read the mesh's own reference skeleton (BONES chunk) from a .uemodel file.
+    """Read the mesh's own reference skeleton from a .uemodel file.
 
-    Each record is [fstring name][i32 parent][3f pos][4f quat xyzw], plus [3f scale]
-    from v10. Returns local (parent-relative) bones in the model schema -- `scale`
-    is None before v10 -- or None when the file has no BONES chunk."""
-    raw = open(uemodel_path, 'rb').read()
-    ver = read_ueformat_version(raw)
-    d = read_ueformat_payload(raw)
-    ch = find_ueformat_chunk(d, 'BONES')
-    if not ch:
+    Returns local (parent-relative) bones in the model schema, or None when the
+    file has no skeleton."""
+    bones = read_uemodel(uemodel_path, lods=False).bones
+    if bones is None:
         return None
-    count, i, _ = ch
-    bones = []
-    for _ in range(count):
-        name, i = _fstr(d, i)
-        parent, i = _i32(d, i)
-        pos = struct.unpack_from('<3f', d, i); i += 12
-        rot = struct.unpack_from('<4f', d, i); i += 16
-        scale = None
-        if ver >= 10:
-            scale = [round(s, 4) for s in struct.unpack_from('<3f', d, i)]; i += 12
-        bones.append({
-            'name': name,
-            'parent': parent,
-            'pos': [round(p, 3) for p in pos],
-            'rot': [round(r, 6) for r in rot],
-            'scale': scale,
-        })
-    return bones
+    return [{
+        'name': bone.name,
+        'parent': bone.parent,
+        'pos': [round(p, 3) for p in bone.position],
+        'rot': [round(r, 6) for r in bone.rotation],
+        'scale': [round(s, 4) for s in bone.scale],
+    } for bone in bones]
 
 
 # ---------------- asset resolution ----------------

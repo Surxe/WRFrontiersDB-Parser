@@ -37,6 +37,24 @@ still completes and publishes, logging each gap as a warning. Tooling for the fi
 * `.claude/skills/patch-warnings` - the Claude Code skill that runs the process with two human approval gates.
 * The end-to-end runbook is `PATCH_DAY.md` in WRFrontiersDB-Orchestrator.
 
+## Maps
+
+With `SHOULD_PARSE_MAPS`, the parse also cooks the 3D maps for the Site's `/maps` page from the
+Exporter's map export (`MAPS_EXPORT_DIR`, BatchExport's map mode). Code: `src/parse/maps/`
+(`cook.py` documents the output), `src/parse/parsers/map.py` (the map list).
+
+| Output | Content |
+|--------|---------|
+| `Objects/Map.json` | The released maps (the game's queue list, `ST_MapNames`, the firing range) with their localized names, game modes and file names |
+| `Maps/<Map>.glb` | Render geometry every match has, instanced and meshopt-compressed by gltfpack |
+| `Maps/<Map>.foliage.glb` | Trees, bushes and grass, simplified hard; the Site toggles them |
+| `Maps/<Map>.<Mode>.glb` | Geometry a game mode adds (e.g. Mont's drill), when there is any |
+| `Maps/<Map>.json` | Per game mode, the pins: spawns, warp probes, beacons, power-up spawners, CTF objects |
+
+The pinned gltfpack is downloaded into `build/gltfpack/` on first use. Cooking is deterministic,
+and a map whose input did not change is copied from `build/map_cook_cache/`, so unchanged maps
+stay byte-identical in the data repo. All 12 maps are ~85 MB.
+
 ## Options
 
 ### Command Line Argument Usage
@@ -67,6 +85,18 @@ python src/run.py --log-level INFO   # Run all steps with default/env values, ex
   - Default: None - required when SHOULD_PARSE is True
   - Command line: `--export-dir`
   - Depends on: `SHOULD_PARSE`
+
+* **SHOULD_PARSE_MAPS** - Whether to cook the 3D maps from the map export (MAPS_EXPORT_DIR) into Maps/ and list them in Objects/Map.json. Part of the parse, so only with SHOULD_PARSE.
+  - Default: `"false"`
+  - Command line: `--should-parse-maps`
+  - Depends on: `SHOULD_PARSE`
+  - Downloads the pinned gltfpack into build/gltfpack/ on first use. A map whose input is unchanged is copied from build/map_cook_cache/ instead of cooked again.
+
+* **MAPS_EXPORT_DIR** - Directory of the Exporter's map export for this version (holds maps/<Map>/scene.json and assets/).
+  - Example: `"C:/WRFrontiersDB/Maps/2025-10-28"`
+  - Default: None - required when SHOULD_PARSE_MAPS is True
+  - Command line: `--maps-export-dir`
+  - Depends on: `SHOULD_PARSE_MAPS`
 
 
 #### Push Data
