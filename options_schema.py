@@ -34,6 +34,26 @@ OPTIONS_SCHEMA = {
         "help": "Directory where the exported game JSON files are stored.",
         "example": Path("C:/WRFrontiersDB/ExportData")
     },
+    "SHOULD_PARSE_MAPS": {
+        "env": "SHOULD_PARSE_MAPS",
+        "arg": "--should-parse-maps",
+        "type": bool,
+        "default": False,
+        "section": "Parse",
+        "depends_on": ["SHOULD_PARSE"],
+        "help": "Whether to cook the 3D maps from the map export (MAPS_EXPORT_DIR) into Maps/ and list them in Objects/Map.json. Part of the parse, so only with SHOULD_PARSE.",
+        "help_extended": "Downloads the pinned gltfpack into build/gltfpack/ on first use. A map whose input is unchanged is copied from build/map_cook_cache/ instead of cooked again."
+    },
+    "MAPS_EXPORT_DIR": {
+        "env": "MAPS_EXPORT_DIR",
+        "arg": "--maps-export-dir",
+        "type": Path,
+        "default": None,
+        "section": "Parse",
+        "depends_on": ["SHOULD_PARSE_MAPS"],
+        "help": "Directory of the Exporter's map export for this version (holds maps/<Map>/scene.json and assets/).",
+        "example": Path("C:/WRFrontiersDB/Maps/2025-10-28")
+    },
     "SHOULD_PUSH_DATA": {
         "env": "SHOULD_PUSH_DATA",
         "arg": "--should-push-data",

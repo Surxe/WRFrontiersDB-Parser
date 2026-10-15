@@ -31,6 +31,7 @@ from parsers.shop_card import ShopCard, parse_shop_cards
 from parsers.rarity_upgrade_cost import RarityUpgradeCost
 from parsers.stat import Stat
 from parsers.armor_zone import ArmorZone, parse_armor_zones
+from parsers.map import Map, parse_maps
 def main():
     """Main parsing function - uses global OPTIONS singleton."""
     os.makedirs(OPTIONS.output_dir, exist_ok=True)
@@ -47,6 +48,8 @@ def main():
     parse_powerups()
     parse_shop_cards()
     parse_models()  # hitbox + untextured models; relies on CharacterModules parsed by parse_modules()
+    if OPTIONS.should_parse_maps:
+        parse_maps()  # 3D maps; relies on localizations and game modes
     enrich()
     analyze()
 
@@ -106,6 +109,8 @@ def main():
 
     Powerup.to_file()
     ShopCard.to_file()
+    if OPTIONS.should_parse_maps:
+        Map.to_file()
 
     Localization.to_file()
     Image.to_file()
