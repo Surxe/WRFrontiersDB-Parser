@@ -88,7 +88,7 @@ DISCOUNT_COST_MAP = {
             3:  15,
             5:  30,
             9:  82,
-            13: 172,
+            13: 250,
         },
         ALLOY_CURRENCY_REF: {
             2:  8_000,
