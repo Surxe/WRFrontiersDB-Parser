@@ -623,6 +623,8 @@ class Ability(ParseObject):
                 "AvoidMarker": None,
                 "ContinuousPushingSettings": self._p_cont_pushing_settings,
                 "TracerOffsetTime": None,
+                "AscentTime": "value", #heat seeker, climb time before homing
+                "bShowIncomingMissilesWarning": "value", #as for weapons (character_module.py)
             }
 
             parsed_proj = self._process_key_to_parser_function(
@@ -830,6 +832,7 @@ def p_movement_component(data: dict):
         "Velocity": "value",
         "bCruiseRoll": "value",
         "bIsHomingProjectile": "value",
+        "bInitialVelocityInLocalSpace": "value", #heat seeker
         "bCruiseAvoidObstacles": "value",
         "bForceSubStepping": "value",
         "bCruiseAvoidObstacles": "value",
