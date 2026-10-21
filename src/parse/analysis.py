@@ -870,7 +870,7 @@ class Analysis:
                 if hasattr(module, 'abilities_scalars') and hasattr(module, 'character_module_mounts'):
                     # Get ability ids from character module. Verify only one character module mount
                     character_module_mounts = module.character_module_mounts
-                    if len(character_module_mounts) > 1:
+                    if len(character_module_mounts) > 1 and not mounts_are_mirrored(character_module_mounts):
                         logger.error(f"Structure change: Module {module_id} with abilities_scalars has multiple character module mounts.")
                     character_module_ref = character_module_mounts[0]['character_module_ref']
                     character_module = CharacterModule.get_from_ref(character_module_ref)
@@ -1061,6 +1061,20 @@ class Analysis:
             logger.debug(f"Writing analysis data to {file_path}")
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(data)
+
+def mounts_are_mirrored(character_module_mounts: list) -> bool:
+    """
+    Whether every mount's character module carries the same abilities (matched by name key),
+    e.g. a paired shoulder (Cerberus Mk. II) whose Left and Right character modules each hold
+    a copy of one ability. Its abilities_scalars then describe all mounts equally.
+    """
+    def ability_name_keys(mount):
+        character_module = CharacterModule.get_from_ref(mount['character_module_ref'])
+        names = [getattr(Ability.get_from_ref(ref), 'name', None) for ref in character_module.abilities_refs]
+        return [name.get('Key') if isinstance(name, dict) else name for name in names]
+
+    first_keys = ability_name_keys(character_module_mounts[0])
+    return all(ability_name_keys(mount) == first_keys for mount in character_module_mounts[1:])
 
 def round_dict_values(d):
     if isinstance(d, dict):
