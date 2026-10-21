@@ -344,6 +344,7 @@ class Ability(ParseObject):
             "bSyncOwnerKickbackFromProjectileAndScaler": "value",
             "DamageResistance": "value", #paladin's ward
             "VisibilityConeHalfAngle": "value", #tesla feed, line of sight to the marked ally
+            "bIsPassive": "value", #cerberus gatekeeper frame
         }
 
         my_ability_data = self._process_key_to_parser_function(
