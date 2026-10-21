@@ -108,6 +108,15 @@ cmd_init() {
   set_env OUTPUT_DIR "$SCRATCH_OUT"
   set_env TEXTURE_OUTPUT_DIR "$SCRATCH_TEX"
   set_env GAME_VERSION "$v"
+  # Cook the maps like the pipeline does, so a scratch diff doesn't show Maps/ as
+  # deleted and map warnings can be verified.
+  if [[ -d "$exports/map-export/maps" ]]; then
+    set_env SHOULD_PARSE_MAPS True
+    set_env MAPS_EXPORT_DIR "$exports/map-export"
+  else
+    echo "patch_day: no map export at $exports/map-export - scratch parses skip maps"
+    set_env SHOULD_PARSE_MAPS False
+  fi
 
   rm -rf "$REVIEW_DIR"
   mkdir -p "$REVIEW_DIR"
