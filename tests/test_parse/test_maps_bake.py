@@ -14,6 +14,7 @@ TETRA_VERTICES = [[0, 0, 0], [100, 0, 0], [0, 100, 0], [0, 0, 100]]
 TETRA_INDICES = [0, 1, 2, 0, 1, 3, 0, 2, 3, 1, 2, 3]
 MESH = "/Game/SM_Tetra.SM_Tetra"
 CRATE = "/Game/SM_Crate.SM_Crate"
+HOUDINI_PLACEHOLDER = "/HoudiniEngine/default_reference_static_mesh.default_reference_static_mesh"
 
 
 def box(low, high):
@@ -142,11 +143,15 @@ def write_arena(export_dir):
             {"name": "Mesh", "kind": "static_mesh", "mesh": MESH, "world": IDENTITY}]},
         {"id": 6, "level": 3, "name": "ProbeBase", "class": "StaticMeshActor", "components": [
             {"name": "Mesh", "kind": "static_mesh", "mesh": MESH, "world": IDENTITY}]},
+        {"id": 7, "level": 0, "name": "default_reference_static_mesh_instancer_0_0", "class": "Actor", "components": [
+            {"name": "InstancedStaticMeshComponent_0", "kind": "instanced_static_mesh", "mesh": HOUDINI_PLACEHOLDER,
+             "world": IDENTITY, "instances": [[0, 0, 0, 0, 0, 0, 1, 1, 1, 1]]}]},
     ]
     meshes = {
         MESH: {"model": "assets/tetra.uemodel"},
         CRATE: {"model": "assets/tetra.uemodel"},
         "/Game/SM_Missing.SM_Missing": {"missing": True},
+        HOUDINI_PLACEHOLDER: {"missing": True},
     }
     write_scene(export_dir, "Arena", levels, actors, meshes=meshes)
     return scene.Scene(export_dir, "Arena")
@@ -180,6 +185,11 @@ class TestBake(unittest.TestCase):
 
     def test_bake_reports_meshes_without_geometry(self):
         self.assertTrue(any("SM_Missing" in warning for warning in self.baked["warnings"]))
+
+    def test_bake_skips_houdini_placeholder_silently(self):
+        # Houdini Engine's stand-in mesh isn't in the game files: no instance and no warning
+        self.assertFalse(any("HoudiniEngine" in warning for warning in self.baked["warnings"]))
+        self.assertNotIn(HOUDINI_PLACEHOLDER, self.baked["mesh_names"])
 
     def test_bake_instance_bounds_are_in_world_space(self):
         bounds = self.baked["inst_aabb"]

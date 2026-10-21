@@ -344,6 +344,7 @@ class Ability(ParseObject):
             "bSyncOwnerKickbackFromProjectileAndScaler": "value",
             "DamageResistance": "value", #paladin's ward
             "VisibilityConeHalfAngle": "value", #tesla feed, line of sight to the marked ally
+            "bIsPassive": "value", #cerberus gatekeeper frame
         }
 
         my_ability_data = self._process_key_to_parser_function(
@@ -579,6 +580,7 @@ class Ability(ParseObject):
                 "EffectiveDistanceSettingsDefault": (self._p_distance, "EffectiveDistanceSettings"),
                 "MaxDistanceSettingsDefault": (self._p_distance, "MaxDistanceSettings"),
                 "DeathDistanceSettingsDefault": (self._p_distance, "DeathDistanceSettings"),
+                "MinDistanceSettingsDefault": (p_this_distance_setting, "MinDistanceSettings"), #heat seeker, has only DirectDamageMultiplier (no Distance)
                 "DefaultDistanceSettings": (parse_curve, "DefaultDistanceSettings"),
                 "OwnerReactionOnHit": None, # voiceline
                 "VictimReactionOnHoming": None,
@@ -622,6 +624,8 @@ class Ability(ParseObject):
                 "AvoidMarker": None,
                 "ContinuousPushingSettings": self._p_cont_pushing_settings,
                 "TracerOffsetTime": None,
+                "AscentTime": "value", #heat seeker, climb time before homing
+                "bShowIncomingMissilesWarning": "value", #as for weapons (character_module.py)
             }
 
             parsed_proj = self._process_key_to_parser_function(
@@ -739,6 +743,17 @@ class Ability(ParseObject):
     def _p_distance(self, data):
         return data["Distance"]
 
+def p_this_distance_setting(data):
+    key_to_parser_function = {
+        "Distance": "value",
+        "InterpolationMode": (parse_colon_colon, "InterpMode"),
+        "DirectDamageMultiplier": "value",
+    }
+
+    return process_key_to_parser_function(key_to_parser_function, data, log_descriptor="DistanceSetting", set_attrs=False, default_configuration={
+        'target': ParseTarget.MATCH_KEY
+    })
+
 def p_armor_zones(list: list):
     armor_zone_names = []
     for elem in list:
@@ -829,6 +844,7 @@ def p_movement_component(data: dict):
         "Velocity": "value",
         "bCruiseRoll": "value",
         "bIsHomingProjectile": "value",
+        "bInitialVelocityInLocalSpace": "value", #heat seeker
         "bCruiseAvoidObstacles": "value",
         "bForceSubStepping": "value",
         "bCruiseAvoidObstacles": "value",
@@ -1386,6 +1402,13 @@ def p_actor_class(data: dict):
         "FadeOutParam": None, #vfx param
         "ConnectionOnInstigatorSoundEvent": None, #audio
         "DisconnectionOnInstigatorSoundEvent": None, #audio
+        "ShoulderOffsetY": "value", #cerberus gatekeeper frame, barrier's lateral offset off the shoulder
+        "bForwardDamageImpactsToOwner": "value", #gatekeeper frame barrier passes damage impacts to the owner
+        "VisualMeshComponent": None, #mesh, gatekeeper frame barrier
+        "AbilityReduceRate": "value", #cerberus inhibitor field, how often enemy cooldowns are extended
+        "CooldownModifier": "value", #inhibitor field, seconds added to enemy ability cooldowns
+        "ChargesModifier": "value", #inhibitor field
+        "PulseIndex": None, #runtime state, inhibitor field's pulse counter (GetLostPulses/SetLastReduceTime)
     }
 
     parsed_data = process_key_to_parser_function(
