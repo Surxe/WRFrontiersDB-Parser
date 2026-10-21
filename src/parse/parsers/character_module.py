@@ -4,7 +4,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parsers.object import ParseObject
-from parsers.ability import Ability, p_movement_component, p_collision_component, p_actor_class
+from parsers.ability import Ability, p_movement_component, p_collision_component, p_actor_class, p_this_distance_setting
 from parsers.movement_type import MovementType
 from parsers.armor_zone import ArmorZone
 from utils import ParseTarget, asset_to_data, parse_colon_colon, parse_curve, merge_dicts, process_key_to_parser_function, asset_to_asset_path
@@ -495,17 +495,6 @@ def p_distance_settings(data):
         "InterpMode": prev_interp_mode,
         "CurveData": parsed_distance_settings
     }
-
-def p_this_distance_setting(data):
-    key_to_parser_function = {
-        "Distance": "value",
-        "InterpolationMode": (parse_colon_colon, "InterpMode"),
-        "DirectDamageMultiplier": "value",
-    }
-
-    return process_key_to_parser_function(key_to_parser_function, data, log_descriptor="DistanceSetting", set_attrs=False, default_configuration={
-        'target': ParseTarget.MATCH_KEY
-    })
 
 def p_movement_type(data):
     return MovementType.create_from_asset(data).to_ref()

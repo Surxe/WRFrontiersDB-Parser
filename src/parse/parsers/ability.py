@@ -580,6 +580,7 @@ class Ability(ParseObject):
                 "EffectiveDistanceSettingsDefault": (self._p_distance, "EffectiveDistanceSettings"),
                 "MaxDistanceSettingsDefault": (self._p_distance, "MaxDistanceSettings"),
                 "DeathDistanceSettingsDefault": (self._p_distance, "DeathDistanceSettings"),
+                "MinDistanceSettingsDefault": (p_this_distance_setting, "MinDistanceSettings"), #heat seeker, has only DirectDamageMultiplier (no Distance)
                 "DefaultDistanceSettings": (parse_curve, "DefaultDistanceSettings"),
                 "OwnerReactionOnHit": None, # voiceline
                 "VictimReactionOnHoming": None,
@@ -741,6 +742,17 @@ class Ability(ParseObject):
     
     def _p_distance(self, data):
         return data["Distance"]
+
+def p_this_distance_setting(data):
+    key_to_parser_function = {
+        "Distance": "value",
+        "InterpolationMode": (parse_colon_colon, "InterpMode"),
+        "DirectDamageMultiplier": "value",
+    }
+
+    return process_key_to_parser_function(key_to_parser_function, data, log_descriptor="DistanceSetting", set_attrs=False, default_configuration={
+        'target': ParseTarget.MATCH_KEY
+    })
 
 def p_armor_zones(list: list):
     armor_zone_names = []
