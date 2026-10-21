@@ -1390,6 +1390,9 @@ def p_actor_class(data: dict):
         "ShoulderOffsetY": "value", #cerberus gatekeeper frame, barrier's lateral offset off the shoulder
         "bForwardDamageImpactsToOwner": "value", #gatekeeper frame barrier passes damage impacts to the owner
         "VisualMeshComponent": None, #mesh, gatekeeper frame barrier
+        "AbilityReduceRate": "value", #cerberus inhibitor field, how often enemy cooldowns are extended
+        "CooldownModifier": "value", #inhibitor field, seconds added to enemy ability cooldowns
+        "ChargesModifier": "value", #inhibitor field
     }
 
     parsed_data = process_key_to_parser_function(
