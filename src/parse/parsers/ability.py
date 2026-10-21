@@ -1388,6 +1388,7 @@ def p_actor_class(data: dict):
         "DisconnectionOnInstigatorSoundEvent": None, #audio
         "ShoulderOffsetY": "value", #cerberus gatekeeper frame, barrier's lateral offset off the shoulder
         "bForwardDamageImpactsToOwner": "value", #gatekeeper frame barrier passes damage impacts to the owner
+        "VisualMeshComponent": None, #mesh, gatekeeper frame barrier
     }
 
     parsed_data = process_key_to_parser_function(
