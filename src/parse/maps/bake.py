@@ -45,6 +45,9 @@ _BOUNDARY_CHANNEL = "ECC_GameTraceChannel7"
 # collision-less outline a boundary volume was traced from (SM_GameplayBoard_Main).
 _BOUNDARY_MESH_NAME = re.compile(r"^SM_Fade(_\d+)?$|(Boundaries|MapBorders)$|^SM_GameplayBoard")
 _BLOCKING_VOLUME = "BlockingVolume"
+# Houdini Engine's stand-in for an instance it couldn't resolve. The plugin's content isn't
+# cooked into the game, so the game draws nothing there either: skipped without a warning.
+_HOUDINI_PLACEHOLDER_PREFIX = "/HoudiniEngine/"
 # Share of the navigation mesh's footprint a volume must span to count as enclosing the map.
 _ENCLOSING_SHARE = 0.9
 
@@ -184,6 +187,8 @@ class _MeshSource:
         if mesh_path in self.failed:
             return None
 
+        if mesh_path.startswith(_HOUDINI_PLACEHOLDER_PREFIX):
+            return None
         summary = self.scene.meshes.get(mesh_path) or {}
         mesh = self._render(summary["model"]) if summary.get("model") else None
         if mesh is None or len(mesh[1]) == 0:
