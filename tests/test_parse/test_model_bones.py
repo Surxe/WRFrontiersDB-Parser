@@ -3,6 +3,7 @@ import sys
 import tempfile
 import types
 import unittest
+from unittest import mock
 
 os.environ['SHOULD_PARSE'] = 'false'
 os.environ.setdefault('EXPORT_DIR', '/tmp/test_export')
@@ -105,6 +106,27 @@ class TestMergeMeshBones(unittest.TestCase):
         for i, b in enumerate(bones):
             self.assertLess(b['parent'], i)
         self.assertEqual([(b['name'], b['parent']) for b in bones], [('Root', -1), ('A', 0), ('B', 1)])
+
+
+class TestParseModels(unittest.TestCase):
+    def test_each_model_is_written_before_the_next_is_built(self):
+        from parsers.character_module import CharacterModule
+        modules = {'A': object(), 'B/C': object(), 'Empty': object()}
+        with tempfile.TemporaryDirectory() as tmp:
+            out_dir = os.path.join(tmp, 'Models')
+
+            def extract(cm):
+                cm_id = next(k for k, v in modules.items() if v is cm)
+                written = sorted(os.listdir(out_dir))
+                self.assertEqual(written, {'A': [], 'B/C': ['A.json'], 'Empty': ['A.json', 'B_C.json']}[cm_id])
+                return None if cm_id == 'Empty' else {'id': cm_id}
+
+            with mock.patch.object(CharacterModule, 'objects', modules), \
+                    mock.patch.object(model, 'OPTIONS', types.SimpleNamespace(output_dir=tmp)), \
+                    mock.patch.object(model, 'extract_module_model', extract):
+                self.assertEqual(model.parse_models(), 2)
+            with open(os.path.join(out_dir, 'B_C.json')) as f:
+                self.assertEqual(f.read(), '{"id":"B/C"}')
 
 
 if __name__ == '__main__':

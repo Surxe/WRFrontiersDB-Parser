@@ -410,29 +410,31 @@ def extract_module_model(character_module):
         'meshes': meshes,
     }
 
-def parse_models(to_file=True):
-    """Extract a model for every parsed CharacterModule. Returns {id: model}."""
+def parse_models():
+    """Extract and write a model for every parsed CharacterModule. Returns the count.
+
+    Each model is written as soon as it is built and then dropped: held together,
+    the models take about 2 GiB, the pipeline's peak (WRFrontiersDB G-0006-11).
+    """
     from parsers.character_module import CharacterModule
 
-    models = {}
+    out_dir = os.path.join(OPTIONS.output_dir, 'Models')
+    os.makedirs(out_dir, exist_ok=True)
+    written = 0
     for cm_id, cm in CharacterModule.objects.items():
         try:
             model = extract_module_model(cm)
         except Exception as e:
             logger.warning(f"Model extraction failed for {cm_id}: {e}")
-            model = None
-        if model is not None:
-            models[cm_id] = model
-
-    if to_file:
-        out_dir = os.path.join(OPTIONS.output_dir, 'Models')
-        os.makedirs(out_dir, exist_ok=True)
-        for cm_id, model in models.items():
-            safe_id = cm_id.replace('/', '_')
-            with open(os.path.join(out_dir, f'{safe_id}.json'), 'w', encoding='utf-8') as f:
-                json.dump(model, f, separators=(',', ':'))
-        logger.info(f"Wrote {len(models)} module models to {out_dir}")
-    return models
+            continue
+        if model is None:
+            continue
+        safe_id = cm_id.replace('/', '_')
+        with open(os.path.join(out_dir, f'{safe_id}.json'), 'w', encoding='utf-8') as f:
+            json.dump(model, f, separators=(',', ':'))
+        written += 1
+    logger.info(f"Wrote {written} module models to {out_dir}")
+    return written
 
 if __name__ == "__main__":
-    parse_models(to_file=True)
+    parse_models()
