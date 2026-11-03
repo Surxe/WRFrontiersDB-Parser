@@ -1409,6 +1409,7 @@ def p_actor_class(data: dict):
         "CooldownModifier": "value", #inhibitor field, seconds added to enemy ability cooldowns
         "ChargesModifier": "value", #inhibitor field
         "PulseIndex": None, #runtime state, inhibitor field's pulse counter (GetLostPulses/SetLastReduceTime)
+        "Duration": "value", #ravenous guard shield, blueprint default; the ability appears to set it at spawn from its own duration (InitialDuration)
     }
 
     parsed_data = process_key_to_parser_function(

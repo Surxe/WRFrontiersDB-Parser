@@ -372,6 +372,7 @@ class CharacterModule(ParseObject):
             key_to_parser_function = {
                 "TimeToCharge": "value",
                 "ShootOnFullCharge": "value",
+                "bAutoFireWhileCharged": "value", #relic punisher t, fires automatically once spun up
                 "ChargeModifiers": p_charge_modifiers,
                 "ChargedShotSound": None,
             }
