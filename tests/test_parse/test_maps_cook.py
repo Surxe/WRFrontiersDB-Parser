@@ -10,8 +10,8 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from maps_fixtures import IDENTITY, build_model, moved, write_scene  # noqa: E402
-from maps import bake, cook, scene  # noqa: E402
+from maps_fixtures import IDENTITY, build_model, moved, write_config, write_scene  # noqa: E402
+from maps import bake, collision, cook, scene  # noqa: E402
 
 TETRA_VERTICES = [[0, 0, 0], [100, 0, 0], [0, 100, 0], [0, 0, 100]]
 TETRA_INDICES = [0, 1, 2, 0, 1, 3, 0, 2, 3, 1, 2, 3]
@@ -30,6 +30,7 @@ def write_map(export_dir, exported_utc="2026-10-06T00:00:00Z"):
     """Arena: a rock in the playable box and one far outside it, a tree without collision,
     a hidden rock, a Spearhead sublevel with a drill mesh, a spawn and a probe, a Crusher sublevel."""
     os.makedirs(os.path.join(export_dir, "assets"), exist_ok=True)
+    write_config(export_dir)
     with open(os.path.join(export_dir, "assets", "tetra.uemodel"), "wb") as model_file:
         model_file.write(build_model(TETRA_VERTICES, TETRA_INDICES))
     os.makedirs(os.path.join(export_dir, "maps", "Arena", "navmesh"), exist_ok=True)
@@ -225,8 +226,12 @@ class TestCookMap(unittest.TestCase):
         pins = self._cook()
         out = self.root / "out"
         self.assertEqual(sorted(path.name for path in out.iterdir()),
-                         ["Arena.Spearhead.glb", "Arena.foliage.glb", "Arena.glb", "Arena.json"])
-        self.assertEqual(pins["files"], {"base": "Arena.glb", "foliage": "Arena.foliage.glb"})
+                         ["Arena.Spearhead.glb", "Arena.collision.bin", "Arena.foliage.glb", "Arena.glb", "Arena.json"])
+        self.assertEqual(pins["files"], {"base": "Arena.glb", "foliage": "Arena.foliage.glb", "collision": "Arena.collision.bin"})
+        # The meshes here carry no collision info, so nothing collides; the parts are still listed.
+        document, _ = collision.decode((out / "Arena.collision.bin").read_bytes())
+        self.assertEqual([part["id"] for part in document["parts"]], ["base", "Arena_Spearhead", "arena_crusher"])
+        self.assertEqual(document["modes"], {"Spearhead": ["Arena_Spearhead", "arena_crusher"]})
         self.assertEqual(list(pins["modes"]), ["Spearhead"])
         spearhead = pins["modes"]["Spearhead"]
         self.assertEqual((spearhead["sublevels"], spearhead["file"]), (["Arena_Spearhead", "arena_crusher"], "Arena.Spearhead.glb"))

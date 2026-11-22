@@ -10,7 +10,8 @@ The map list is the game's own: the maps the matchmaking queues list
 ST_MapNames names that no queue lists (the tutorial), and the firing range,
 which has no name. Each is cooked from MAPS_EXPORT_DIR (``maps/cook.py``) into
 ``Maps/`` in the output; ``Objects/Map.json`` lists them with their game modes and
-file names (relative to the output root, as the Site loads them).
+file names (relative to the output root, as the Site loads them; ``collision`` is what a
+robot collides with, ``maps/collision.py``).
 
 A game mode's map content is the sublevels its Blueprint loads visibly
 (``BP_GameMode_*`` ``SubLevels``: ``_Spearhead`` and ``_Crusher``, not the hidden
@@ -182,6 +183,8 @@ def parse_maps(to_file=False):
             "base": f"{MAPS_OUTPUT_DIR}/{pins['files']['base']}",
             "pins": f"{MAPS_OUTPUT_DIR}/{pins_file_name(map_id)}",
         }
+        if pins["files"].get("collision"):
+            game_map.files["collision"] = f"{MAPS_OUTPUT_DIR}/{pins['files']['collision']}"
         if pins["files"]["foliage"]:
             game_map.files["foliage"] = f"{MAPS_OUTPUT_DIR}/{pins['files']['foliage']}"
         game_map.modes = []

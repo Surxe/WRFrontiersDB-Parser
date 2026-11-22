@@ -88,3 +88,39 @@ def write_scene(export_dir, map_name, levels, actors, templates=None, meshes=Non
 
 def moved(x, y, z, scale=1.0):
     return {"t": [x, y, z], "q": [0, 0, 0, 1], "s": [scale, scale, scale]}
+
+
+BASE_ENGINE_INI = """[/Script/Engine.CollisionProfile]
++Profiles=(Name="NoCollision",CollisionEnabled=NoCollision,ObjectTypeName="WorldStatic",CustomResponses=((Channel="Visibility",Response=ECR_Ignore),(Channel="Camera",Response=ECR_Ignore)),HelpMessage="No collision",bCanModify=False)
++Profiles=(Name="BlockAll",CollisionEnabled=QueryAndPhysics,ObjectTypeName="WorldStatic",CustomResponses=,HelpMessage="Blocks all",bCanModify=False)
++Profiles=(Name="Pawn",CollisionEnabled=QueryAndPhysics,ObjectTypeName="Pawn",CustomResponses=((Channel="Visibility",Response=ECR_Ignore)),HelpMessage="Pawn",bCanModify=False)
+"""
+
+DEFAULT_ENGINE_INI = """[/Script/Engine.PhysicsSettings]
+DefaultGravityZ=-1400.000000
+
+[/Script/Engine.CollisionProfile]
+-Profiles=(Name="BlockAll",CollisionEnabled=QueryAndPhysics,ObjectTypeName="WorldStatic",CustomResponses=,HelpMessage="Blocks all",bCanModify=False)
++Profiles=(Name="BlockAll",CollisionEnabled=QueryAndPhysics,bCanModify=False,ObjectTypeName="WorldStatic",CustomResponses=,HelpMessage="Blocks all")
++Profiles=(Name="BlockAllDynamic",CollisionEnabled=QueryAndPhysics,bCanModify=False,ObjectTypeName="WorldDynamic",CustomResponses=,HelpMessage="")
++Profiles=(Name="OverlapAllDynamic",CollisionEnabled=QueryOnly,bCanModify=False,ObjectTypeName="WorldDynamic",CustomResponses=((Channel="WorldStatic",Response=ECR_Overlap),(Channel="Pawn",Response=ECR_Overlap)),HelpMessage="")
++Profiles=(Name="InvisibleWall",CollisionEnabled=QueryAndPhysics,bCanModify=False,ObjectTypeName="WorldStatic",CustomResponses=((Channel="Visibility",Response=ECR_Ignore)),HelpMessage="")
++Profiles=(Name="Walking",CollisionEnabled=QueryAndPhysics,bCanModify=True,ObjectTypeName="Walking",CustomResponses=((Channel="Pawn",Response=ECR_Ignore),(Channel="Walking")),HelpMessage="")
++Profiles=(Name="DestructibleBlockAll",CollisionEnabled=QueryAndPhysics,bCanModify=True,ObjectTypeName="Destructible",CustomResponses=,HelpMessage="")
++DefaultChannelResponses=(Channel=ECC_GameTraceChannel1,DefaultResponse=ECR_Block,bTraceType=False,bStaticObject=False,Name="Projectile")
++DefaultChannelResponses=(Channel=ECC_GameTraceChannel5,DefaultResponse=ECR_Ignore,bTraceType=False,bStaticObject=False,Name="Walking")
++DefaultChannelResponses=(Channel=ECC_GameTraceChannel7,DefaultResponse=ECR_Block,bTraceType=False,bStaticObject=False,Name="MapBoundariesWall")
++EditProfiles=(Name="Pawn",CustomResponses=((Channel="Projectile",Response=ECR_Ignore)))
++EditProfiles=(Name="NoCollision",CustomResponses=((Channel="WorldStatic",Response=ECR_Ignore),(Channel="Pawn",Response=ECR_Ignore),(Channel="MapBoundariesWall",Response=ECR_Ignore)))
++ProfileRedirects=(OldName="BlockingVolume",NewName="InvisibleWall")
+"""
+
+
+def write_config(export_dir):
+    """The two .ini files the collision profiles come from, cut down to a few profiles."""
+    for relative, text in (("Engine/Config/BaseEngine.ini", BASE_ENGINE_INI),
+                           ("WRFrontiers/Config/DefaultEngine.ini", DEFAULT_ENGINE_INI)):
+        path = os.path.join(export_dir, "config", relative)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as ini_file:
+            ini_file.write(text)
