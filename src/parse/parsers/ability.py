@@ -649,50 +649,60 @@ class Ability(ParseObject):
         )
     
     def _p_actions(self, list: dict):
-        parsed_actions = []
-        for elem in list:
-            data = asset_to_data(elem)
-            if 'Properties' not in data:
-                continue
-            action_data = data["Properties"]
-            
-            key_to_parser_function = {
-                "StartDelay": "value",
-                "CanStartOnGround": "value",
-                "CanStartMidair": "value",
-                "bHasDuration": "value",
-                "Duration": "value",
-                "MaxSpeedModifier": self._p_max_speed_modifier,
-                "bPlayVisualFX": None,
-                "StartImpulse": "value",
-                "bHasVelocityThreshold": "value",
-                "VelocityThreshold": "value",
-                "VerticalAcceleration": "value",
-                "RequestedDirectionAcceleration": "value",
-                "MinSpeedToStartAction": "value", #alpha chassis dash
-                "bBlocksAirControl": "value",
+        """Dash actions (SDashAction), each merged over its archetype.
+
+        A chassis Blueprint's SAction_N stores only the fields it changes; its Template is
+        BP_Ability_DashDefault's SAction_N, which holds the rest. An action with no Template
+        (a chassis's own extra action) or a field no Template sets is at the C++ default,
+        which is 0 / false for every SDashAction field, so it is left out. An action that
+        changes nothing is still listed, so indices keep matching the game's.
+        """
+        return [self._p_action(elem) for elem in list]
+
+    def _p_action(self, data: dict):
+        data = asset_to_data(data)
+        template_data = self._p_action(data["Template"]) if 'Template' in data else {}
+        if 'Properties' not in data:
+            return template_data
+        action_data = data["Properties"]
+
+        key_to_parser_function = {
+            "StartDelay": "value",
+            "CanStartOnGround": "value",
+            "CanStartMidair": "value",
+            "bHasDuration": "value",
+            "Duration": "value",
+            "MaxSpeedModifier": self._p_max_speed_modifier,
+            "bPlayVisualFX": None,
+            "StartImpulse": "value",
+            "bHasVelocityThreshold": "value",
+            "VelocityThreshold": "value",
+            "VerticalAcceleration": "value",
+            "RequestedDirectionAcceleration": "value",
+            "MinSpeedToStartAction": "value", #alpha chassis dash
+            "bBlocksAirControl": "value",
+        }
+
+        parsed_action = self._process_key_to_parser_function(
+            key_to_parser_function, action_data, log_descriptor="Action", set_attrs=False, default_configuration={
+                'target': ParseTarget.MATCH_KEY
             }
+        )
 
-            parsed_action = self._process_key_to_parser_function(
-                key_to_parser_function, action_data, log_descriptor="Action", set_attrs=False, default_configuration={
-                    'target': ParseTarget.MATCH_KEY
-                }
-            )
-
-            parsed_actions.append(parsed_action)
-
-        return parsed_actions
+        return merge_dicts(template_data, parsed_action)
 
     def _p_max_speed_modifier(self, data: dict):
+        """SSimpleFloatChannelModifier, merged over its archetype like the action that holds it."""
         data = asset_to_data(data)
+        template_data = self._p_max_speed_modifier(data["Template"]) if 'Template' in data else {}
         if "Properties" not in data:
-            return
+            return template_data
         parsed_data = dict()
         if "Value" in data["Properties"]:
             parsed_data["Value"] = data["Properties"]["Value"]
         if "Type" in data["Properties"]:
             parsed_data["Type"] = parse_colon_colon(data["Properties"]["Type"])
-        return parsed_data
+        return merge_dicts(template_data, parsed_data)
 
 
     def _p_ai_condition(self, data: dict) -> dict:

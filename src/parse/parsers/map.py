@@ -9,8 +9,9 @@ The map list is the game's own: the maps the matchmaking queues list
 (``DA_QueueCommonData.MapsLocalization``, keyed by the map's folder), the maps
 ST_MapNames names that no queue lists (the tutorial), and the firing range,
 which has no name. Each is cooked from MAPS_EXPORT_DIR (``maps/cook.py``) into
-``Maps/`` in the output; ``Objects/Map.json`` lists them with their game modes and
-file names (relative to the output root, as the Site loads them).
+``Maps/`` in the output; ``Objects/Map.json`` lists them with their game modes,
+file names (relative to the output root, as the Site loads them) and world physics
+(``physics``: gravity, terminal velocity, kill height; ``maps/physics.py``).
 
 A game mode's map content is the sublevels its Blueprint loads visibly
 (``BP_GameMode_*`` ``SubLevels``: ``_Spearhead`` and ``_Crusher``, not the hidden
@@ -28,6 +29,7 @@ from parsers.object import ParseObject
 from parsers.localization_table import parse_localization
 from parsers.game_mode import GameMode
 from maps.cook import cook_map, pins_file_name
+from maps.physics import physics_settings, parse_map_physics
 from maps.gltfpack import GLTFPACK_DIR, ensure_gltfpack
 
 QUEUE_COMMON_DATA_FILE = r"WRFrontiers\Content\Sparrow\UI\Meta\QueueModes\DataAssets\DA_QueueCommonData.json"
@@ -169,6 +171,8 @@ def parse_maps(to_file=False):
                 + "; ".join(f"{mode} ({', '.join(suffixes)})" for mode, suffixes in mode_sublevels.items()))
 
     gltfpack_cmd = ensure_gltfpack()
+    physics = physics_settings(maps_export_dir)
+    logger.info(f"Maps: physics settings {physics}")
     modes_by_id = {}
     for map_id, entry in entries.items():
         if not (maps_export_dir / "maps" / map_id / "scene.json").is_file():
@@ -176,6 +180,7 @@ def parse_maps(to_file=False):
             continue
         logger.debug(f"Parsing {Map.__name__} {map_id}")
         game_map = Map(map_id, entry)
+        game_map.physics = parse_map_physics(maps_export_dir, map_id, physics)
         pins = cook_map(maps_export_dir, map_id, mode_sublevels, out_dir, gltfpack_cmd, MAP_COOK_CACHE_DIR)
 
         game_map.files = {
