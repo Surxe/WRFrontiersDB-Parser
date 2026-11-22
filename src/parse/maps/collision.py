@@ -53,8 +53,12 @@ FLAG_BOUNDARY = 2  # the wall that fences in the playable area
 FLAG_CEILING = 4  # the slab that caps the playable area
 FLAG_DESTRUCTIBLE = 8  # can be destroyed in a match; exported intact
 FLAG_MOVING = 16  # moves in a match (SMovingPlatform); exported where it starts
+# Triangle meshes only: the body setup's bDoubleSidedGeometry. Without it Chaos culls the back faces
+# of a complex-as-simple mesh in sweeps unless the swept shape starts overlapping them
+# (ChaosInterfaceUtils.cpp SetCullsBackFaceRaycast(!bDoubleSided); FTriangleMeshSweepVisitor::VisitSweep).
+FLAG_DOUBLE_SIDED = 32
 FLAG_NAMES = {"hidden": FLAG_HIDDEN, "boundary": FLAG_BOUNDARY, "ceiling": FLAG_CEILING,
-              "destructible": FLAG_DESTRUCTIBLE, "moving": FLAG_MOVING}
+              "destructible": FLAG_DESTRUCTIBLE, "moving": FLAG_MOVING, "double_sided": FLAG_DOUBLE_SIDED}
 
 SIMPLE_AS_COMPLEX = "CTF_UseSimpleAsComplex"
 COMPLEX_AS_SIMPLE = "CTF_UseComplexAsSimple"
@@ -410,6 +414,8 @@ class _Builder:
         if geometry == "trimesh":
             trimesh = body["trimesh"]
             mesh = self.out.meshes.add(key and ("mesh", key), _flat(trimesh["vertices"], 3), _flat(trimesh["indices"], 3))
+            if body.get("double_sided"):
+                meta = [meta[0], meta[1] | FLAG_DOUBLE_SIDED, *meta[2:]]
             for t, q, s in transforms:
                 self.out.mesh_instances.append([mesh, *t, *q, *s])
                 self.out.meta["mesh_instances"].append(meta)
@@ -448,7 +454,9 @@ class _Builder:
             mesh = self.out.meshes.add(None, self.array(collision["vertices"]).reshape(-1, 3),
                                        self.array(collision["indices"]).reshape(-1, 3))
             self.out.mesh_instances.append([mesh, *t, *q, *(s * [cell, cell, 1.0])])
-            self.out.meta["mesh_instances"].append(meta)
+            # Landscape mesh collision is cooked with back-face culling off (ChaosCooking.cpp, default
+            # bCullsBackFaceRaycast false; the landscape never sets it), so it blocks from both sides.
+            self.out.meta["mesh_instances"].append([meta[0], meta[1] | FLAG_DOUBLE_SIDED, *meta[2:]])
             return
         heights = self.array(collision["heights"])
         rows, cols = int(collision["rows"]), int(collision["cols"])
