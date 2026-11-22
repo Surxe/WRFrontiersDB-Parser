@@ -108,10 +108,22 @@ class CharacterModule(ParseObject):
             self.misc = other_data
 
     def _p_module_scalar(self, data):
+        """The module's ModuleScaler, merged over its archetype chain.
+
+        A Blueprint's ModuleScaler stores only what it changes; its Template (e.g.
+        BP_Module_Chassis_Base's ModuleScaler, DefaultFuelCapacity 16) holds the rest.
+        """
         module_scalar_data = asset_to_data(data)
+        template_scalers = self._p_module_scalar(module_scalar_data["Template"]) if "Template" in module_scalar_data else None
         if "Properties" not in module_scalar_data:
-            return
-        
+            return template_scalers
+        own_scalers = self._p_own_module_scalar(module_scalar_data)
+        if template_scalers is None:
+            return own_scalers  # as parsed; merge_dicts would also drop its empty structs
+        return merge_dicts(template_scalers, own_scalers) or None
+
+    def _p_own_module_scalar(self, module_scalar_data):
+        """The ModuleScaler's own properties, without its archetype."""
         props = module_scalar_data["Properties"]
         # contains default damage related data that is overlayed by the FireMode and a few other smaller properties
 

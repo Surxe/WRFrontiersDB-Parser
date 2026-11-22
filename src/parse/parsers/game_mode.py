@@ -10,6 +10,7 @@ from parsers.object import ParseObject
 from parsers.ability import p_actor_class
 from parsers.bot_names import BotNames
 from parsers.honor_reward import HonorReward
+from parsers.character import Character
 
 class GameMode(ParseObject):
     objects = dict()
@@ -63,7 +64,7 @@ class GameMode(ParseObject):
             "RibbonSystemClass": None,
             "PostCombatPipelineClass": None, #UI
             "HonorSystemClass": (self._p_honor_system, "honor_rewards_refs"),
-            "DefaultPawnClass": None,
+            "DefaultPawnClass": (self._p_default_pawn, "default_pawn_ref"), #the robot pawn: movement component and fuel defaults
             "DefaultBotsConfig": None, #Intermediate for all modes; overridden server side by the list in meta root
             "DefaultPlayerName": None, #"Terminator" lmao
             "TitanSpawnScoreThreshold": "value", #0 for tdm?
@@ -89,7 +90,7 @@ class GameMode(ParseObject):
         
         # Store data that wasn't parsed separately into defaultable_data
         other_data = dict()
-        keys_to_store_as_attrs = ['match_rewards', 'base_protection_buff', 'titan_settings', 'ability_charge_settings', 'honor_system', 'bot_names']
+        keys_to_store_as_attrs = ['match_rewards', 'base_protection_buff', 'titan_settings', 'ability_charge_settings', 'honor_system', 'bot_names', 'default_pawn_ref']
         for key, value in parsed_data.items():
             if key not in keys_to_store_as_attrs:
                 other_data[key] = value
@@ -99,6 +100,9 @@ class GameMode(ParseObject):
         # Only store in obj if not empty
         if other_data:
             self.misc = other_data
+
+    def _p_default_pawn(self, data):
+        return Character.create_from_asset(data).to_ref()
 
     def _p_warp_probe_settings(self, data):
         return parse_colon_colon(data["SelectionMethod"])
@@ -203,6 +207,7 @@ def parse_game_modes(to_file=False):
 
     if to_file: # Condition prevents needlessly saving the same data multiple times, as it will also be saved if ran thru parse.py
         GameMode.to_file()
+        Character.to_file()
         BotNames.to_file()
         HonorReward.to_file()
 

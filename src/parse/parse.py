@@ -95,6 +95,7 @@ def main():
     PilotTalent.to_file()
 
     GameMode.to_file()
+    Character.to_file()
     BotNames.to_file()
     HonorReward.to_file()
 

@@ -45,7 +45,7 @@ Exporter's map export (`MAPS_EXPORT_DIR`, BatchExport's map mode). Code: `src/pa
 
 | Output | Content |
 |--------|---------|
-| `Objects/Map.json` | The released maps (the game's queue list, `ST_MapNames`, the firing range) with their localized names, game modes and file names |
+| `Objects/Map.json` | The released maps (the game's queue list, `ST_MapNames`, the firing range) with their localized names, game modes, file names and world physics (`physics`: `GravityZ`, `TerminalVelocity`, and `KillZ` when the map sets one; from the world settings and the game's `.ini` files in the map export's `config/`, see `src/parse/maps/physics.py`) |
 | `Maps/<Map>.glb` | Render geometry every match has, instanced and meshopt-compressed by gltfpack |
 | `Maps/<Map>.foliage.glb` | Trees, bushes and grass, simplified hard; the Site toggles them |
 | `Maps/<Map>.<Mode>.glb` | Geometry a game mode adds (e.g. Mont's drill), when there is any |
