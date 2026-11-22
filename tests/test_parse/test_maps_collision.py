@@ -333,6 +333,15 @@ class TestBuild(unittest.TestCase):
         triangles = self.read(self.document["meshes"]["triangles"])
         self.assertEqual(triangles.tolist(), [[0, 1, 2], [0, 2, 1]])  # kept as exported (already UE's order)
 
+    def test_double_sided_meshes(self):
+        # A complex-as-simple mesh without bDoubleSidedGeometry is one-sided for sweeps; landscape mesh
+        # collision is always double-sided (Chaos cooks it without back-face culling).
+        names = self.document["flags"]
+        flags = self.read(self.document["mesh_instances"]["meta"])[:, 1].tolist()
+        self.assertFalse(flags[0] & names["double_sided"])
+        self.assertTrue(flags[1] & names["double_sided"])
+        self.assertEqual(self.document["flags"]["double_sided"], 32)
+
     def test_landscape_heightfield_spacing_heights_and_holes(self):
         grid = self.read(self.document["heightfields"]["grid"])
         decode = self.read(self.document["heightfields"]["decode"])
