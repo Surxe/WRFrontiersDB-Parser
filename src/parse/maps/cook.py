@@ -8,6 +8,7 @@ under ``Maps/`` in the parser's output:
 | ``<Map>.glb`` | The map as every match has it: the always-loaded levels, drawn instances only (no hidden ones, boundary wall, ceiling or brushes), cut to the instances touching the playable box, without foliage |
 | ``<Map>.foliage.glb`` | The foliage: no-collision instances of meshes under ``/Environment/Foliage/`` (trees, bushes, grass), simplified hard. Tens of millions of triangles on the jungle maps, so the Site toggles it |
 | ``<Map>.<Mode>.glb`` | Geometry a game mode adds: the drawn instances in the sublevels it loads visibly (Mont's ``_Crusher``). Only written when not empty |
+| ``<Map>.collision.bin`` | What a robot collides with: every part the game can load (base, game-mode sublevels, lighting variants), as primitives, convex hulls, triangle meshes and the landscape collision heightfields (``collision.py``) |
 | ``<Map>.json`` | Per mode, the pins (spawns, beacons, probes, power-ups, ...) slimmed from ``objectives.extract``, plus the file list and the input hash |
 
 The GLBs hold render geometry (LOD0) with normals, untextured: each unique mesh once and
@@ -34,12 +35,14 @@ import numpy as np
 from loguru import logger
 
 from . import bake as baking
+from . import collision as collisions
+from .collision_profiles import CONFIG_FILES, CollisionProfiles
 from .gltfpack import GLTFPACK_VERSION, run_gltfpack
 from .objectives import extract
 from .scene import Scene
 
 # Bump on any change to what the cook writes, so cached maps are cooked again.
-COOK_VERSION = 1
+COOK_VERSION = 2
 PACK_OPTIONS = ["-cc", "-mi", "-vpf"]
 FOLIAGE_PATH = "/Environment/Foliage/"
 # Foliage meshes are up to 2,500 triangles at LOD0 and placed tens of thousands of times
@@ -334,6 +337,8 @@ def input_hash(scene: Scene, settings: dict) -> str:
         for key in ("model", "info"):
             if mesh.get(key):
                 files.add(scene.file(mesh[key]))
+    # The collision profiles come from the game's config.
+    files.update(scene.export_dir / "config" / name for name in CONFIG_FILES)
     for file in sorted(files):
         digest.update(str(file.relative_to(scene.export_dir)).encode())
         if file.is_file():
@@ -347,7 +352,7 @@ def pins_file_name(map_name: str) -> str:
 
 def cooked_files(pins: dict) -> List[str]:
     """Every file a cook wrote, the pins file included."""
-    files = [pins_file_name(pins["map"]), pins["files"]["base"], pins["files"]["foliage"]]
+    files = [pins_file_name(pins["map"]), pins["files"]["base"], pins["files"]["foliage"], pins["files"].get("collision")]
     files += [mode["file"] for mode in pins["modes"].values()]
     return [file for file in files if file]
 
@@ -393,6 +398,7 @@ def cook_map(export_dir: Path, map_name: str, mode_sublevels: Dict[str, List[str
     settings = {
         "cook_version": COOK_VERSION, "gltfpack": GLTFPACK_VERSION, "pack_options": PACK_OPTIONS,
         "foliage_pack_options": FOLIAGE_PACK_OPTIONS, "margin": MARGIN, "landscape_stride": LANDSCAPE_STRIDE,
+        "collision_format": collisions.FORMAT_VERSION,
         "modes": modes,
     }
     digest = input_hash(scene, settings)
@@ -436,6 +442,15 @@ def cook_map(export_dir: Path, map_name: str, mode_sublevels: Dict[str, List[str
             mode_files[mode] = file if counts else None
             if counts:
                 logger.info(f"Map {map_name}: {mode} geometry ({', '.join(levels)}): {_describe(counts)}")
+
+    profiles = CollisionProfiles.from_config(export_dir / "config")
+    map_collision = collisions.build(scene, profiles, modes)
+    files["collision"] = f"{map_name}.collision.bin"
+    collision_file = out_dir / files["collision"]
+    collision_file.write_bytes(collisions.encode(map_collision))
+    logger.info(f"Map {map_name}: collision: {map_collision.collider_count():,} colliders "
+                f"({', '.join(f'{key} {value:,}' for key, value in map_collision.counts().items() if value)}), "
+                f"{collision_file.stat().st_size / 1e6:.1f} MB; dropped sublevels: {', '.join(map_collision.dropped_sublevels) or 'none'}")
 
     objectives = extract(scene)
     pins = {

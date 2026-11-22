@@ -18,8 +18,9 @@ one repo that changes on every patch; the human process for that is
 - `src/parse/analysis.py`, `src/parse/enrichment.py` - derived data after parsing.
 - `src/parse/maps/` - the 3D maps (`SHOULD_PARSE_MAPS`): `ueformat.py` (the one `.uemodel`
   reader, also used by `parsers/model.py`), `scene.py` / `bake.py` / `objectives.py` (the map
-  export as mesh library + instances, and its gameplay objects), `cook.py` (the GLBs + pins
-  under `Maps/`). The map list is `parsers/map.py`.
+  export as mesh library + instances, and its gameplay objects), `collision_profiles.py` /
+  `collision.py` (what a robot collides with, `Maps/<Map>.collision.bin`), `cook.py` (the GLBs,
+  collision + pins under `Maps/`). The map list is `parsers/map.py`.
 - `src/push/push.py` - push to the data repo (the pipeline does this; you never do).
 - `tools/` - `patch_day.sh`, `warning_report.py`, `asset-viewer/`.
 
